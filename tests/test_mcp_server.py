@@ -85,13 +85,17 @@ class McpServerTests(unittest.TestCase):
         response = self._read()
         self.assertEqual(response["result"]["protocolVersion"], "2025-06-18")
 
-    def test_tools_list_exposes_five_tools_with_schemas(self):
+    def test_tools_list_exposes_six_tools_with_schemas(self):
         self._initialize()
         self._request("tools/list", {}, msg_id=2)
         response = self._read()
         tools = {t["name"]: t for t in response["result"]["tools"]}
         self.assertEqual(set(tools), {"claim_brief", "claim_record", "claim_claims",
-                                      "claim_recall", "claim_suggest"})
+                                      "claim_recall", "claim_resolve", "claim_suggest"})
+        self.assertEqual(tools["claim_resolve"]["inputSchema"]["required"],
+                         ["claim_id", "outcome"])
+        self.assertIn("at", tools["claim_brief"]["inputSchema"]["properties"])
+        self.assertIn("depends_on", tools["claim_record"]["inputSchema"]["properties"])
         self.assertEqual(tools["claim_record"]["inputSchema"]["required"], ["text"])
         self.assertEqual(tools["claim_recall"]["inputSchema"]["required"], ["query"])
         self.assertEqual(tools["claim_suggest"]["inputSchema"]["required"], ["text"])
@@ -204,6 +208,63 @@ class McpServerTests(unittest.TestCase):
         self._initialize()
         self._call("claim_record", {"text": "启动时绑定的库"}, msg_id=16)
         self.assertTrue(self.store_path.is_file())
+
+    def test_resolve_closes_a_dispute_over_mcp(self):
+        self._initialize()
+        standing = self._result_text(self._call(
+            "claim_record", {"text": "数据库统一使用 SQLite", "topic": "database"}, msg_id=30))
+        disputed = self._result_text(self._call(
+            "claim_record",
+            {"text": "数据库统一使用 PostgreSQL", "topic": "database", "dispute": True},
+            msg_id=31))
+        self.assertEqual(disputed["recorded"]["disputes"], [standing["recorded"]["claim_id"]])
+        resolved = self._result_text(self._call(
+            "claim_resolve",
+            {"claim_id": disputed["recorded"]["claim_id"], "outcome": "sustain"},
+            msg_id=32))
+        self.assertTrue(resolved["ok"])
+        self.assertTrue(resolved["promoted"])
+        rows = self._result_text(self._call(
+            "claim_claims", {"status": "all"}, msg_id=33))
+        by_id = {c["claim_id"]: c for c in rows["claims"]}
+        self.assertEqual(by_id[disputed["recorded"]["claim_id"]]["status"], "现行")
+        self.assertEqual(by_id[standing["recorded"]["claim_id"]]["status"], "已过期")
+
+    def test_brief_and_claims_reconstruct_as_of_an_instant(self):
+        self._initialize()
+        recorded = self._result_text(self._call(
+            "claim_record", {"text": "缓存由网关统一管理", "topic": "cache"}, msg_id=40))
+        self.assertTrue(recorded["ok"])
+        future = self._result_text(self._call(
+            "claim_claims", {"status": "current", "at": "2999-01-01T00:00:00Z"}, msg_id=41))
+        self.assertEqual(future["count"], 1)
+        packet = self._result_text(self._call(
+            "claim_brief", {"at": "2000-01-01T00:00:00Z"}, msg_id=42))
+        self.assertEqual(packet["counts"]["current"], 0)
+        self.assertEqual(packet["at"], "2000-01-01T00:00:00Z")
+
+    def test_record_with_depends_on_flags_fallen_premise_in_brief(self):
+        self._initialize()
+        premise = self._result_text(self._call(
+            "claim_record", {"text": "平台团队长期维护 PostgreSQL", "topic": "database"},
+            msg_id=50))
+        dependent = self._result_text(self._call(
+            "claim_record",
+            {"text": "数据库统一使用 PostgreSQL", "topic": "database",
+             "depends_on": [premise["recorded"]["claim_id"]]},
+            msg_id=51))
+        self.assertEqual(dependent["recorded"]["depends_on"],
+                         [premise["recorded"]["claim_id"]])
+        collapsed = self._result_text(self._call(
+            "claim_record",
+            {"text": "平台团队解散，无人维护 PostgreSQL", "topic": "database",
+             "supersedes": premise["recorded"]["claim_id"]},
+            msg_id=52))
+        self.assertTrue(collapsed["ok"])
+        brief = self._call("claim_brief", {}, msg_id=53)
+        text = brief["result"]["content"][0]["text"]
+        self.assertIn('"unmotivated"', text)
+        self.assertIn(dependent["recorded"]["claim_id"], text)
 
 
 if __name__ == "__main__":

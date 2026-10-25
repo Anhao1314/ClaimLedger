@@ -1,4 +1,4 @@
-"""MCP stdio server exposing the claim store as tools: brief, record, claims.
+"""MCP stdio server exposing the claim store as tools: brief, record, resolve, claims.
 
 Zero dependencies: newline-delimited JSON-RPC 2.0 on stdin/stdout, diagnostics
 on stderr only. The store is bound at launch (--store or CLAIM_LEDGER_STORE);
@@ -46,6 +46,8 @@ def _tool_definitions():
                     "scope": {"type": "string",
                               "description": "restrict the brief to claims applying to this scope (all-scope claims always apply)"},
                     "max_bytes": {"type": "integer", "description": "byte budget, 256..1048576, default 8192"},
+                    "at": {"type": "string",
+                           "description": "optional UTC timestamp: reconstruct the brief as of that instant — what the ledger believed then"},
                 },
             },
         },
@@ -79,8 +81,39 @@ def _tool_definitions():
                               "description": "where the claim applies, e.g. production; default 'all'. Decisions in disjoint scopes do not conflict"},
                     "expires_at": {"type": "string",
                                    "description": "optional UTC timestamp (YYYY-MM-DDTHH:MM:SSZ) after which the claim stops counting as current"},
+                    "valid_from": {"type": "string",
+                                   "description": "optional UTC timestamp the decision started being true (a future value schedules it)"},
+                    "valid_to": {"type": "string",
+                                 "description": "optional UTC timestamp the decision stopped being true; backdating is allowed"},
+                    "depends_on": {
+                        "anyOf": [
+                            {"type": "string"},
+                            {"type": "array", "items": {"type": "string"}},
+                        ],
+                        "description": "claim_id or list of claim_ids this decision relies on; when a premise falls, the brief reports this claim as unmotivated instead of settled",
+                    },
                 },
                 "required": ["text"],
+            },
+        },
+        {
+            "name": "claim_resolve",
+            "description": (
+                "Close a recorded dispute. sustain: the objection wins — it becomes current "
+                "and supersedes the claims it disputed. withdraw: the objection is retracted "
+                "in favour of the standing claim. supersede (requires text): a new decision "
+                "replaces both the dispute and its standing targets. Every outcome keeps the "
+                "supersession chain valid; nothing is merged silently."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "claim_id": {"type": "string", "description": "the disputed claim to close"},
+                    "outcome": {"type": "string", "enum": ["sustain", "withdraw", "supersede"]},
+                    "text": {"type": "string", "description": "required for outcome=supersede: the new decision"},
+                    "topic": {"type": "string", "description": "topic for the new decision, default 'general'"},
+                },
+                "required": ["claim_id", "outcome"],
             },
         },
         {
@@ -145,6 +178,8 @@ def _tool_definitions():
                     "topic": {"type": "string"},
                     "query": {"type": "string"},
                     "limit": {"type": "integer", "description": "1..1000, default 100"},
+                    "at": {"type": "string",
+                           "description": "optional UTC timestamp: filter by status as of that instant; requires an explicit status, not 'all'"},
                 },
             },
         },
@@ -198,7 +233,7 @@ class McpServer:
             name = params.get("name")
             arguments = params.get("arguments") or {}
             if name not in ("claim_brief", "claim_record", "claim_claims", "claim_recall",
-                            "claim_suggest"):
+                            "claim_resolve", "claim_suggest"):
                 raise MethodError(-32602, f"unknown tool: {name!r}")
             return self._call_tool(name, arguments)
         raise MethodError(-32601, f"method not found: {method}")
@@ -208,7 +243,8 @@ class McpServer:
             if name == "claim_brief":
                 packet = self.store.brief(max_bytes=arguments.get("max_bytes", DEFAULT_MAX_BYTES),
                                           topic=arguments.get("topic"),
-                                          scope=arguments.get("scope"))
+                                          scope=arguments.get("scope"),
+                                          at=arguments.get("at"))
                 from .recovery import serialize_packet
                 # Ship the canonical wire so the agent-visible byte count equals used_bytes.
                 return _text_result(serialize_packet(packet))
@@ -244,11 +280,22 @@ class McpServer:
                     quote=arguments.get("quote"),
                     session_hint=arguments.get("session_hint"),
                     scope=arguments.get("scope"),
-                    expires_at=arguments.get("expires_at"))
+                    expires_at=arguments.get("expires_at"),
+                    valid_from=arguments.get("valid_from"),
+                    valid_to=arguments.get("valid_to"),
+                    depends_on=arguments.get("depends_on"))
+                return _text_result(receipt)
+            if name == "claim_resolve":
+                receipt = self.store.resolve(
+                    arguments.get("claim_id"),
+                    outcome=arguments.get("outcome"),
+                    text=arguments.get("text"),
+                    topic=arguments.get("topic"))
                 return _text_result(receipt)
             rows = self.store.claims(status=arguments.get("status", "current"),
                                      topic=arguments.get("topic"),
-                                     query=arguments.get("query"))
+                                     query=arguments.get("query"),
+                                     at=arguments.get("at"))
             limit = arguments.get("limit", 100)
             return _text_result({"ok": True, "count": len(rows), "claims": rows[:limit]})
         except (ClaimStoreError, OSError, ValueError) as exc:
