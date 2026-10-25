@@ -12,3 +12,7 @@ build/
 dist/
 *.egg-info/
 .venv/
+
+# LongMemEval-S is downloaded, not vendored; its manifest and stats stay tracked.
+benchmarks/longmemeval/data/*
+!benchmarks/longmemeval/data/manifest.json

@@ -10,6 +10,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from metrics import metrics
 from memory_identity import validate, objects, json_text
 from query_memory import lexical_score, search, load_index
 
@@ -31,17 +33,6 @@ def load_fixtures(directory):
     if {r['memory_id'] for r in raw} != ids or len(raw) != len(ids):
         raise ValueError('raw provenance mapping must cover every memory exactly once')
     return data, cases['cases'], raw
-
-
-def metrics(runs, statuses):
-    n = len(runs)
-    result = {}
-    for k in (1, 3, 5):
-        result[f'Recall@{k}'] = sum(len(set(r['ids'][:k]) & set(r['expected'])) / len(set(r['expected'])) for r in runs) / n
-        for name, status in [('stale-hit', '已过期'), ('controversial-hit', '有争议')]:
-            result[f'{name}@{k}'] = sum(any(statuses[x] == status for x in r['ids'][:k]) for r in runs) / n
-    result['MRR'] = sum(next((1 / (i+1) for i, x in enumerate(r['ids']) if x in r['expected']), 0) for r in runs) / n
-    return {k: round(v, 6) for k, v in result.items()}
 
 
 # Query-intent annotations live in the evaluator, not the frozen fixture or ranking code.
