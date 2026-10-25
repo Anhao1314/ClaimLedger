@@ -109,6 +109,9 @@ function toast(message, isError = false) {
   el.textContent = message;
   el.className = 'toast' + (isError ? ' toast--error' : '');
   el.hidden = false;
+  el.style.animation = 'none';
+  void el.offsetWidth;        // restart the entrance animation on each show
+  el.style.animation = '';
   clearTimeout(toast._timer);
   toast._timer = setTimeout(() => { el.hidden = true; }, 3400);
 }
@@ -525,6 +528,7 @@ async function previewProposal() {
 
 async function boot() {
   applyI18n();
+  setTimeout(() => document.body.classList.remove('first-paint'), 700);
   wireWhen();
   wireDev();
   $('#langBtn').addEventListener('click', () => {
