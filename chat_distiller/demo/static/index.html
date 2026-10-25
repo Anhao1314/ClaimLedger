@@ -80,14 +80,14 @@
 
   <div class="composer" id="composer">
     <div class="composer__shell">
-      <div class="composer__chips">
-        <input id="fTopic" class="chip-input" value="general" maxlength="40"
-               pattern="[a-z0-9][a-z0-9-]{0,39}" aria-label="topic">
-        <div class="examples" id="examples"></div>
-      </div>
-      <div class="composer__row">
-        <textarea id="fText" rows="1" placeholder="记一条决定…" maxlength="1000"></textarea>
-        <button class="send" id="recordBtn" type="button" title="记录" aria-label="记录">↑</button>
+      <textarea id="fText" rows="1" placeholder="记一条决定… (Enter 记录 · Shift+Enter 换行)" maxlength="1000"></textarea>
+      <div class="composer__bar">
+        <div class="composer__left examples" id="examples"></div>
+        <div class="composer__right">
+          <input id="fTopic" class="topic-pill" value="general" maxlength="40"
+                 pattern="[a-z0-9][a-z0-9-]{0,39}" aria-label="topic">
+          <button class="send" id="recordBtn" type="button" title="记录" aria-label="记录" disabled>↑</button>
+        </div>
       </div>
     </div>
     <p class="composer__note"><span id="composerNote">写入真实的 JSONL 台账 · 冲突会被拒绝并摊开</span>

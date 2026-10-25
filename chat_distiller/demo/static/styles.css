@@ -253,42 +253,53 @@ input, textarea, select { font: inherit; color: inherit; }
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 24px;
   box-shadow: rgba(0, 0, 0, 0.07) 0px 5px 16px -4px;
-  padding: 10px 12px 10px 16px;
+  padding: 0 0 8px;
   transition: border-color var(--t-fast), box-shadow var(--t-fast);
 }
 .composer__shell:focus-within {
   border-color: rgba(0, 0, 0, 0.12);
   box-shadow: rgba(0, 0, 0, 0.1) 0px 8px 24px -6px;
 }
-.composer__chips {
-  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-.composer__row {
-  display: flex; align-items: flex-end; gap: 10px;
-}
-.composer__row textarea {
-  flex: 1; border: none; outline: none; resize: none;
-  font-size: 16px; line-height: 24px; max-height: 132px; padding: 6px 0;
+.composer__shell textarea {
+  display: block; width: 100%;
+  border: none; outline: none; resize: none;
+  padding: 12px 16px 4px;
+  font-size: 16px; line-height: 24px;
+  min-height: 48px; max-height: 144px; overflow-y: auto;
   background: transparent; color: var(--text);
 }
+.composer__shell textarea::placeholder { color: var(--dim); }
+
+.composer__bar {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 4px; padding: 0 8px;
+}
+.composer__left { display: flex; gap: 0; flex-wrap: wrap; }
+.composer__right { display: flex; align-items: center; gap: 8px; flex: none; }
+
+.topic-pill {
+  border: none; background: transparent;
+  font-family: var(--mono); font-size: 13px; line-height: 20px;
+  padding: 8px 10px 8px 8px; border-radius: 20px;
+  width: 108px; color: var(--muted);
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.topic-pill:hover { background: var(--hover-fill); }
+.topic-pill:focus { outline: none; background: var(--hover-fill); color: var(--text); }
+
 .send {
-  flex: none; width: 34px; height: 34px;
+  flex: none; width: 36px; height: 36px; padding: 0;
   display: inline-flex; align-items: center; justify-content: center;
-  border: none; border-radius: 10px;
+  border: none; border-radius: 22px;
   background: var(--blue); color: #fff;
-  font-size: 18px; line-height: 1; font-weight: 500;
-  transition: background-color var(--t-fast), transform var(--t-fast);
+  font-size: 19px; line-height: 1; font-weight: 500;
+  transition: background-color var(--t-fast), transform var(--t-fast),
+              opacity var(--t-fast);
 }
-.send:hover { background: var(--blue-hover); }
-.send:active { transform: scale(0.94); }
-.chip-input {
-  border: 1px solid var(--line); border-radius: 20px; background: transparent;
-  font-family: var(--mono); font-size: 12px; padding: 3px 12px; width: 118px;
-  color: var(--muted);
-  transition: border-color var(--t-fast), color var(--t-fast);
-}
-.chip-input:focus { border-color: var(--blue); color: var(--text); outline: none; }
+.send:hover:not(:disabled) { background: var(--blue-hover); }
+.send:active:not(:disabled) { transform: scale(0.92); }
+.send:disabled { background: rgba(0, 0, 0, 0.15); cursor: default; }
+
 .examples { display: flex; gap: 0; flex-wrap: wrap; }
 .example {
   border: none; background: none; color: var(--muted);
@@ -406,4 +417,11 @@ input, textarea, select { font: inherit; color: inherit; }
   .page { padding: 20px 14px 8px; }
   .claim__topic { display: none; }
   .when__label { display: none; }
+  .composer { padding: 10px 10px 12px; }
+  .composer__shell { border-radius: 18px; }
+  .composer__shell textarea { font-size: 16px; padding: 10px 12px 4px; }
+  .composer__bar { padding: 0 6px; }
+  .topic-pill { width: 86px; padding: 6px 8px; }
+  .example { font-size: 13px; padding: 6px 9px; }
+  .lede { font-size: 18px; line-height: 27px; }
 }

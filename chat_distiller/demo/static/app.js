@@ -339,8 +339,15 @@ function wireResolveButtons() {
 
 function wireComposer() {
   const textEl = $('#fText');
-  const autoGrow = () => { textEl.style.height = 'auto'; textEl.style.height = Math.min(textEl.scrollHeight, 132) + 'px'; };
-  textEl.addEventListener('input', autoGrow);
+  const sendBtn = $('#recordBtn');
+  const sync = () => {
+    // Auto-grow up to six lines, then scroll inside — Kimi's editor behavior.
+    textEl.style.height = 'auto';
+    textEl.style.height = Math.min(textEl.scrollHeight, 144) + 'px';
+    // The send button wakes up only with text, like Kimi's disabled gray state.
+    sendBtn.disabled = !textEl.value.trim();
+  };
+  textEl.addEventListener('input', sync);
   textEl.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); submit(); }
   });
@@ -359,7 +366,7 @@ function wireComposer() {
     btn.addEventListener('click', () => {
       $('#fText').value = ex.text;
       $('#fTopic').value = ex.topic;
-      autoGrow();
+      sync();
       $('#fText').focus();
     });
     box.appendChild(btn);
@@ -380,6 +387,8 @@ async function submit() {
   }
   if (!body.ok) { toast(body.error, true); return; }
   $('#fText').value = '';
+  $('#recordBtn').disabled = true;
+  $('#fText').style.height = '';
   toast(t('recorded')(shortId(body.receipt.claim_id)));
   refresh();
 }
@@ -410,6 +419,7 @@ async function resolveConflict(mode) {
   });
   if (!body.ok) { toast(body.error, true); return; }
   $('#fText').value = '';
+  $('#recordBtn').disabled = true;
   hideConflict();
   toast(mode === 'supersede'
     ? t('supersededOk')(body.receipt.superseded_claims.map(shortId).join(', '))
