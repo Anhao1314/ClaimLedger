@@ -1,563 +1,158 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ClaimLedger · Decision ledger demo</title>
-<meta name="description" content="A local, zero-dependency demo of ClaimLedger: record decisions, refuse silent conflicts, render byte-budgeted briefs, and ground RAG evidence in the same status policy.">
+<title>ClaimLedger · 决定台账</title>
+<meta name="description" content="一台 Agent 记下的决定，下一台 Agent 接着用。冲突拒写、争议摊开、过期不冒充现状——全部本地，零模型调用。">
 <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
 <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-<a class="skip-link" href="#main" data-i18n="skip">Skip to content</a>
-<div class="shell">
-  <aside class="sidebar" aria-label="Demo navigation">
-    <a class="brand" href="#ledger">
-      <img src="/static/mark.svg" alt="" width="40" height="40">
-      <span class="brand__text">
-        <strong>ClaimLedger</strong>
-        <span data-i18n="brand.tagline">decision ledger</span>
-      </span>
-    </a>
 
-    <nav class="nav" id="nav">
-      <button class="nav__item" data-view="ledger" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg>
-        <span data-i18n="nav.ledger">Ledger</span><span class="nav__count" id="navCount">–</span>
-      </button>
-      <button class="nav__item" data-view="record" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        <span data-i18n="nav.record">Record</span>
-      </button>
-      <button class="nav__item" data-view="brief" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6zM9 10h6M9 14h6M9 18h4"/></svg>
-        <span data-i18n="nav.brief">Brief</span>
-      </button>
-      <button class="nav__item" data-view="search" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg>
-        <span data-i18n="nav.search">Search</span>
-      </button>
-      <button class="nav__item" data-view="context" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M4 11h16M4 16h12"/><circle cx="20" cy="6" r="2"/><circle cx="20" cy="16" r="2"/></svg>
-        <span data-i18n="nav.context">Context</span>
-      </button>
-      <button class="nav__item" data-view="evidence" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 16v-5M13 16V7M18 16v-8"/></svg>
-        <span data-i18n="nav.evidence">Evidence</span>
-      </button>
-      <button class="nav__item" data-view="safety" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.2 8.4-7 10-3.8-1.6-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
-        <span data-i18n="nav.safety">Safety</span>
-      </button>
-    </nav>
-
-    <div class="sidebar__spacer"></div>
-
-    <div class="store-card">
-      <div class="store-card__head">
-        <span class="live-dot" aria-hidden="true"></span>
-        <span id="storeMode">Live demo store</span>
-      </div>
-      <p class="store-card__project" id="storeProject">Atlas API</p>
-      <p class="store-card__meta"><span id="storeCount">–</span> <span data-i18n="store.claims">claims</span> · <span id="storeBytes">–</span></p>
-      <p class="store-card__digest"><span>sha256</span><code id="storeDigest">–</code></p>
-      <div class="store-card__actions">
-        <button id="resetBtn" class="mini-btn" type="button" data-i18n-title="store.resetTitle">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11a8 8 0 1 1 2.3 5.7M4 4v7h7"/></svg>
-          <span data-i18n="store.reset">Reset</span>
-        </button>
-        <a class="mini-btn" href="https://github.com/Anhao1314/ClaimLedger" target="_blank" rel="noreferrer">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4 1.5-4-2.5-6-3m12 6v-3.9c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12 12 0 0 0-6.2 0C6.5 3 5.4 3.3 5.4 3.3a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.7c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V22"/></svg>
-          GitHub
-        </a>
-      </div>
+<header class="topbar">
+  <div class="topbar__brand">
+    <img src="/static/mark.svg" alt="" class="topbar__mark">
+    <div class="topbar__title">
+      <strong id="scenarioName">Atlas API</strong>
+      <span class="topbar__sub" id="scenarioKicker">synthetic project</span>
     </div>
-    <p class="sidebar__foot" data-i18n="sidebar.foot">Zero dependencies · zero model calls</p>
-  </aside>
-
-  <main class="main" id="main">
-    <header class="topbar">
-      <div class="topbar__crumb"><span class="live-dot" aria-hidden="true"></span> <span data-i18n="topbar.local">Local demo</span> <span class="sep">/</span> <span id="crumb">Ledger</span></div>
-      <div class="topbar__right">
-        <span class="mono-chip" data-i18n-title="topbar.modelCallsTitle" data-i18n="topbar.modelCalls">model calls: 0</span>
-        <button class="ghost-btn" type="button" id="langBtn" title="切换 / switch language">中文</button>
-        <button class="ghost-btn" type="button" id="storyBtn">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg>
-          <span><span data-i18n="story.try">Try</span> <span class="story-long" data-i18n="story.long">the conflict case</span><span class="story-short" data-i18n="story.short">a conflict</span></span>
-        </button>
-      </div>
-    </header>
-
-    <div class="mode-banner" id="modeBanner" hidden role="status">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-      <div>
-        <strong data-i18n="mode.title">Read-only ledger</strong>
-        <span data-i18n-html="mode.body">This demo is bound to an existing store. Restart with <code>--write</code> to record; reset is disabled.</span>
-      </div>
-    </div>
-
-    <section class="view" id="view-ledger" data-view-panel="ledger">
-      <header class="page-head">
-        <div>
-          <p class="eyebrow" data-i18n="ledger.eyebrow">Decision ledger</p>
-          <h1 data-i18n="ledger.h1">Everything still counts — or it says why not.</h1>
-          <p class="lede" data-i18n="ledger.lede">One JSONL file is the authority. Claims carry a status and a source; supersession keeps the old decision as history instead of deleting it.</p>
-        </div>
-      </header>
-
-      <div class="metrics" aria-label="Ledger summary">
-        <div class="metric metric--current">
-          <span class="metric__label"><span class="dot dot--current"></span><span data-i18n="status.current">Current</span></span>
-          <strong id="metricCurrent">–</strong>
-          <span class="metric__hint" data-i18n="ledger.hint.current">served by the brief</span>
-        </div>
-        <div class="metric metric--disputed">
-          <span class="metric__label"><span class="dot dot--disputed"></span><span data-i18n="status.disputed">Disputed</span></span>
-          <strong id="metricDisputed">–</strong>
-          <span class="metric__hint" data-i18n="ledger.hint.disputed">surfaced for review</span>
-        </div>
-        <div class="metric metric--superseded">
-          <span class="metric__label"><span class="dot dot--superseded"></span><span data-i18n="status.superseded">Superseded</span></span>
-          <strong id="metricSuperseded">–</strong>
-          <span class="metric__hint" data-i18n="ledger.hint.superseded">kept as history</span>
-        </div>
-        <div class="metric metric--bytes">
-          <span class="metric__label"><span class="dot dot--evidence"></span><span data-i18n="ledger.store">Store</span></span>
-          <strong id="metricBytes">–</strong>
-          <span class="metric__hint" id="metricDigest">sha256 –</span>
-        </div>
-      </div>
-
-      <div class="section-head">
-        <div>
-          <h2 data-i18n="ledger.topics">Claims by topic</h2>
-          <p data-i18n="ledger.topicsNote">The state machine is the product. A superseded claim keeps its successor; a dispute keeps both voices.</p>
-        </div>
-        <div class="legend" aria-label="Status legend">
-          <span><i class="dot dot--current"></i><span data-i18n="status.current">Current</span></span>
-          <span><i class="dot dot--disputed"></i><span data-i18n="status.disputed">Disputed</span></span>
-          <span><i class="dot dot--superseded"></i><span data-i18n="status.superseded">Superseded</span></span>
-        </div>
-      </div>
-      <div id="ledgerTopics" class="ledger" aria-live="polite"></div>
-      <div id="ledgerEmpty" class="empty-state" hidden>
-        <h3 data-i18n="ledger.emptyTitle">No claims yet</h3>
-        <p data-i18n="ledger.emptyNote">Record the first decision to start the ledger.</p>
-        <button class="primary-btn" type="button" data-goto="record" data-i18n="ledger.emptyCta">Record a claim</button>
-      </div>
-    </section>
-
-    <section class="view" id="view-record" data-view-panel="record" hidden>
-      <header class="page-head">
-        <div>
-          <p class="eyebrow" data-i18n="record.eyebrow">Record at decision time</p>
-          <h1 data-i18n="record.h1">The write is where trust starts.</h1>
-          <p class="lede" data-i18n="record.lede">Type a decision that overlaps a current claim. The ledger refuses the write and shows you the conflict — it never picks a winner for you.</p>
-        </div>
-      </header>
-
-      <div class="split split--record">
-        <form class="panel form" id="recordForm" autocomplete="off">
-          <div class="panel__head">
-            <h2 data-i18n="record.newClaim">New claim</h2>
-            <span class="mono-chip">POST /api/record</span>
-          </div>
-
-          <label class="field">
-            <span class="field__label"><span data-i18n="record.decision">Decision</span> <em data-i18n="common.required">required</em></span>
-            <textarea id="fText" name="text" rows="3" maxlength="1000" data-i18n-ph="record.decisionPh" placeholder="Use PostgreSQL 16 for all Atlas storage" required></textarea>
-            <span class="field__hint"><span id="formCount">0</span>/1000 · <span data-i18n="record.decisionHint">one standalone statement</span></span>
-          </label>
-
-          <div class="field-row">
-            <label class="field">
-              <span class="field__label" data-i18n="record.topic">Topic</span>
-              <input id="fTopic" name="topic" maxlength="40" value="database" pattern="[a-z0-9][a-z0-9-]{0,39}">
-            </label>
-            <label class="field">
-              <span class="field__label"><span data-i18n="record.tags">Tags</span> <em data-i18n="record.tagsHint">comma-separated</em></span>
-              <input id="fTags" name="tags" data-i18n-ph="record.tagsPh" placeholder="storage, postgres">
-            </label>
-          </div>
-
-          <div class="field-row">
-            <label class="field">
-              <span class="field__label"><span data-i18n="record.scope">Scope</span> <em data-i18n="record.scopeHint">where it applies</em></span>
-              <input id="fScope" name="scope" maxlength="40" value="all" pattern="[a-z0-9][a-z0-9-]{0,39}" data-i18n-title="record.scopeTitle" title="all, production, staging, mobile-ios…">
-            </label>
-            <label class="field">
-              <span class="field__label" data-i18n="record.source">Source</span>
-              <input id="fSource" name="source" maxlength="300" data-i18n-ph="record.sourcePh" placeholder="Architecture review · 2026-10-23">
-            </label>
-          </div>
-
-          <label class="field">
-            <span class="field__label"><span data-i18n="record.quote">Quote</span> <em data-i18n="record.quoteHint">optional evidence</em></span>
-            <textarea id="fQuote" name="quote" rows="2" maxlength="300" data-i18n-ph="record.quotePh" placeholder="The exact sentence from the discussion that supports this."></textarea>
-          </label>
-
-          <label class="check">
-            <input type="checkbox" id="fDispute">
-            <span>
-              <strong data-i18n="record.dispute">Record as disputed</strong>
-              <small data-i18n="record.disputeNote">Keeps both positions open; also bypasses a detected conflict without superseding.</small>
-            </span>
-          </label>
-
-          <div class="form__actions">
-            <button class="primary-btn" type="submit" id="recordSubmit">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-              <span data-i18n="record.submit">Record claim</span>
-            </button>
-            <button class="ghost-btn" type="button" id="suggestBtn" data-i18n-title="record.previewTitle">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.2 5.6L20 11l-5.8 2.4L12 19l-2.2-5.6L4 11l5.8-2.4z"/></svg>
-              <span data-i18n="record.preview">Preview proposal</span>
-            </button>
-            <span class="form__note" id="formNote">Record writes a real line to the JSONL store; preview never writes.</span>
-          </div>
-
-          <div class="error-box" id="recordError" hidden role="alert"></div>
-
-          <div class="examples">
-            <span class="examples__label" data-i18n="record.tryCase">Try a case</span>
-            <div class="chips" id="exampleChips">
-              <button type="button" class="chip" data-example="conflict" data-i18n="record.caseConflict">Conflicting decision</button>
-              <button type="button" class="chip" data-example="clean" data-i18n="record.caseClean">New, unrelated decision</button>
-              <button type="button" class="chip" data-example="dispute" data-i18n="record.caseDispute">Open dispute</button>
-            </div>
-          </div>
-        </form>
-
-        <aside class="record-side">
-          <div class="panel panel--muted">
-            <h2 data-i18n="record.guardrail">What the guardrail does</h2>
-            <ol class="steps">
-              <li><span>01</span><div><strong data-i18n="record.s1t">Validate</strong><p data-i18n="record.s1p">Stable schema, topic grammar, byte limits. Corruption refuses service.</p></div></li>
-              <li><span>02</span><div><strong data-i18n="record.s2t">Surface overlap</strong><p data-i18n="record.s2p">Lexical overlap above a threshold is a suspicion, never a verdict.</p></div></li>
-              <li><span>03</span><div><strong data-i18n="record.s3t">Require a decision</strong><p data-i18n="record.s3p">Supersede the old claim, mark the new one disputed, or cancel. No silent wins.</p></div></li>
-            </ol>
-            <p class="fineprint" data-i18n="record.guardrailNote">Conflict matching is deterministic and lexical. It can miss semantic contradictions — and it never adjudicates truth.</p>
-          </div>
-
-          <div class="panel panel--muted" id="currentPanel">
-            <div class="panel__head">
-              <h2 data-i18n="record.checking">Current claims being checked</h2>
-              <span class="mono-chip" id="currentCount">–</span>
-            </div>
-            <ul class="mini-list" id="currentList"></ul>
-          </div>
-
-          <div class="panel receipt-panel" id="recordReceipt" hidden>
-            <div class="panel__head">
-              <h2 data-i18n="receipt.title">Write receipt</h2>
-              <span class="status-pill status--current" id="receiptStatus">Current</span>
-            </div>
-            <p class="receipt-text" id="receiptText"></p>
-            <dl class="receipt-meta">
-              <div><dt data-i18n="receipt.claim">claim</dt><dd><code id="receiptId">–</code></dd></div>
-              <div><dt>store</dt><dd><code id="receiptDigest">–</code></dd></div>
-              <div><dt data-i18n="status.superseded">Superseded</dt><dd><code id="receiptSuperseded">–</code></dd></div>
-            </dl>
-            <div class="receipt-actions">
-              <button class="ghost-btn" type="button" data-goto="ledger" data-i18n="receipt.viewLedger">View in ledger</button>
-              <button class="ghost-btn" type="button" data-goto="brief" data-i18n="receipt.renderBrief">Render a brief</button>
-            </div>
-          </div>
-
-          <div class="panel suggest-panel" id="suggestPanel" hidden>
-            <div class="panel__head">
-              <h2 data-i18n="suggest.title">Claim proposal · review only</h2>
-              <span class="status-pill status--disputed" data-i18n="suggest.proposed">Proposed</span>
-            </div>
-            <p class="receipt-text" id="suggestText"></p>
-            <dl class="receipt-meta">
-              <div><dt data-i18n="record.topic">Topic</dt><dd><code id="suggestTopic">–</code></dd></div>
-              <div><dt data-i18n="suggest.conflicts">conflicts</dt><dd><code id="suggestConflicts">–</code></dd></div>
-              <div><dt data-i18n="suggest.nextStep">next step</dt><dd id="suggestAction">–</dd></div>
-            </dl>
-            <div class="suggest-detail" id="suggestDetail"></div>
-            <p class="fineprint" data-i18n-html="suggest.fineprint">Nothing was written. Run <code>claim record --supersedes …</code> or use Record to commit after review.</p>
-          </div>
-        </aside>
-      </div>
-    </section>
-
-    <section class="view" id="view-brief" data-view-panel="brief" hidden>
-      <header class="page-head">
-        <div>
-          <p class="eyebrow" data-i18n="brief.eyebrow">Read as a briefing</p>
-          <h1 data-i18n="brief.h1">A brief that fits, and says what it left out.</h1>
-          <p class="lede" data-i18n="brief.lede">Drag the budget down. Entries are dropped deterministically and counted — the packet is a rebuildable view, never a second source of truth.</p>
-        </div>
-      </header>
-
-      <div class="split split--brief">
-        <div class="brief-controls">
-          <div class="panel">
-            <div class="panel__head">
-              <h2 data-i18n="brief.budget">Byte budget</h2>
-              <span class="mono-chip" id="briefStatus">ready</span>
-            </div>
-            <div class="budget-value">
-              <strong id="briefUsed">–</strong>
-              <span>/ <span id="briefBudgetOut">–</span> <span data-i18n="common.bytes">bytes</span></span>
-            </div>
-            <div class="meter" role="progressbar" data-i18n-aria="brief.meterAria" aria-label="Brief bytes used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="briefMeter">
-              <span id="briefMeterFill"></span>
-            </div>
-            <div class="budget-meta">
-              <span id="briefBudgetLabel">2,048 bytes</span>
-              <span id="briefOmitted">0 omitted</span>
-            </div>
-            <input type="range" id="briefBudget" min="512" max="8192" step="128" value="2048" data-i18n-aria="brief.sliderAria" aria-label="Brief byte budget">
-            <div class="chips chips--tight" id="briefPresets">
-              <button type="button" class="chip" data-budget="512">512</button>
-              <button type="button" class="chip" data-budget="1024">1 KB</button>
-              <button type="button" class="chip" data-budget="2048">2 KB</button>
-              <button type="button" class="chip" data-budget="4096">4 KB</button>
-              <button type="button" class="chip" data-budget="8192">8 KB</button>
-            </div>
-            <p class="fineprint" data-i18n="brief.fineprint">The budget covers the whole serialized UTF-8 JSON packet, including metadata and the trailing newline. Bytes are not tokens.</p>
-          </div>
-
-          <div class="panel">
-            <div class="panel__head">
-              <h2 data-i18n="brief.rendered">Rendered packet</h2>
-              <div class="segmented" role="group" aria-label="Brief display">
-                <button type="button" class="segmented__btn is-active" data-brief-mode="view" data-i18n="brief.view">View</button>
-                <button type="button" class="segmented__btn" data-brief-mode="wire" data-i18n="brief.wire">Wire JSON</button>
-              </div>
-            </div>
-            <p class="fineprint" data-i18n="brief.orderNote">Order is fixed: open disputes → current claims by topic → recently superseded.</p>
-          </div>
-
-          <div class="panel panel--muted">
-            <h2 data-i18n="brief.why">Why this is not a summary</h2>
-            <p data-i18n="brief.whyNote">No model writes the brief. It is rendered from the store on every request, so it cannot rot out of sync. Regenerating it is lossless.</p>
-            <button class="ghost-btn" type="button" id="briefCopy">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h11v11H8zM5 16V5h11"/></svg>
-              <span data-i18n="common.copyWire">Copy wire JSON</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="brief-stage">
-          <div class="brief-doc" id="briefBody" aria-live="polite"></div>
-          <pre class="wire" id="briefWire" hidden></pre>
-        </div>
-      </div>
-    </section>
-
-    <section class="view" id="view-search" data-view-panel="search" hidden>
-      <header class="page-head">
-        <div>
-          <p class="eyebrow" data-i18n="search.eyebrow">Long-tail retrieval</p>
-          <h1 data-i18n="search.h1">Status-aware search, next to the status-blind baseline.</h1>
-          <p class="lede" data-i18n="search.lede">Search is lexical and local. The comparison below is the point: feeding raw history back can rank a dead decision first.</p>
-        </div>
-      </header>
-
-      <form class="searchbar" id="searchForm" role="search">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg>
-        <input id="searchInput" type="search" data-i18n-ph="search.ph" placeholder="database, use sqlite, timeout, api v1…" data-i18n-aria="search.aria" aria-label="Search claims">
-        <button class="primary-btn" type="submit" data-i18n="search.submit">Search</button>
-      </form>
-
-      <div class="search-tools">
-        <div class="chips" id="searchSuggestions">
-          <span class="chips__label" data-i18n="common.try">Try</span>
-          <button type="button" class="chip" data-query="use sqlite">use sqlite</button>
-          <button type="button" class="chip" data-query="database">database</button>
-          <button type="button" class="chip" data-query="token">token</button>
-          <button type="button" class="chip" data-query="timeout">timeout</button>
-          <button type="button" class="chip" data-query="api v1">api v1</button>
-          <button type="button" class="chip" data-query="rotate">rotate</button>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="includeSuperseded">
-          <span class="switch__track"><span class="switch__thumb"></span></span>
-          <span class="switch__label"><span data-i18n="search.include">Include superseded</span> <em data-i18n="search.statusBlind">status-blind</em></span>
-        </label>
-      </div>
-
-      <div id="searchSummary" class="search-summary" aria-live="polite">
-        <span class="search-summary__hint" data-i18n="search.defaultHint">Enter a query to compare retrieval policies.</span>
-      </div>
-      <div id="searchResults" class="results"></div>
-    </section>
-
-    <section class="view" id="view-context" data-view-panel="context" hidden>
-      <header class="page-head">
-        <div>
-          <p class="eyebrow" data-i18n="context.eyebrow">RAG, on the ledger's terms</p>
-          <h1 data-i18n="context.h1">Evidence may be retrieved. Authority stays with the store.</h1>
-          <p class="lede" data-i18n="context.lede">A context packet joins a deterministic brief with evidence from a retriever. Every hit must resolve to a claim and pass the same status filter — superseded passages cannot pose as current.</p>
-        </div>
-      </header>
-
-      <div class="context-controls">
-        <form class="panel" id="contextForm" role="search" autocomplete="off">
-          <div class="panel__head">
-            <h2 data-i18n="context.build">Build a context packet</h2>
-            <span class="mono-chip">GET /api/context</span>
-          </div>
-          <label class="field">
-            <span class="field__label" data-i18n="context.query">Query</span>
-            <input id="contextQuery" type="search" data-i18n-ph="context.ph" placeholder="use sqlite, token, timeout…" data-i18n-aria="context.aria" aria-label="Context query">
-          </label>
-          <div class="chips" id="contextSuggestions">
-            <span class="chips__label" data-i18n="common.try">Try</span>
-            <button type="button" class="chip" data-query="use sqlite">use sqlite</button>
-            <button type="button" class="chip" data-query="session token">session token</button>
-            <button type="button" class="chip" data-query="timeout">timeout</button>
-          </div>
-          <div class="context-toggles">
-            <label class="switch">
-              <input type="checkbox" id="contextHistorical">
-              <span class="switch__track"><span class="switch__thumb"></span></span>
-              <span class="switch__label"><span data-i18n="context.historical">Historical intent</span> <em data-i18n="context.historicalHint">include superseded, labelled</em></span>
-            </label>
-            <label class="switch">
-              <input type="checkbox" id="contextShowWire">
-              <span class="switch__track"><span class="switch__thumb"></span></span>
-              <span class="switch__label"><span data-i18n="context.showWire">Show wire JSON</span> <em data-i18n="context.showWireHint">exact bytes</em></span>
-            </label>
-          </div>
-          <p class="fineprint" id="contextRagNote"></p>
-        </form>
-
-        <div class="panel panel--muted" id="contextStats">
-          <div class="panel__head"><h2 data-i18n="context.packet">Packet</h2><span class="mono-chip" id="contextStatus">–</span></div>
-          <dl class="context-meta">
-            <div><dt data-i18n="context.bytes">bytes</dt><dd><span id="ctxUsed">–</span> / <span id="ctxBudget">–</span></dd></div>
-            <div><dt data-i18n="context.brief">brief</dt><dd id="ctxBriefCounts">–</dd></div>
-            <div><dt data-i18n="context.evidence">evidence</dt><dd><span id="ctxEvidenceCount">0</span> <span data-i18n="context.shown">shown</span> · <span id="ctxOmitted">0</span> <span data-i18n="context.omitted">omitted</span></dd></div>
-            <div><dt data-i18n="context.excluded">excluded</dt><dd id="ctxExcluded">–</dd></div>
-            <div><dt data-i18n="context.window">window</dt><dd id="ctxWindow">–</dd></div>
-            <div><dt>index sha</dt><dd><code id="ctxIndexSha">–</code></dd></div>
-          </dl>
-          <button class="ghost-btn" type="button" id="contextCopy">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h11v11H8zM5 16V5h11"/></svg>
-            <span data-i18n="common.copyWire">Copy wire JSON</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="context-stage">
-        <div class="brief-doc context-doc" id="contextBody" aria-live="polite">
-          <p class="brief-empty" data-i18n="context.defaultEmpty">Enter a query to build a context packet.</p>
-        </div>
-        <pre class="wire" id="contextWire" hidden></pre>
-      </div>
-    </section>
-
-    <section class="view" id="view-evidence" data-view-panel="evidence" hidden>
-      <header class="page-head">
-        <div>
-          <p class="eyebrow" data-i18n="evidence.eyebrow">Evidence you can replay</p>
-          <h1 data-i18n="evidence.h1">Numbers with the limits attached.</h1>
-          <p class="lede" data-i18n="evidence.lede">Synthetic fixtures, deterministic code, zero model calls. These measure structure and lifecycle safety — not semantic truth or agent task success.</p>
-        </div>
-      </header>
-
-      <div class="panel">
-        <div class="panel__head">
-          <h2 data-i18n="evidence.retrieval">Retrieval</h2>
-          <span class="mono-chip" id="evidenceDataset">24 queries · 40 sessions</span>
-        </div>
-        <div class="metric-table" id="retrievalTable"></div>
-        <p class="fineprint" id="evidenceNote"></p>
-      </div>
-
-      <div class="section-head section-head--tight">
-        <div>
-          <h2 data-i18n="evidence.checks">Structural safety checks</h2>
-          <p data-i18n="evidence.checksNote">CompileBench: four topics, twelve curated cards, zero model calls.</p>
-        </div>
-      </div>
-      <div class="compile-grid" id="compileCards"></div>
-
-      <div class="panel panel--muted">
-        <h2 data-i18n="evidence.cannot">What this cannot prove</h2>
-        <ul class="limits" id="evidenceLimits"></ul>
-        <div class="evidence-sources" id="evidenceSources"></div>
-      </div>
-    </section>
-
-    <section class="view" id="view-safety" data-view-panel="safety" hidden>
-      <header class="page-head">
-        <div>
-          <p class="eyebrow" data-i18n="safety.eyebrow">Data safety</p>
-          <h1 data-i18n="safety.h1">Backups you can verify. Removal you can audit.</h1>
-          <p class="lede" data-i18n="safety.lede">Every snapshot carries a checksummed manifest. Redaction keeps a content-free tombstone and the supersession chain; deletion removes rows and names what references them. Both write an audit entry and a plaintext pre-change backup by default.</p>
-        </div>
-      </header>
-
-      <div class="safety-grid">
-        <div class="panel" id="snapshotsPanel">
-          <div class="panel__head">
-            <h2 data-i18n="safety.snapshots">Snapshots</h2>
-            <button class="ghost-btn" type="button" id="backupBtn">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14"/></svg>
-              <span data-i18n="safety.backupNow">Backup now</span>
-            </button>
-          </div>
-          <p class="fineprint" id="backupNote">Snapshots are written next to the store with a manifest: claim count, byte count and two SHA-256 digests.</p>
-          <div class="backup-list" id="backupList"></div>
-        </div>
-
-        <div class="panel" id="auditPanel">
-          <div class="panel__head">
-            <h2 data-i18n="safety.audit">Audit trail</h2>
-            <span class="mono-chip" id="auditCount">–</span>
-          </div>
-          <p class="fineprint" data-i18n="safety.auditNote">Append-only. Records the action, claim ids, before/after store digests and the backup filename — never the claim text.</p>
-          <div class="audit-list" id="auditList"></div>
-        </div>
-      </div>
-
-      <div class="panel panel--muted safety-guarantees">
-        <h2 data-i18n="safety.guarantees">What this guarantees — and what it does not</h2>
-        <ul class="limits">
-          <li data-i18n="safety.g1">Writes are serialized by a cross-process lock; contention past the timeout is an explicit busy error, never a silent overwrite.</li>
-          <li data-i18n="safety.g2">Restore verifies byte count, file digest, store digest and claim count against the manifest before touching the store.</li>
-          <li data-i18n="safety.g3">Backups are plaintext and local — protect the backups directory like the store itself.</li>
-          <li data-i18n="safety.g4">Redaction does not reach transcripts, logs, old backups or derived evidence indexes; rebuild or purge those separately.</li>
-        </ul>
-        <p class="fineprint" data-i18n-html="safety.cli">CLI equivalents: <code>claim backup</code> · <code>claim backups</code> · <code>claim audit</code> · <code>claim restore --from …</code> · <code>claim redact … --yes</code> · <code>claim delete … --yes</code></p>
-      </div>
-    </section>
-
-    <footer class="foot">
-      <span>ClaimLedger v<span id="version">0.10.0</span> · MIT</span>
-      <span data-i18n="foot.note">Local-first · single JSONL authority · formerly chat-distiller / CarryTrace</span>
-    </footer>
-  </main>
-</div>
-
-<div class="modal" id="conflictModal" hidden>
-  <div class="modal__backdrop" data-close-conflict></div>
-  <div class="modal__card" role="dialog" aria-modal="true" aria-labelledby="conflictTitle">
-    <div class="modal__head">
-      <span class="modal__icon" aria-hidden="true">!</span>
-      <div>
-        <p class="eyebrow" data-i18n="modal.eyebrow">Write refused</p>
-        <h2 id="conflictTitle" data-i18n="modal.title">A possible conflict was surfaced.</h2>
-      </div>
-    </div>
-    <p class="modal__message" id="conflictMessage"></p>
-    <div class="conflict-list" id="conflictList"></div>
-    <div class="modal__actions">
-      <button type="button" class="ghost-btn" data-close-conflict data-i18n="modal.cancel">Cancel</button>
-      <button type="button" class="ghost-btn" id="conflictDispute" data-i18n="modal.dispute">Record as disputed</button>
-      <button type="button" class="primary-btn" id="conflictSupersede" data-i18n="modal.supersede">Supersede &amp; record</button>
-    </div>
-    <p class="fineprint" data-i18n="modal.fineprint">The ledger surfaces the suspicion. Superseding is an explicit human decision, written into the chain.</p>
   </div>
-</div>
+  <div class="topbar__tools">
+    <label class="when" id="whenBox">
+      <span class="when__label" id="whenLabel">时间</span>
+      <select id="whenSelect" class="when__select">
+        <option value="">现在</option>
+        <option value="2026-09-30T00:00:00Z">9 月底 · SQLite 时代</option>
+        <option value="__date">选一个日期…</option>
+      </select>
+      <input type="date" id="whenDate" class="when__date" hidden>
+    </label>
+    <button class="lang" id="langBtn" type="button" aria-label="switch language">EN</button>
+  </div>
+</header>
 
-<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<main class="page" id="main">
+  <p class="lede" id="lede">周五在豆包定下的方案，周一的 Codex 接着干。这个页面就是两台 Agent 之间那份「什么才算数」。</p>
 
+  <section class="budget" id="budgetBar" aria-label="brief budget">
+    <div class="budget__main">
+      <span class="budget__name" id="budgetName">开工简报</span>
+      <span class="budget__nums"><b id="budgetUsed">0</b> / <span id="budgetMax">2048</span> B</span>
+      <span class="budget__omit" id="budgetOmit" hidden></span>
+    </div>
+    <div class="budget__bar"><i id="budgetFill"></i></div>
+    <input type="range" id="budgetRange" min="512" max="8192" step="256" value="2048"
+           aria-label="byte budget">
+  </section>
+
+  <section class="timeline" id="timeline" aria-live="polite">
+    <div class="tl-section tl-section--current" id="secCurrent">
+      <h2 class="tl-head"><i class="dot dot--current"></i><span id="currentTitle">现在什么算数</span>
+        <span class="tl-count" id="currentCount">0</span></h2>
+      <ol class="tl-list" id="listCurrent"></ol>
+    </div>
+    <div class="tl-section tl-section--attention" id="secAttention" hidden>
+      <h2 class="tl-head"><i class="dot dot--attention"></i><span id="attentionTitle">需要你</span>
+        <span class="tl-count" id="attentionCount">0</span></h2>
+      <ol class="tl-list" id="listAttention"></ol>
+    </div>
+    <div class="tl-section tl-section--past" id="secPast">
+      <button class="tl-head tl-head--toggle" id="pastToggle" type="button">
+        <i class="dot dot--past"></i><span id="pastTitle">已替代</span>
+        <span class="tl-count" id="pastCount">0</span><span class="tl-chev" id="pastChev">▸</span>
+      </button>
+      <ol class="tl-list" id="listPast" hidden></ol>
+    </div>
+    <p class="timeline-empty" id="timelineEmpty" hidden></p>
+  </section>
+
+  <div class="conflict" id="conflictCard" hidden>
+    <h3 class="conflict__title" id="conflictTitle">这条和现行决定撞上了</h3>
+    <p class="conflict__hint" id="conflictHint">台账不悄悄改写历史。你来定：新的替代旧的，还是先记为有争议？</p>
+    <ul class="conflict__list" id="conflictList"></ul>
+    <div class="conflict__actions">
+      <button class="btn btn--primary" id="conflictSupersede" type="button">替代旧的</button>
+      <button class="btn" id="conflictDispute" type="button">记为有争议</button>
+      <button class="btn btn--ghost" id="conflictCancel" type="button">取消</button>
+    </div>
+  </div>
+
+  <div class="composer" id="composer">
+    <div class="composer__meta">
+      <input id="fTopic" class="chip-input" value="general" maxlength="40"
+             pattern="[a-z0-9][a-z0-9-]{0,39}" aria-label="topic">
+      <div class="examples" id="examples"></div>
+    </div>
+    <div class="composer__row">
+      <textarea id="fText" rows="1" placeholder="记一条决定…" maxlength="1000"></textarea>
+      <button class="btn btn--primary btn--record" id="recordBtn" type="button">记录</button>
+    </div>
+    <p class="composer__note"><span id="composerNote">写入真实的 JSONL 台账 · 冲突会被拒绝并摊开</span>
+      <button class="example" id="previewBtn" type="button"></button></p>
+  </div>
+</main>
+
+<footer class="foot">
+  <button class="foot__link" id="devToggle" type="button">开发者视图 ▾</button>
+  <span class="foot__meta" id="footMeta"></span>
+</footer>
+
+<section class="dev" id="devDrawer" hidden>
+  <nav class="dev__tabs" id="devTabs">
+    <button class="dev__tab is-on" data-dev="search" type="button">检索</button>
+    <button class="dev__tab" data-dev="context" type="button">Context / RAG</button>
+    <button class="dev__tab" data-dev="brief" type="button">原始简报</button>
+    <button class="dev__tab" data-dev="evidence" type="button">证据</button>
+    <button class="dev__tab" data-dev="safety" type="button">安全</button>
+  </nav>
+
+  <div class="dev__panel" id="dev-search">
+    <div class="dev__row">
+      <input id="devQ" class="dev__input" placeholder="use sqlite">
+      <label class="dev__check"><input type="checkbox" id="devRaw"> <span id="devRawLabel">关掉状态过滤（模拟把历史喂回去）</span></label>
+      <button class="btn" id="devSearchBtn" type="button">检索</button>
+    </div>
+    <div class="dev__out" id="devSearchOut"></div>
+  </div>
+
+  <div class="dev__panel" id="dev-context" hidden>
+    <div class="dev__row">
+      <input id="devCtxQ" class="dev__input" value="use sqlite">
+      <select id="devCtxIntent" class="dev__input dev__input--s">
+        <option value="current">current</option>
+        <option value="historical">historical</option>
+      </select>
+      <button class="btn" id="devCtxBtn" type="button">构建证据包</button>
+    </div>
+    <div class="dev__out" id="devCtxOut"></div>
+  </div>
+
+  <div class="dev__panel" id="dev-brief" hidden>
+    <div class="dev__row">
+      <button class="btn" id="devBriefBtn" type="button">重新渲染</button>
+      <span class="dev__hint">brief 的每个字节都可验证；wire 与 CLI 输出逐字一致</span>
+    </div>
+    <div class="dev__out"><pre id="devBriefWire" class="mono"></pre></div>
+  </div>
+
+  <div class="dev__panel" id="dev-evidence" hidden>
+    <div class="dev__out" id="devEvidenceOut"></div>
+  </div>
+
+  <div class="dev__panel" id="dev-safety" hidden>
+    <div class="dev__row">
+      <input id="devRedactId" class="dev__input mono" placeholder="clm_…">
+      <button class="btn" id="devRedactBtn" type="button">脱敏（保留墓碑）</button>
+      <button class="btn" id="devBackupBtn" type="button">备份</button>
+      <button class="btn" id="devAuditBtn" type="button">审计</button>
+      <button class="btn btn--danger" id="devResetBtn" type="button">重置演示</button>
+    </div>
+    <div class="dev__out" id="devSafetyOut"></div>
+  </div>
+</section>
+
+<div class="toast" id="toast" hidden></div>
 <script src="/static/app.js"></script>
 </body>
 </html>

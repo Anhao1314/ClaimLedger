@@ -47,7 +47,7 @@ class DemoTests(unittest.TestCase):
     def test_seeded_state_is_the_synthetic_scenario(self):
         status, state = self._request("GET", "/api/state")
         self.assertEqual(status, 200)
-        self.assertEqual(state["counts"], {"current": 5, "disputed": 3, "superseded": 2, "total": 10})
+        self.assertEqual(state["counts"], {"current": 7, "disputed": 3, "superseded": 2, "total": 12})
         self.assertEqual(len(state["topics"]), 6)
         self.assertTrue(state["writable"])
         self.assertEqual(state["mode"], "demo")
@@ -56,6 +56,58 @@ class DemoTests(unittest.TestCase):
         self.assertTrue(state["rag"]["available"])
         self.assertEqual(state["rag"]["chunks"], 9)
         self.assertEqual(state["rag"]["provider"], "jsonl-evidence-index")
+        by_id = {c["claim_id"]: c for c in state["claims"]}
+        # The seeded PostgreSQL decision hangs off the ownership premise, and the
+        # Doubao import carries the cross-agent narrative into the timeline.
+        self.assertEqual(by_id["clm_9f2a6c1d4e8b73a0"]["depends_on"], ["clm_5c1e8a3b7d64f290"])
+        self.assertEqual(state["unmotivated"], [])
+        self.assertIn("Doubao", by_id["clm_2d8f4c6a1e09b573"]["source"])
+
+    def test_premise_collapse_flags_the_dependent_as_unmotivated(self):
+        status, body = self._request("POST", "/api/record", {
+            "text": "The platform team disbands; Atlas moves to managed storage",
+            "topic": "database", "supersedes": "clm_5c1e8a3b7d64f290",
+        })
+        self.assertEqual(status, 200)
+        status, state = self._request("GET", "/api/state")
+        flagged = state["unmotivated"]
+        self.assertEqual([u["claim_id"] for u in flagged], ["clm_9f2a6c1d4e8b73a0"])
+        self.assertEqual(flagged[0]["broken_dependencies"], ["clm_5c1e8a3b7d64f290"])
+
+    def test_state_at_reconstructs_the_september_world(self):
+        status, state = self._request("GET", "/api/state?at=2026-09-30T00:00:00Z")
+        self.assertEqual(status, 200)
+        self.assertEqual(state["at"], "2026-09-30T00:00:00Z")
+        self.assertEqual(state["counts_at"], {"current": 2, "disputed": 0, "superseded": 0, "not_yet": 10})
+        by_id = {c["claim_id"]: c for c in state["claims"]}
+        self.assertEqual(by_id["clm_4b81e2a7c9d30f56"]["status_at"], "现行")
+        self.assertEqual(by_id["clm_9f2a6c1d4e8b73a0"]["status_at"], None)
+        status, brief = self._request("GET", "/api/brief?max_bytes=2048&at=2026-09-30T00:00:00Z")
+        self.assertEqual(status, 200)
+        self.assertEqual(brief["packet"]["at"], "2026-09-30T00:00:00Z")
+        self.assertEqual(brief["packet"]["counts"]["current"], 2)
+
+    def test_resolve_closes_a_dispute_over_http(self):
+        status, body = self._request("POST", "/api/resolve", {
+            "claim_id": "clm_d28b5f0e4c7a9361", "outcome": "withdraw"})
+        # The seeded dispute has no standing target, so withdrawal is refused
+        # with the store's own guidance instead of a silent success.
+        self.assertEqual(status, 400)
+        self.assertIn("no standing claim", body["error"])
+        status, body = self._request("POST", "/api/record", {
+            "text": "API v1 accepts additive fields; mobile caching is the client bug",
+            "topic": "api", "dispute": True})
+        self.assertEqual(status, 200)
+        dispute_id = body["receipt"]["claim_id"]
+        self.assertEqual(body["receipt"]["conflicts_with"], ["clm_a17c3d90e5b2f468"])
+        status, body = self._request("POST", "/api/resolve", {
+            "claim_id": dispute_id, "outcome": "sustain"})
+        self.assertEqual(status, 200)
+        self.assertTrue(body["receipt"]["promoted"])
+        status, state = self._request("GET", "/api/state")
+        by_id = {c["claim_id"]: c for c in state["claims"]}
+        self.assertEqual(by_id[dispute_id]["status"], "现行")
+        self.assertEqual(by_id["clm_a17c3d90e5b2f468"]["status"], "已过期")
 
     def test_static_shell_is_served(self):
         status, html = self._get_text("/")
@@ -67,6 +119,7 @@ class DemoTests(unittest.TestCase):
         self.assertIn("/api/record", script)
         self.assertIn("/api/context", script)
         self.assertIn("/api/suggest", script)
+        self.assertIn("/api/resolve", script)
 
     def test_record_accepts_scope_and_claims_expose_it(self):
         status, body = self._request("POST", "/api/record", {
@@ -98,7 +151,7 @@ class DemoTests(unittest.TestCase):
         self.assertEqual(body["receipt"]["superseded"], "clm_9f2a6c1d4e8b73a0")
 
         _, state = self._request("GET", "/api/state")
-        self.assertEqual(state["counts"]["total"], 11)
+        self.assertEqual(state["counts"]["total"], 13)
         by_id = {c["claim_id"]: c for c in state["claims"]}
         self.assertEqual(by_id["clm_9f2a6c1d4e8b73a0"]["status"], "已过期")
         self.assertEqual(by_id["clm_9f2a6c1d4e8b73a0"]["superseded_by"],
@@ -172,21 +225,21 @@ class DemoTests(unittest.TestCase):
     def test_reset_restores_the_scenario(self):
         self._request("POST", "/api/record", {"text": "A new decision", "topic": "general"})
         _, state = self._request("GET", "/api/state")
-        self.assertEqual(state["counts"]["total"], 11)
+        self.assertEqual(state["counts"]["total"], 13)
         status, state = self._request("POST", "/api/reset", {})
         self.assertEqual(status, 200)
-        self.assertEqual(state["counts"]["total"], 10)
+        self.assertEqual(state["counts"]["total"], 12)
         self.assertEqual(state["counts"]["superseded"], 2)
 
     def test_safety_endpoints_backup_list_and_audit(self):
         status, backup = self._request("POST", "/api/backup", {})
         self.assertEqual(status, 200)
         self.assertTrue(backup["ok"])
-        self.assertEqual(backup["claims"], 10)
+        self.assertEqual(backup["claims"], 12)
         status, listing = self._request("GET", "/api/backups")
         self.assertEqual(status, 200)
         self.assertEqual(len(listing["backups"]), 1)
-        self.assertEqual(listing["backups"][0]["claims"], 10)
+        self.assertEqual(listing["backups"][0]["claims"], 12)
         self.assertTrue(listing["backups"][0]["snapshot"].endswith(".jsonl"))
         status, audit = self._request("GET", "/api/audit?limit=5")
         self.assertEqual(status, 200)
@@ -350,7 +403,7 @@ class DemoTestsWithRealStore(unittest.TestCase):
             path.write_text("", encoding="utf-8")
             base = self._serve(path, writable=True, seed=True)
             _, state = self._request(base, "GET", "/api/state")
-            self.assertEqual(state["counts"]["total"], 10)
+            self.assertEqual(state["counts"]["total"], 12)
             self.assertTrue(state["seeded"])
             self.assertTrue(state["writable"])
 

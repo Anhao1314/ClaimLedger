@@ -17,12 +17,16 @@ import sys
 import tempfile
 import threading
 import webbrowser
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .. import __version__
-from ..claims import ClaimStore, ClaimStoreBusy, ClaimStoreError, DEFAULT_MAX_BYTES, find_conflicts
+from ..claims import (
+    ClaimStore, ClaimStoreBusy, ClaimStoreError, DEFAULT_MAX_BYTES, find_conflicts,
+    find_unmotivated, status_at, RESOLVE_OUTCOMES,
+)
 from ..context import ContextError, JsonlEvidenceIndex, build_context, serialize_context, suggest_claim
 from ..recovery import serialize_packet
 from .._internal.query_memory import features
@@ -59,6 +63,16 @@ def _load_evidence_index():
     return None
 
 
+def _parse_at(value):
+    """Validate an as-of instant for the point-in-time views."""
+    if not isinstance(value, str) or not value:
+        raise ClaimStoreError("at must be an ISO-8601 UTC timestamp like 2026-09-30T00:00:00Z")
+    try:
+        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    except ValueError as exc:
+        raise ClaimStoreError(f"at is not a real UTC datetime: {value!r}") from exc
+
+
 def _norm_tags(value):
     if value is None:
         return []
@@ -92,6 +106,11 @@ def _public_claim(row):
         "redacted_at": row.get("redacted_at"),
         "scope": row.get("scope", "all"),
         "expires_at": row.get("expires_at"),
+        "depends_on": row.get("depends_on") or [],
+        "disputes": row.get("disputes") or [],
+        "valid_from": row.get("valid_from"),
+        "valid_to": row.get("valid_to"),
+        "superseded_at": row.get("superseded_at"),
     }
 
 
@@ -119,10 +138,12 @@ class DemoApp:
     def store(self):
         return ClaimStore(self.store_path)
 
-    def state(self):
+    def state(self, at=None):
         rows = self.store.claims(status="all", include_redacted=True)
         topics = sorted({r["topic"] for r in rows})
-        return {
+        claims = [_public_claim(r) for r in rows]
+        visible = [r for r in rows if not r.get("redacted_at")]
+        payload = {
             "ok": True,
             "version": __version__,
             "scenario": scenario.SCENARIO,
@@ -136,7 +157,8 @@ class DemoApp:
             },
             "counts": _counts(rows),
             "topics": topics,
-            "claims": [_public_claim(r) for r in rows],
+            "claims": claims,
+            "unmotivated": find_unmotivated(visible),
             "examples": scenario.EXAMPLES,
             "rag": {
                 "available": self.evidence_index is not None,
@@ -147,6 +169,22 @@ class DemoApp:
                          "and passes the same status policy"),
             },
         }
+        if at is not None:
+            moment = _parse_at(at)
+            for claim, row in zip(claims, rows):
+                claim["status_at"] = status_at(row, moment)
+            counts_at = {"current": 0, "disputed": 0, "superseded": 0, "not_yet": 0}
+            for claim in claims:
+                key = claim["status_at"]
+                if key is None:
+                    counts_at["not_yet"] += 1
+                elif key == STATUS_SUPERSEDED:
+                    counts_at["superseded"] += 1
+                else:
+                    counts_at["disputed" if key == STATUS_DISPUTED else "current"] += 1
+            payload["at"] = at
+            payload["counts_at"] = counts_at
+        return payload
 
     def reset(self):
         if self.mode != "demo":
@@ -210,8 +248,36 @@ class DemoApp:
             "counts": _counts(rows),
         }
 
-    def brief(self, max_bytes):
-        packet = self.store.brief(max_bytes=max_bytes)
+    def resolve(self, payload):
+        """`claim resolve` over HTTP: close a recorded dispute."""
+        if not self.writable:
+            raise DemoReadOnly("this demo is bound to a read-only ledger; restart with --write to resolve")
+        if not isinstance(payload, dict):
+            raise ClaimStoreError("request body must be a JSON object")
+        claim_id = payload.get("claim_id")
+        outcome = payload.get("outcome")
+        if outcome not in RESOLVE_OUTCOMES:
+            raise ClaimStoreError(f"outcome must be one of {RESOLVE_OUTCOMES}")
+        text = payload.get("text")
+        topic = payload.get("topic") or None
+        result = self.store.resolve(
+            claim_id, outcome=outcome, text=text, topic=topic, tags=_norm_tags(payload.get("tags")))
+        rows = self.store.claims(status="all")
+        return {
+            "ok": True,
+            "receipt": {
+                "dispute": result["dispute"],
+                "outcome": result["outcome"],
+                "superseded_claims": result["superseded_claims"],
+                "recorded": result["recorded"],
+                "promoted": result["promoted"],
+                "store_sha256": result["store_sha256"],
+            },
+            "counts": _counts(rows),
+        }
+
+    def brief(self, max_bytes, at=None):
+        packet = self.store.brief(max_bytes=max_bytes, at=at)
         wire = serialize_packet(packet)
         included = {c["claim_id"] for c in packet["disputed"]}
         for bucket in packet["topics"]:
@@ -478,13 +544,13 @@ class DemoHandler(BaseHTTPRequestHandler):
             if path.startswith("/static/"):
                 return self._static(path[len("/static/"):])
             if path == "/api/state":
-                return self._json(200, self.app.state())
+                return self._json(200, self.app.state(at=query.get("at", [None])[0]))
             if path == "/api/brief":
                 try:
                     max_bytes = int(query.get("max_bytes", [str(DEFAULT_MAX_BYTES)])[0])
                 except ValueError:
                     return self._error(400, "max_bytes must be an integer")
-                return self._json(200, self.app.brief(max_bytes))
+                return self._json(200, self.app.brief(max_bytes, at=query.get("at", [None])[0]))
             if path == "/api/search":
                 include = query.get("include_superseded", ["0"])[0] in ("1", "true", "yes")
                 return self._json(200, self.app.search(query.get("q", [""])[0], include))
@@ -534,6 +600,8 @@ class DemoHandler(BaseHTTPRequestHandler):
             payload = self._body()
             if path == "/api/record":
                 return self._json(200, self.app.record(payload))
+            if path == "/api/resolve":
+                return self._json(200, self.app.resolve(payload))
             if path == "/api/suggest":
                 return self._json(200, self.app.suggest(payload))
             if path == "/api/backup":

@@ -4,7 +4,7 @@
   "data": "synthetic claims; lexical reference evidence index; no model calls",
   "scope": "status filtering and evidence identity only, not semantic entailment or answer quality",
   "fixture_sha256": "5b58541b22645527a057aac8fde6927a19b48f3e88352eef166e134aabb3b940",
-  "store_sha256": "068083c7351d8396067e393c6248d27a69927847aa962b053ccb9f17016f6e14",
+  "store_sha256": "84873158faa8afa4cbc4874fba86fdcbb37026eb299681f37297cbbe4c1b6668",
   "queries": 5,
   "top_k": 5,
   "methods": {

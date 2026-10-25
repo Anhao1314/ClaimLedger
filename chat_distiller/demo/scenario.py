@@ -12,7 +12,7 @@ from pathlib import Path
 
 SCENARIO = {
     "name": "Atlas API",
-    "kicker": "Synthetic project · 6 topics · 10 claims",
+    "kicker": "Synthetic project · 7 topics · 12 claims",
     "tagline": "A quarter of decisions for one API platform, with two open disputes.",
     "note": (
         "Handwritten demo data. It records a storage and an auth migration, "
@@ -30,6 +30,7 @@ CLAIMS = [
         "created_at": "2026-09-12T09:20:00Z",
         "updated_at": "2026-10-02T16:05:00Z",
         "superseded_by": "clm_9f2a6c1d4e8b73a0",
+        "superseded_at": "2026-10-02T16:05:00Z",
         "source": "Kickoff notes · 2026-09-12",
         "quote": "Start with SQLite; we can revisit when replication becomes a requirement.",
         "session_hint": "atlas/kickoff-0912",
@@ -43,8 +44,22 @@ CLAIMS = [
         "created_at": "2026-10-02T16:05:00Z",
         "updated_at": "2026-10-02T16:05:00Z",
         "superseded_by": None,
+        "depends_on": ["clm_5c1e8a3b7d64f290"],
         "source": "Architecture review · 2026-10-02",
         "quote": "SQLite served us in staging. Production needs replication and row-level locks.",
+        "session_hint": "atlas/arch-review-1002",
+    },
+    {
+        "claim_id": "clm_5c1e8a3b7d64f290",
+        "text": "The platform team owns PostgreSQL operations long-term",
+        "status": "现行",
+        "topic": "database",
+        "tags": ["ownership"],
+        "created_at": "2026-10-02T16:05:00Z",
+        "updated_at": "2026-10-02T16:05:00Z",
+        "superseded_by": None,
+        "source": "Architecture review · 2026-10-02",
+        "quote": "Postgres only works here if the platform team keeps owning it.",
         "session_hint": "atlas/arch-review-1002",
     },
     {
@@ -56,6 +71,7 @@ CLAIMS = [
         "created_at": "2026-09-12T09:45:00Z",
         "updated_at": "2026-10-06T10:30:00Z",
         "superseded_by": "clm_c3f81a6d2b705e94",
+        "superseded_at": "2026-10-06T10:30:00Z",
         "source": "Kickoff notes · 2026-09-12",
         "quote": "localStorage keeps the SPA simple; revisit before public launch.",
         "session_hint": "atlas/kickoff-0912",
@@ -126,6 +142,19 @@ CLAIMS = [
         "session_hint": "atlas/security-review-1006",
     },
     {
+        "claim_id": "clm_2d8f4c6a1e09b573",
+        "text": "Rate limits live in the gateway config, never in the app",
+        "status": "现行",
+        "topic": "api",
+        "tags": ["limits", "imported"],
+        "created_at": "2026-10-20T13:05:00Z",
+        "updated_at": "2026-10-20T13:05:00Z",
+        "superseded_by": None,
+        "source": "Doubao Work import · 2026-10-20",
+        "quote": "Recorded in a Doubao Work session on Friday; the ledger keeps it current for the next agent.",
+        "session_hint": "doubao/work-sync-1020",
+    },
+    {
         "claim_id": "clm_f62b9d0e1a4c8753",
         "text": "The gateway owns request timeouts; workers never retry",
         "status": "有争议",
@@ -176,6 +205,13 @@ EXAMPLES = {
         "tags": ["incident-214"],
         "source": "Demo · incident follow-up",
         "quote": "Two owners is what got us here. Pick one.",
+    },
+    "premise": {
+        "text": "The platform team disbands; Atlas moves to managed storage",
+        "topic": "database",
+        "tags": ["ownership"],
+        "source": "Demo · org change",
+        "quote": "Nobody is left to run Postgres. Supersede the ownership premise and watch what depends on it.",
     },
 }
 
