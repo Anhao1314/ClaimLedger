@@ -19,70 +19,6 @@ const S = {
   pending: null,   // {text, topic, conflicts} while a conflict card is open
 };
 
-const I18N = {
-  zh: {
-    lede: '周五在豆包定下的方案，周一的 Codex 接着干。这个页面就是两台 Agent 之间那份「什么才算数」。',
-    now: '现在', pickDate: '选一个日期…', time: '时间',
-    brief: '开工简报', current: '现在什么算数', attention: '需要你', past: '已替代',
-    empty: '还没有任何决定。记下第一条。',
-    omit: n => `预算不够，如实省略 ${n} 条`,
-    record: '记录', topic: '主题', cancel: '取消',
-    placeholder: '记一条决定…',
-    note: '写入真实的 JSONL 台账 · 冲突会被拒绝并摊开',
-    conflictTitle: '这条和现行决定撞上了',
-    conflictHint: '台账不悄悄改写历史。你来定：新的替代旧的，还是先记为有争议？',
-    supersede: '替代旧的', disputeBtn: '记为有争议',
-    examples: { conflict: '试一条冲突', clean: '记一条普通的', dispute: '试一条争议', premise: '抽掉前提' },
-    needYouHint: '这些不能冒充定论：争议待收场，或前提已坍塌待复审。',
-    resolve: '收场', sustain: '维持异议', withdraw: '撤回', newDecision: '新决定…', confirm: '收场',
-    resolveHintNoTarget: '这条争议没有对立的现行决定：可以维持它，或用一条新决定收场。',
-    brokenDeps: '前提已坍塌', disputedBadge: '有争议', unmotivatedBadge: '待复审',
-    doubao: '豆包导入', source: '出处', recordedAt: '记录于', quote: '原话',
-    id: 'ID', dependsOn: '依赖前提', supersededBy: '被替代为',
-    recorded: id => `已记录 ${id}`, supersededOk: ids => `已替代 ${ids}`,
-    resolvedOk: '争议已收场',
-    dev: '开发者视图 ▾', search: '检索', context: 'Context / RAG', rawBrief: '原始简报',
-    evidence: '证据', safety: '安全', rerender: '重新渲染',
-    rawToggle: '关掉状态过滤（模拟把历史喂回去）',
-    buildCtx: '构建证据包', searchBtn: '检索',
-    redact: '脱敏（保留墓碑）', backup: '备份', audit: '审计', resetDemo: '重置演示',
-    preview: '预览提案（不写入）', previewDone: '提案已生成，未写入台账',
-    resetDone: '演示已重置', backupDone: '备份完成', auditTitle: '审计记录',
-    atPrefix: d => `${d} 当时算数`, notYet: '尚未记录',
-    doubaoLede: '豆包导入',
-  },
-  en: {
-    lede: 'What Doubao decided on Friday, Codex picks up on Monday. This page is the “what still counts” between two agents.',
-    now: 'Now', pickDate: 'Pick a date…', time: 'When',
-    brief: 'Handoff brief', current: 'What counts now', attention: 'Needs you', past: 'Superseded',
-    empty: 'No decisions yet. Record the first one.',
-    omit: n => `${n} omitted — the budget is honest`,
-    record: 'Record', topic: 'topic', cancel: 'Cancel',
-    placeholder: 'Record one decision…',
-    note: 'Writes a real JSONL line · conflicts are refused, not merged',
-    conflictTitle: 'This collides with a standing decision',
-    conflictHint: 'The ledger never rewrites history silently. Your call: replace the old one, or record as disputed.',
-    supersede: 'Replace the old', disputeBtn: 'Record as disputed',
-    examples: { conflict: 'Try a conflict', clean: 'A clean one', dispute: 'Try a dispute', premise: 'Pull the premise' },
-    needYouHint: 'These must not pass as settled: open disputes, or decisions whose premise has fallen.',
-    resolve: 'Resolve', sustain: 'Sustain', withdraw: 'Withdraw', newDecision: 'New decision…', confirm: 'Resolve',
-    resolveHintNoTarget: 'This dispute has no standing target: sustain it, or close it with a new decision.',
-    brokenDeps: 'premise fell', disputedBadge: 'disputed', unmotivatedBadge: 'review',
-    doubao: 'Doubao import', source: 'Source', recordedAt: 'Recorded', quote: 'Quote',
-    id: 'ID', dependsOn: 'Depends on', supersededBy: 'Superseded by',
-    recorded: id => `recorded ${id}`, supersededOk: ids => `superseded ${ids}`,
-    resolvedOk: 'dispute resolved',
-    dev: 'Developer views ▾', search: 'Search', context: 'Context / RAG', rawBrief: 'Raw brief',
-    evidence: 'Evidence', safety: 'Safety', rerender: 'Render',
-    rawToggle: 'status filter off (feeding history back)',
-    buildCtx: 'Build packet', searchBtn: 'Search',
-    redact: 'Redact (tombstone)', backup: 'Backup', audit: 'Audit', resetDemo: 'Reset demo',
-    preview: 'Preview proposal (no write)', previewDone: 'Proposal generated; nothing written',
-    resetDone: 'demo reset', backupDone: 'backup done', auditTitle: 'Audit log',
-    atPrefix: d => `What counted on ${d}`, notYet: 'not yet recorded',
-    doubaoLede: 'Doubao import',
-  },
-};
 
 const t = (key) => {
   const table = I18N[S.lang];
@@ -122,38 +58,22 @@ function applyI18n() {
   const T = I18N[S.lang];
   document.documentElement.lang = S.lang === 'zh' ? 'zh-CN' : 'en';
   $('#langBtn').textContent = S.lang === 'zh' ? 'EN' : '中';
-  $('#lede').textContent = T.lede;
-  $('#budgetName').textContent = T.brief;
-  $('#currentTitle').textContent = T.current;
-  $('#attentionTitle').textContent = T.attention;
-  $('#pastTitle').textContent = T.past;
-  $('#timelineEmpty').textContent = T.empty;
-  $('#whenLabel').textContent = T.time;
-  $('#conflictTitle').textContent = T.conflictTitle;
-  $('#conflictHint').textContent = T.conflictHint;
-  $('#conflictSupersede').textContent = T.supersede;
-  $('#conflictDispute').textContent = T.disputeBtn;
-  $('#conflictCancel').textContent = T.cancel;
-  // The send button carries the ↑ glyph only; language changes its tooltip, not its content.
-  $('#recordBtn').title = T.record;
-  $('#recordBtn').setAttribute('aria-label', T.record);
-  $('#fText').placeholder = T.placeholder;
-  $('#composerNote').textContent = T.note;
-  $('#previewBtn').textContent = T.preview;
-  $('#devToggle').textContent = T.dev;
-  $('#devRawLabel').textContent = T.rawToggle;
-  $('#devSearchBtn').textContent = T.searchBtn;
-  $('#devCtxBtn').textContent = T.buildCtx;
-  $('#devBriefBtn').textContent = T.rerender;
-  $('#devRedactBtn').textContent = T.redact;
-  $('#devBackupBtn').textContent = T.backup;
-  $('#devAuditBtn').textContent = T.audit;
-  $('#devResetBtn').textContent = T.resetDemo;
-  $$('#devTabs .dev__tab').forEach(tab => {
-    const map = { search: 'search', context: 'context', brief: 'rawBrief', evidence: 'evidence', safety: 'safety' };
-    tab.textContent = T[map[tab.dataset.dev]];
-  });
+  // Declarative copy: any element with data-i18n / -ph / -title is translated
+  // by walking the DOM; code never hand-updates static strings again.
+  for (const el of $$('[data-i18n]')) {
+    const value = T[el.dataset.i18n] ?? I18N.zh[el.dataset.i18n];
+    if (typeof value === 'string') el.textContent = value;
+  }
+  for (const el of $$('[data-i18n-ph]')) {
+    el.placeholder = T[el.dataset.i18nPh] ?? I18N.zh[el.dataset.i18nPh] ?? '';
+  }
+  for (const el of $$('[data-i18n-title]')) {
+    const value = T[el.dataset.i18nTitle] ?? I18N.zh[el.dataset.i18nTitle] ?? '';
+    el.title = value;
+    el.setAttribute('aria-label', value);
+  }
 }
+
 
 /* --------------------------------------------------------------- loading */
 

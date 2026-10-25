@@ -20,11 +20,11 @@
   </div>
   <div class="topbar__tools">
     <label class="when" id="whenBox">
-      <span class="when__label" id="whenLabel">时间</span>
+      <span class="when__label" id="whenLabel" data-i18n="time">时间</span>
       <select id="whenSelect" class="when__select">
-        <option value="">现在</option>
+        <option value="" data-i18n="now">现在</option>
         <option value="2026-09-30T00:00:00Z">9 月底 · SQLite 时代</option>
-        <option value="__date">选一个日期…</option>
+        <option value="__date" data-i18n="pickDate">选一个日期…</option>
       </select>
       <input type="date" id="whenDate" class="when__date" hidden>
     </label>
@@ -33,11 +33,11 @@
 </header>
 
 <main class="page" id="main">
-  <p class="lede" id="lede">周五在豆包定下的方案，周一的 Codex 接着干。这个页面就是两台 Agent 之间那份「什么才算数」。</p>
+  <p class="lede" id="lede" data-i18n="lede">周五在豆包定下的方案，周一的 Codex 接着干。这个页面就是两台 Agent 之间那份「什么才算数」。</p>
 
   <section class="budget" id="budgetBar" aria-label="brief budget">
     <div class="budget__main">
-      <span class="budget__name" id="budgetName">开工简报</span>
+      <span class="budget__name" id="budgetName" data-i18n="brief">开工简报</span>
       <span class="budget__nums"><b id="budgetUsed">0</b> / <span id="budgetMax">2048</span> B</span>
       <span class="budget__omit" id="budgetOmit" hidden></span>
     </div>
@@ -53,67 +53,67 @@
       <ol class="tl-list" id="listCurrent"></ol>
     </div>
     <div class="tl-section tl-section--attention" id="secAttention" hidden>
-      <h2 class="tl-head"><i class="dot dot--attention"></i><span id="attentionTitle">需要你</span>
+      <h2 class="tl-head"><i class="dot dot--attention"></i><span id="attentionTitle" data-i18n="attention">需要你</span>
         <span class="tl-count" id="attentionCount">0</span></h2>
       <ol class="tl-list" id="listAttention"></ol>
     </div>
     <div class="tl-section tl-section--past" id="secPast">
       <button class="tl-head tl-head--toggle" id="pastToggle" type="button">
-        <i class="dot dot--past"></i><span id="pastTitle">已替代</span>
+        <i class="dot dot--past"></i><span id="pastTitle" data-i18n="past">已替代</span>
         <span class="tl-count" id="pastCount">0</span><span class="tl-chev" id="pastChev">▸</span>
       </button>
       <ol class="tl-list" id="listPast" hidden></ol>
     </div>
-    <p class="timeline-empty" id="timelineEmpty" hidden></p>
+    <p class="timeline-empty" id="timelineEmpty" hidden data-i18n="empty"></p>
   </section>
 
   <div class="conflict" id="conflictCard" hidden>
-    <h3 class="conflict__title" id="conflictTitle">这条和现行决定撞上了</h3>
-    <p class="conflict__hint" id="conflictHint">台账不悄悄改写历史。你来定：新的替代旧的，还是先记为有争议？</p>
+    <h3 class="conflict__title" id="conflictTitle" data-i18n="conflictTitle">这条和现行决定撞上了</h3>
+    <p class="conflict__hint" id="conflictHint" data-i18n="conflictHint">台账不悄悄改写历史。你来定：新的替代旧的，还是先记为有争议？</p>
     <ul class="conflict__list" id="conflictList"></ul>
     <div class="conflict__actions">
-      <button class="btn btn--primary" id="conflictSupersede" type="button">替代旧的</button>
-      <button class="btn" id="conflictDispute" type="button">记为有争议</button>
-      <button class="btn btn--ghost" id="conflictCancel" type="button">取消</button>
+      <button class="btn btn--primary" id="conflictSupersede" type="button" data-i18n="supersede">替代旧的</button>
+      <button class="btn" id="conflictDispute" type="button" data-i18n="disputeBtn">记为有争议</button>
+      <button class="btn btn--ghost" id="conflictCancel" type="button" data-i18n="cancel">取消</button>
     </div>
   </div>
 
   <div class="composer" id="composer">
     <div class="composer__shell">
-      <textarea id="fText" rows="1" placeholder="记一条决定… (Enter 记录 · Shift+Enter 换行)" maxlength="1000"></textarea>
+      <textarea id="fText" rows="1" data-i18n-ph="placeholder" maxlength="1000"></textarea>
       <div class="composer__bar">
         <div class="composer__left examples" id="examples"></div>
         <div class="composer__right">
           <input id="fTopic" class="topic-pill" value="general" maxlength="40"
                  pattern="[a-z0-9][a-z0-9-]{0,39}" aria-label="topic">
-          <button class="send" id="recordBtn" type="button" title="记录" aria-label="记录" disabled>↑</button>
+          <button class="send" id="recordBtn" type="button" data-i18n-title="record" disabled>↑</button>
         </div>
       </div>
     </div>
-    <p class="composer__note"><span id="composerNote">写入真实的 JSONL 台账 · 冲突会被拒绝并摊开</span>
-      <button class="example" id="previewBtn" type="button"></button></p>
+    <p class="composer__note"><span id="composerNote" data-i18n="note">写入真实的 JSONL 台账 · 冲突会被拒绝并摊开</span>
+      <button class="example" id="previewBtn" type="button" data-i18n="preview"></button></p>
   </div>
 </main>
 
 <footer class="foot">
-  <button class="foot__link" id="devToggle" type="button">开发者视图 ▾</button>
+  <button class="foot__link" id="devToggle" type="button" data-i18n="dev">开发者视图 ▾</button>
   <span class="foot__meta" id="footMeta"></span>
 </footer>
 
 <section class="dev" id="devDrawer" hidden>
   <nav class="dev__tabs" id="devTabs">
-    <button class="dev__tab is-on" data-dev="search" type="button">检索</button>
-    <button class="dev__tab" data-dev="context" type="button">Context / RAG</button>
-    <button class="dev__tab" data-dev="brief" type="button">原始简报</button>
-    <button class="dev__tab" data-dev="evidence" type="button">证据</button>
-    <button class="dev__tab" data-dev="safety" type="button">安全</button>
+    <button class="dev__tab is-on" data-dev="search" type="button" data-i18n="search">检索</button>
+    <button class="dev__tab" data-dev="context" type="button" data-i18n="context">Context / RAG</button>
+    <button class="dev__tab" data-dev="brief" type="button" data-i18n="rawBrief">原始简报</button>
+    <button class="dev__tab" data-dev="evidence" type="button" data-i18n="evidence">证据</button>
+    <button class="dev__tab" data-dev="safety" type="button" data-i18n="safety">安全</button>
   </nav>
 
   <div class="dev__panel" id="dev-search">
     <div class="dev__row">
       <input id="devQ" class="dev__input" placeholder="use sqlite">
-      <label class="dev__check"><input type="checkbox" id="devRaw"> <span id="devRawLabel">关掉状态过滤（模拟把历史喂回去）</span></label>
-      <button class="btn" id="devSearchBtn" type="button">检索</button>
+      <label class="dev__check"><input type="checkbox" id="devRaw"> <span id="devRawLabel" data-i18n="rawToggle">关掉状态过滤（模拟把历史喂回去）</span></label>
+      <button class="btn" id="devSearchBtn" type="button" data-i18n="searchBtn">检索</button>
     </div>
     <div class="dev__out" id="devSearchOut"></div>
   </div>
@@ -125,14 +125,14 @@
         <option value="current">current</option>
         <option value="historical">historical</option>
       </select>
-      <button class="btn" id="devCtxBtn" type="button">构建证据包</button>
+      <button class="btn" id="devCtxBtn" type="button" data-i18n="buildCtx">构建证据包</button>
     </div>
     <div class="dev__out" id="devCtxOut"></div>
   </div>
 
   <div class="dev__panel" id="dev-brief" hidden>
     <div class="dev__row">
-      <button class="btn" id="devBriefBtn" type="button">重新渲染</button>
+      <button class="btn" id="devBriefBtn" type="button" data-i18n="rerender">重新渲染</button>
       <span class="dev__hint">brief 的每个字节都可验证；wire 与 CLI 输出逐字一致</span>
     </div>
     <div class="dev__out"><pre id="devBriefWire" class="mono"></pre></div>
@@ -145,16 +145,17 @@
   <div class="dev__panel" id="dev-safety" hidden>
     <div class="dev__row">
       <input id="devRedactId" class="dev__input mono" placeholder="clm_…">
-      <button class="btn" id="devRedactBtn" type="button">脱敏（保留墓碑）</button>
-      <button class="btn" id="devBackupBtn" type="button">备份</button>
-      <button class="btn" id="devAuditBtn" type="button">审计</button>
-      <button class="btn btn--danger" id="devResetBtn" type="button">重置演示</button>
+      <button class="btn" id="devRedactBtn" type="button" data-i18n="redact">脱敏（保留墓碑）</button>
+      <button class="btn" id="devBackupBtn" type="button" data-i18n="backup">备份</button>
+      <button class="btn" id="devAuditBtn" type="button" data-i18n="audit">审计</button>
+      <button class="btn btn--danger" id="devResetBtn" type="button" data-i18n="resetDemo">重置演示</button>
     </div>
     <div class="dev__out" id="devSafetyOut"></div>
   </div>
 </section>
 
 <div class="toast" id="toast" hidden></div>
+<script src="/static/i18n.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>
