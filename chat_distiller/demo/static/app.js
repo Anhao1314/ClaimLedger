@@ -241,7 +241,10 @@ function renderTimeline() {
     row.addEventListener('click', () => {
       const card = row.closest('.claim');
       const detail = card.querySelector('.claim__detail');
-      if (detail) detail.hidden = !detail.hidden;
+      if (detail) {
+        detail.hidden = !detail.hidden;
+        card.classList.toggle('is-open', !detail.hidden);
+      }
     });
   });
   wireResolveButtons(byId);
@@ -262,7 +265,6 @@ function claimCard(claim, byId, isAt) {
   const cls = isCurrent ? 'claim--current' : isPast ? 'claim--past' : 'claim--attention';
   const dot = isUnmotivated ? 'dot--unmotivated' : isDisputed ? 'dot--disputed'
     : isPast ? 'dot--superseded' : 'dot--current';
-
   const depNames = (claim._broken || claim.depends_on || []).map(id => {
     const dep = byId.get(id);
     return esc(dep ? dep.text : id);
@@ -288,6 +290,7 @@ function claimCard(claim, byId, isAt) {
       <span class="claim__text">${esc(claim.text)}</span>
       ${badges.join('')}
       <span class="claim__topic">${esc(claim.topic)}</span>
+      <span class="claim__chev" aria-hidden="true">▸</span>
     </div>
     <div class="claim__detail" hidden><dl>${dl}</dl>${resolveUi}</div>
   </li>`;
