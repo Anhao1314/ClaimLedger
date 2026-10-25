@@ -139,3 +139,19 @@ UTF-8 budget includes metadata and a newline. [Full packet contract](memory-engi
 Memory text remains untrusted data. This component does not execute it or send it to a
 model. The caller must enforce its own tool permissions and instruction boundaries.
 A status flag or hash alone does not prevent prompt injection.
+
+## Naming layers (deliberate, not drift)
+
+The project carries three public names. This is a compatibility contract, not
+unfinished migration:
+
+| Layer | Name | Status |
+| --- | --- | --- |
+| Product | **ClaimLedger** | current |
+| Distribution / CLI | `claim-ledger` (PyPI), `claim` command | current; `chat-distiller` remains a compatible entry point |
+| Python package | `chat_distiller` | kept: importing code, the user data home `~/.chat-distiller` and the legacy command surface all pin to it |
+
+Renaming the package would break every downstream import and the documented
+data-home compatibility promise for zero behaviour gain. New modules use the
+product vocabulary in docstrings; the package name stays until a v2 line
+deliberately breaks compatibility. Decision recorded 2026-10-25.
