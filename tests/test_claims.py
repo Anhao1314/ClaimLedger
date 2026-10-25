@@ -291,7 +291,7 @@ class ClaimStoreTests(unittest.TestCase):
         self.assertTrue((Path(self.tmp.name) / "deep" / "nested" / "claims.jsonl").is_file())
 
     def test_cli_record_and_brief_end_to_end(self):
-        from chat_distiller import claims as claims_module
+        from chat_distiller import claims_cli as claims_module
         rc = claims_module.main(["record", "CLI 端到端声明", "--store", str(self.store_path), "--json"])
         self.assertEqual(rc, 0)
         rc = claims_module.main(["brief", "--store", str(self.store_path), "--compact"])
@@ -302,7 +302,7 @@ class ClaimStoreTests(unittest.TestCase):
     def test_cli_scope_and_expiry_flags(self):
         import io
         import contextlib
-        from chat_distiller import claims as claims_module
+        from chat_distiller import claims_cli as claims_module
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             rc = claims_module.main([

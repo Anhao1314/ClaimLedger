@@ -21,7 +21,7 @@ def main(argv=None):
     if argv and argv[0] in {
             "init", "record", "resolve", "brief", "claims", "recall", "suggest", "index",
             "backup", "backups", "audit", "restore", "redact", "delete"}:
-        from .claims import main as claims_main
+        from .claims_cli import main as claims_main
         return claims_main(argv)
     if argv and argv[0] in {"connect", "sync", "context", "status"}:
         from .gateway.cli import main as gateway_main

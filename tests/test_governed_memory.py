@@ -243,7 +243,7 @@ class GovernedMemoryTests(unittest.TestCase):
     # ------------------------------------------------------------------ CLI wiring
 
     def test_cli_resolve_and_point_in_time_brief(self):
-        from chat_distiller.claims import main
+        from chat_distiller.claims_cli import main
         standing = self.store.record("数据库统一使用 SQLite")["recorded"]
         dispute = self.store.record("数据库统一使用 PostgreSQL", dispute=True)["recorded"]
         self.assertEqual(
