@@ -134,7 +134,9 @@ function applyI18n() {
   $('#conflictSupersede').textContent = T.supersede;
   $('#conflictDispute').textContent = T.disputeBtn;
   $('#conflictCancel').textContent = T.cancel;
-  $('#recordBtn').textContent = T.record;
+  // The send button carries the ↑ glyph only; language changes its tooltip, not its content.
+  $('#recordBtn').title = T.record;
+  $('#recordBtn').setAttribute('aria-label', T.record);
   $('#fText').placeholder = T.placeholder;
   $('#composerNote').textContent = T.note;
   $('#previewBtn').textContent = T.preview;
