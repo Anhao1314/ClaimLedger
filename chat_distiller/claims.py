@@ -47,8 +47,110 @@ KEYS = frozenset((
     "created_at", "updated_at", "superseded_by",
     "source", "quote", "session_hint",
 ))
-OPTIONAL_KEYS = frozenset(("redacted_at", "scope", "expires_at"))
+OPTIONAL_KEYS = frozenset((
+    "redacted_at", "scope", "expires_at",
+    "valid_from", "valid_to", "superseded_at", "depends_on", "disputes",
+))
 DEFAULT_SCOPE = "all"
+RESOLVE_OUTCOMES = ("sustain", "withdraw", "supersede")
+
+
+def _parse_moment(value, label):
+    """Parse an ISO-8601 UTC timestamp into an aware datetime or refuse."""
+    if not isinstance(value, str) or not ISO_Z_RE.fullmatch(value):
+        raise ClaimStoreError(
+            f"{label} must be an ISO-8601 UTC timestamp like 2026-12-31T23:59:59Z")
+    try:
+        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    except ValueError as exc:
+        raise ClaimStoreError(f"{label} is not a real UTC datetime: {value!r}") from exc
+
+
+def _normalize_id_list(value, label):
+    """Normalize a claim_id or a list of them; empty and duplicates are refused."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        items = [value]
+    elif isinstance(value, (list, tuple)):
+        items = list(value)
+    else:
+        raise ClaimStoreError(f"{label} must be a claim_id or a list of claim_ids")
+    if not items:
+        return []
+    if any(not isinstance(item, str) or not CLAIM_ID_RE.fullmatch(item) for item in items):
+        raise ClaimStoreError(f"{label} must contain valid claim_ids")
+    if len(set(items)) != len(items):
+        raise ClaimStoreError(f"{label} must not contain duplicate claim_ids")
+    return items
+
+
+def claim_effective_at(claim, now=None):
+    """True when the claim's real-world validity window has opened."""
+    valid_from = claim.get("valid_from")
+    if not valid_from:
+        return True
+    try:
+        opens = datetime.strptime(valid_from, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return True
+    return opens <= (now or datetime.now(timezone.utc))
+
+
+def superseded_moment(claim):
+    """The system time a claim left the live view; v1 rows fall back to updated_at."""
+    return claim.get("superseded_at") or claim["updated_at"]
+
+
+def status_at(claim, moment):
+    """The claim's status at an instant, reconstructed from stored timestamps.
+
+    ``moment`` is an aware datetime. This is an as-of query on the record axis —
+    what the ledger believed at ``moment`` — so a claim counts only once it had
+    been recorded (``created_at``), once its validity window had opened
+    (``valid_from``) and until one of its closing edges (``valid_to``,
+    ``expires_at``, ``superseded_at``). Returns one of the stored statuses, or
+    ``None`` when none of that applies. Redaction hides content from every
+    view, so callers filter redacted rows before asking.
+    """
+    created = _parse_moment(claim["created_at"], "created_at")
+    if moment < created:
+        return None
+    if not claim_effective_at(claim, moment):
+        return None
+    for edge in ("valid_to", "expires_at", "superseded_at"):
+        value = claim.get(edge)
+        if value and _parse_moment(value, edge) <= moment:
+            return "已过期"
+    if claim["status"] == "已过期":
+        return "已过期" if _parse_moment(superseded_moment(claim), "superseded_at") <= moment else "现行"
+    return claim["status"]
+
+
+def find_unmotivated(rows):
+    """Current claims whose hard dependencies no longer stand, with the broken ids.
+
+    A dependency is broken when its target was superseded, time-expired or
+    redacted. The flag is derived, never stored: the claim keeps its own status
+    and the brief reports it separately instead of letting it pass as settled.
+    """
+    by_id = {row["claim_id"]: row for row in rows}
+    out = []
+    for claim in rows:
+        if claim["status"] != "现行" or claim.get("redacted_at"):
+            continue
+        if not claim_effective_at(claim):
+            continue
+        broken = []
+        for target_id in claim.get("depends_on") or ():
+            target = by_id.get(target_id)
+            if target is None or target["status"] == "已过期" \
+                    or target.get("redacted_at") or claim_expired_at(target):
+                broken.append(target_id)
+        if broken:
+            out.append({"claim_id": claim["claim_id"], "text": claim["text"],
+                        "broken_dependencies": sorted(broken)})
+    return out
 
 
 class ClaimStoreError(ValueError):
@@ -116,6 +218,35 @@ def _validate_claim(claim):
         if expires_at is not None and (
                 not isinstance(expires_at, str) or not ISO_Z_RE.fullmatch(expires_at)):
             raise ClaimStoreError(f"invalid expires_at on {claim['claim_id']}")
+    for key in ("valid_from", "valid_to"):
+        if key in claim:
+            value = claim[key]
+            if value is not None and (not isinstance(value, str) or not ISO_Z_RE.fullmatch(value)):
+                raise ClaimStoreError(f"invalid {key} on {claim['claim_id']}")
+    if claim.get("valid_from") and claim.get("valid_to"):
+        if _parse_moment(claim["valid_from"], "valid_from") > _parse_moment(claim["valid_to"], "valid_to"):
+            raise ClaimStoreError(
+                f"valid_from is after valid_to on {claim['claim_id']}")
+    if "superseded_at" in claim:
+        superseded_at = claim["superseded_at"]
+        if superseded_at is not None:
+            if not isinstance(superseded_at, str) or not ISO_Z_RE.fullmatch(superseded_at):
+                raise ClaimStoreError(f"invalid superseded_at on {claim['claim_id']}")
+            if claim["status"] != "已过期":
+                raise ClaimStoreError(
+                    f"superseded_at set on non-expired claim: {claim['claim_id']}")
+    for key in ("depends_on", "disputes"):
+        if key in claim:
+            value = claim[key]
+            if value is None:
+                continue
+            if not isinstance(value, list):
+                raise ClaimStoreError(f"{key} must be a list of claim_ids on {claim['claim_id']}")
+            _normalize_id_list(value, key)
+            if claim["claim_id"] in value:
+                raise ClaimStoreError(f"{key} must not reference itself: {claim['claim_id']}")
+    if claim.get("disputes") and claim["status"] != "有争议":
+        raise ClaimStoreError(f"disputes set on non-disputed claim: {claim['claim_id']}")
 
 
 def claim_scope(claim):
@@ -193,6 +324,12 @@ def _validate_rows(rows, source):
                     f"{source}: supersession cycle reached from {claim['claim_id']}")
             seen.add(cursor)
             cursor = by_id[cursor]["superseded_by"] if cursor in by_id else None
+    for claim in rows:
+        for key in ("depends_on", "disputes"):
+            for target in claim.get(key) or ():
+                if target not in by_id:
+                    raise ClaimStoreError(
+                        f"{source}: dangling {key} reference on {claim['claim_id']}: {target}")
 
 
 def _serialize_rows(rows):
@@ -442,13 +579,18 @@ class ClaimStore:
 
     def record(self, text, *, topic="general", tags=None, supersedes=None,
                dispute=False, source=None, quote=None, session_hint=None,
-               scope=None, expires_at=None):
+               scope=None, expires_at=None, valid_from=None, valid_to=None,
+               depends_on=None):
         """Capture one claim at decision time; conflicts must be resolved explicitly.
 
         ``scope`` narrows where the claim applies (default ``all``); decisions in
         disjoint scopes can coexist. ``expires_at`` is an optional UTC timestamp:
         past that moment the claim no longer counts as current, without touching
-        the stored status or supersession chain.
+        the stored status or supersession chain. ``valid_from`` / ``valid_to``
+        are the real-world validity window (backdating is allowed; a future
+        ``valid_from`` schedules the decision). ``depends_on`` lists hard
+        dependencies: when one of them stops standing, the brief reports this
+        claim as unmotivated instead of settled.
         """
         if not isinstance(text, str) or not text.strip():
             raise ClaimStoreError("claim text must be non-empty")
@@ -467,14 +609,26 @@ class ClaimStore:
             return self._record_locked(
                 text, topic=topic, tags=tags, supersedes=supersedes, dispute=dispute,
                 source=source, quote=quote, session_hint=session_hint,
-                scope=scope, expires_at=expires_at)
+                scope=scope, expires_at=expires_at, valid_from=valid_from,
+                valid_to=valid_to, depends_on=depends_on)
 
     def _record_locked(self, text, *, topic, tags, supersedes, dispute,
-                       source, quote, session_hint, scope, expires_at):
+                       source, quote, session_hint, scope, expires_at,
+                       valid_from, valid_to, depends_on):
         scope = _normalize_scope(scope)
         expires_at = _normalize_expires_at(expires_at, datetime.now(timezone.utc))
+        if valid_from is not None:
+            _parse_moment(valid_from, "valid_from")
+        if valid_to is not None:
+            _parse_moment(valid_to, "valid_to")
+        if valid_from and valid_to and valid_from > valid_to:
+            raise ClaimStoreError("valid_from must not be after valid_to")
+        depends_on = _normalize_id_list(depends_on, "depends_on")
         rows = self._read()
         by_id = {c["claim_id"]: c for c in rows}
+        for target in depends_on:
+            if target not in by_id:
+                raise ClaimStoreError(f"--depends-on target not found: {target}")
         for claim in rows:
             # The duplicate guard protects the live view only: identical text in a
             # disjoint scope is a different decision, and a time-expired claim no
@@ -511,6 +665,9 @@ class ClaimStore:
                     f"unresolved conflict with current claim(s): {ids}; "
                     "supersede every detected conflict, or use --dispute")
         status = "有争议" if dispute else "现行"
+        # A dispute that resolved detected conflicts records what it objects to,
+        # so `resolve` can later close the loop without guessing.
+        disputes = sorted(conflict_ids) if dispute else []
         claim_id = "clm_" + uuid.uuid4().hex[:16]
         while claim_id in by_id:
             claim_id = "clm_" + uuid.uuid4().hex[:16]
@@ -519,12 +676,18 @@ class ClaimStore:
                  "tags": tags, "created_at": now, "updated_at": now,
                  "superseded_by": None, "source": source, "quote": quote,
                  "session_hint": session_hint, "scope": scope,
-                 "expires_at": expires_at}
+                 "expires_at": expires_at, "valid_from": valid_from,
+                 "valid_to": valid_to}
+        if depends_on:
+            claim["depends_on"] = depends_on
+        if disputes:
+            claim["disputes"] = disputes
         _validate_claim(claim)
         for target in targets:
             replaced = by_id[target]
             replaced["status"] = "已过期"
             replaced["superseded_by"] = claim_id
+            replaced["superseded_at"] = now
             replaced["updated_at"] = now
         rows.append(claim)
         self._write(rows)
@@ -533,8 +696,117 @@ class ClaimStore:
                 "superseded": targets[0] if targets else None,
                 "superseded_claims": targets, "store_sha256": self.digest(rows)}
 
+    def resolve(self, claim_id, *, outcome, text=None, topic=None, tags=None,
+                source=None, quote=None, session_hint=None, scope=None):
+        """Close a recorded dispute; every outcome leaves the chain consistent.
+
+        ``sustain`` promotes the disputed claim to current and supersedes the
+        claims it objected to. ``withdraw`` retracts it in favour of the first
+        still-standing target. ``supersede`` records a new decision (``text``)
+        that replaces both the dispute and its standing targets.
+        """
+        if outcome not in RESOLVE_OUTCOMES:
+            raise ClaimStoreError(f"outcome must be one of {RESOLVE_OUTCOMES}")
+        if not isinstance(claim_id, str) or not CLAIM_ID_RE.fullmatch(claim_id):
+            raise ClaimStoreError("claim_id must be a valid claim id")
+        if outcome == "supersede":
+            if not isinstance(text, str) or not text.strip():
+                raise ClaimStoreError("supersede resolution requires the new decision text")
+            text = " ".join(text.split())
+            if len(text) > MAX_TEXT:
+                raise ClaimStoreError(f"claim text exceeds {MAX_TEXT} characters")
+            if topic is not None and not TOPIC_RE.fullmatch(str(topic)):
+                raise ClaimStoreError(f"topic must match {TOPIC_RE.pattern!r}: {topic!r}")
+            tags = list(tags or [])
+            if len(set(tags)) != len(tags):
+                raise ClaimStoreError("tags must be unique")
+        with self._locked():
+            rows = self._read()
+            by_id = {c["claim_id"]: c for c in rows}
+            if claim_id not in by_id:
+                raise ClaimStoreError(f"claim not found: {claim_id}")
+            dispute_claim = by_id[claim_id]
+            if dispute_claim["status"] != "有争议":
+                raise ClaimStoreError(f"claim is not disputed: {claim_id}")
+            if dispute_claim.get("redacted_at"):
+                raise ClaimStoreError(f"disputed claim is redacted: {claim_id}")
+            targets = dispute_claim.get("disputes") or []
+            standing = [t for t in targets
+                        if by_id[t]["status"] == "现行" and not by_id[t].get("redacted_at")
+                        and not claim_expired_at(by_id[t])]
+            superseded_ids = []
+            now = _utc_now()
+
+            def retire(row, successor):
+                row["status"] = "已过期"
+                row["superseded_by"] = successor
+                row["superseded_at"] = now
+                row["updated_at"] = now
+                superseded_ids.append(row["claim_id"])
+
+            if outcome == "withdraw":
+                if not standing:
+                    raise ClaimStoreError(
+                        f"dispute {claim_id} has no standing claim to defer to; "
+                        "record the resolution as a new decision instead")
+                dispute_claim.pop("disputes", None)
+                retire(dispute_claim, standing[0])
+            elif outcome == "sustain":
+                winner_text = dispute_claim["text"]
+                others = [c for c in rows
+                          if c["status"] == "现行" and not c.get("redacted_at")
+                          and not claim_expired_at(c)
+                          and c["claim_id"] != claim_id
+                          and c["claim_id"] not in standing]
+                leftovers = find_conflicts(winner_text, others)
+                if leftovers:
+                    ids = ", ".join(c["claim_id"] for c in leftovers)
+                    raise ClaimStoreError(
+                        f"sustaining {claim_id} would leave unresolved conflicts: {ids}; "
+                        "supersede or dispute those first")
+                for target in standing:
+                    retire(by_id[target], claim_id)
+                dispute_claim["status"] = "现行"
+                dispute_claim.pop("disputes", None)
+                dispute_claim["updated_at"] = now
+            else:  # supersede
+                others = [c for c in rows
+                          if c["status"] == "现行" and not c.get("redacted_at")
+                          and not claim_expired_at(c)
+                          and c["claim_id"] not in targets]
+                leftovers = find_conflicts(text, others)
+                if leftovers:
+                    ids = ", ".join(c["claim_id"] for c in leftovers)
+                    raise ClaimStoreError(
+                        f"the new decision conflicts with unrelated current claim(s): {ids}; "
+                        "supersede or dispute those first")
+                new_id = "clm_" + uuid.uuid4().hex[:16]
+                while new_id in by_id:
+                    new_id = "clm_" + uuid.uuid4().hex[:16]
+                decision = {"claim_id": new_id, "text": text, "status": "现行",
+                            "topic": topic or "general", "tags": list(tags or []),
+                            "created_at": now, "updated_at": now,
+                            "superseded_by": None, "source": source, "quote": quote,
+                            "session_hint": session_hint,
+                            "scope": _normalize_scope(scope), "expires_at": None}
+                _validate_claim(decision)
+                for target in standing:
+                    retire(by_id[target], new_id)
+                dispute_claim.pop("disputes", None)
+                retire(dispute_claim, new_id)
+                rows.append(decision)
+            _validate_rows(rows, self.path)
+            self._write(rows)
+            promoted = outcome == "sustain"
+            return {"ok": True, "action": "resolve", "outcome": outcome,
+                    "dispute": claim_id, "resolved": True,
+                    "superseded_claims": superseded_ids,
+                    "promoted": promoted,
+                    "recorded": decision if outcome == "supersede" else None,
+                    "store_sha256": self.digest(rows)}
+
     def claims(self, *, status=None, topic=None, query=None, include_redacted=False,
-               scope=None, include_time_expired=True):
+               scope=None, include_time_expired=True, at=None):
         rows = self._read()
         if not include_redacted:
             rows = [c for c in rows if not c.get("redacted_at")]
@@ -542,13 +814,19 @@ class ClaimStore:
             status = "all"
         if status is not None and status != "all":
             status = normalize_status(status)
-            rows = [c for c in rows if c["status"] == status]
+            if at is not None:
+                moment = _parse_moment(at, "at")
+                rows = [c for c in rows if status_at(c, moment) == status]
+            else:
+                rows = [c for c in rows if c["status"] == status]
+        elif at is not None:
+            raise ClaimStoreError("--at requires an explicit status, not 'all'")
         if topic is not None:
             rows = [c for c in rows if c["topic"] == topic]
         if scope is not None:
             scope = _normalize_scope(scope)
             rows = [c for c in rows if scope_overlaps(scope, claim_scope(c))]
-        if status == "现行" and not include_time_expired:
+        if status == "现行" and not include_time_expired and at is None:
             rows = [c for c in rows if not claim_expired_at(c)]
         if query:
             q = features(query)
@@ -556,13 +834,16 @@ class ClaimStore:
         rows.sort(key=lambda c: (c["topic"], c["created_at"], c["claim_id"]))
         return rows
 
-    def brief(self, *, max_bytes=DEFAULT_MAX_BYTES, topic=None, scope=None):
+    def brief(self, *, max_bytes=DEFAULT_MAX_BYTES, topic=None, scope=None, at=None):
         """A deterministic, byte-bounded snapshot: disputes first, then current, then history.
 
         ``scope`` restricts the packet to claims that apply there (``all``-scoped
         claims always apply). A claim whose ``expires_at`` has passed stops
         counting as current; it is reported in ``counts.time_expired`` instead of
-        being rewritten, so the stored chain stays immutable.
+        being rewritten, so the stored chain stays immutable. Claims whose hard
+        dependencies no longer stand are reported under ``unmotivated`` instead
+        of passing as settled. ``at`` reconstructs the view at a past instant
+        from stored timestamps: what was current, disputed and superseded then.
         """
         if type(max_bytes) is not int or not 256 <= max_bytes <= 1_048_576:
             raise ClaimStoreError("max_bytes must be an integer between 256 and 1048576")
@@ -572,20 +853,54 @@ class ClaimStore:
         visible = [c for c in rows if not c.get("redacted_at")]
         if scope is not None:
             visible = [c for c in visible if scope_overlaps(scope, claim_scope(c))]
-        current = [c for c in visible if c["status"] == "现行" and (topic is None or c["topic"] == topic)]
-        time_expired = [c for c in current if claim_expired_at(c)]
-        current = [c for c in current if not claim_expired_at(c)]
-        disputed = [c for c in visible if c["status"] == "有争议" and (topic is None or c["topic"] == topic)]
-        expired = [c for c in visible if c["status"] == "已过期" and (topic is None or c["topic"] == topic)]
+        if at is None:
+            # The live view keeps v1 bucket semantics: an expires_at deadline
+            # moves a stored-current claim into time_expired, never into the
+            # supersession history; the validity window gates standing only.
+            def window_open(claim, now):
+                valid_to = claim.get("valid_to")
+                return not valid_to or _parse_moment(valid_to, "valid_to") > now
+
+            now = datetime.now(timezone.utc)
+            stored_current = [c for c in visible
+                              if c["status"] == "现行" and (topic is None or c["topic"] == topic)]
+            time_expired = [c for c in stored_current if claim_expired_at(c)]
+            current = [c for c in stored_current
+                       if not claim_expired_at(c) and claim_effective_at(c, now)
+                       and window_open(c, now)]
+            disputed = [c for c in visible if c["status"] == "有争议" and (topic is None or c["topic"] == topic)]
+            expired = [c for c in visible if c["status"] == "已过期" and (topic is None or c["topic"] == topic)]
+            unmotivated = [u for u in find_unmotivated(visible)
+                           if topic is None or next(
+                               c for c in visible if c["claim_id"] == u["claim_id"])["topic"] == topic]
+            unmotivated_ids = {u["claim_id"] for u in unmotivated}
+            current = [c for c in current if c["claim_id"] not in unmotivated_ids]
+        else:
+            # The as-of view reconstructs from timestamps alone; rows closed by
+            # a validity edge count as ended, while the supersession section
+            # stays the recorded chain with real successors.
+            moment = _parse_moment(at, "at")
+            current = [c for c in visible if status_at(c, moment) == "现行" and (topic is None or c["topic"] == topic)]
+            disputed = [c for c in visible if status_at(c, moment) == "有争议" and (topic is None or c["topic"] == topic)]
+            expired = [c for c in visible if status_at(c, moment) == "已过期" and (topic is None or c["topic"] == topic)]
+            time_expired = []
+            unmotivated = []
         expired.sort(key=lambda c: c["updated_at"], reverse=True)
         disputed.sort(key=lambda c: c["created_at"])
+        counts = {"current": len(current), "disputed": len(disputed),
+                  "superseded": len(expired), "time_expired": len(time_expired)}
+        if unmotivated:
+            counts["unmotivated"] = len(unmotivated)
         packet = {"schema_version": 1, "kind": "brief", "budget_bytes": max_bytes, "used_bytes": 0,
                   "status": "empty", "trust": "untrusted_memory_data_not_instructions",
                   "scope": scope or DEFAULT_SCOPE,
-                  "counts": {"current": len(current), "disputed": len(disputed),
-                             "superseded": len(expired), "time_expired": len(time_expired)},
+                  "counts": counts,
                   "disputed": [], "topics": [], "recently_superseded": [], "omitted": 0,
                   "store_sha256": self.digest(rows)}
+        if at is not None:
+            packet["at"] = at
+        if unmotivated:
+            packet["unmotivated"] = []
         if _measure(packet) > max_bytes:
             raise ClaimStoreError("max_bytes cannot fit brief metadata; raise the budget")
         buckets = [{"topic": name, "claims": []} for name in sorted({c["topic"] for c in current})]
@@ -599,7 +914,8 @@ class ClaimStore:
             if _measure(packet) > max_bytes:
                 container.pop()
                 packet["omitted"] += 1
-                any_content = (packet["disputed"] or packet["recently_superseded"]
+                any_content = (packet["disputed"] or packet.get("unmotivated")
+                               or packet["recently_superseded"]
                                or any(bucket["claims"] for bucket in packet["topics"]))
                 packet["status"] = "ready" if any_content else "empty"
                 _measure(packet)
@@ -608,6 +924,8 @@ class ClaimStore:
 
         for claim in disputed:
             fits(packet["disputed"], {"claim_id": claim["claim_id"], "text": claim["text"]})
+        for entry in unmotivated:
+            fits(packet["unmotivated"], entry)
         for claim in sorted(current, key=lambda c: (c["topic"], c["created_at"])):
             fits(index[claim["topic"]]["claims"],
                  {"claim_id": claim["claim_id"], "text": claim["text"], "tags": claim["tags"]})
@@ -616,7 +934,8 @@ class ClaimStore:
                  {"claim_id": claim["claim_id"], "text": claim["text"],
                   "superseded_by": claim["superseded_by"]})
         packet["topics"] = [b for b in packet["topics"] if b["claims"]]
-        any_content = bool(packet["disputed"] or packet["recently_superseded"] or packet["topics"])
+        any_content = bool(packet["disputed"] or packet.get("unmotivated")
+                           or packet["recently_superseded"] or packet["topics"])
         if not any_content:
             packet["status"] = "budget_exhausted" if visible else "empty"
         _measure(packet)
@@ -860,14 +1179,40 @@ def main(argv=None):
     record.add_argument("--scope", help="where the claim applies, e.g. production (default: all)")
     record.add_argument("--expires-at", dest="expires_at",
                         help="UTC timestamp after which the claim no longer counts as current")
+    record.add_argument("--valid-from", dest="valid_from",
+                        help="UTC timestamp the decision started being true (default: now)")
+    record.add_argument("--valid-to", dest="valid_to",
+                        help="UTC timestamp the decision stopped being true; backdating is allowed")
+    record.add_argument("--depends-on", dest="depends_on", action="append", default=[],
+                        help="claim_id this decision relies on; a fallen premise flags it for review")
     record.add_argument("--store")
     record.add_argument("--json", action="store_true")
+
+    resolve_cmd = commands.add_parser("resolve", help="close a recorded dispute")
+    resolve_cmd.add_argument("claim_id")
+    outcomes = resolve_cmd.add_mutually_exclusive_group(required=True)
+    outcomes.add_argument("--sustain", action="store_true",
+                          help="the objection wins: it becomes current and supersedes its targets")
+    outcomes.add_argument("--withdraw", action="store_true",
+                          help="the objection is retracted in favour of the standing claim")
+    outcomes.add_argument("--text",
+                          help="a new decision that supersedes both the dispute and its targets")
+    resolve_cmd.add_argument("--topic")
+    resolve_cmd.add_argument("--tag", action="append", default=[])
+    resolve_cmd.add_argument("--source")
+    resolve_cmd.add_argument("--quote")
+    resolve_cmd.add_argument("--session", dest="session_hint")
+    resolve_cmd.add_argument("--scope")
+    resolve_cmd.add_argument("--store")
+    resolve_cmd.add_argument("--json", action="store_true")
 
     brief = commands.add_parser("brief", help="render the current-state brief within a byte budget")
     brief.add_argument("--store")
     brief.add_argument("--max-bytes", type=int, default=DEFAULT_MAX_BYTES)
     brief.add_argument("--topic")
     brief.add_argument("--scope", help="restrict the brief to claims that apply to this scope")
+    brief.add_argument("--at",
+                       help="reconstruct the brief at a past UTC instant, e.g. 2026-03-01T00:00:00Z")
     brief.add_argument("--compact", action="store_true", help="omit indentation")
 
     listing = commands.add_parser("claims", help="list or search claims")
@@ -876,6 +1221,8 @@ def main(argv=None):
     listing.add_argument("--topic")
     listing.add_argument("--query")
     listing.add_argument("--limit", type=int, default=100)
+    listing.add_argument("--at",
+                         help="filter by status at a past UTC instant; requires an explicit --status")
     listing.add_argument("--include-redacted", action="store_true",
                          help="include content-free redaction tombstones")
 
@@ -972,7 +1319,9 @@ def main(argv=None):
                 args.text, topic=args.topic, tags=args.tag, supersedes=args.supersedes or None,
                 dispute=args.dispute, source=args.source,
                 quote=args.quote, session_hint=args.session_hint,
-                scope=args.scope, expires_at=args.expires_at)
+                scope=args.scope, expires_at=args.expires_at,
+                valid_from=args.valid_from, valid_to=args.valid_to,
+                depends_on=args.depends_on or None)
             if args.json:
                 print(json.dumps(result, ensure_ascii=False, indent=2))
             else:
@@ -982,14 +1331,34 @@ def main(argv=None):
                     line += f" scope={recorded['scope']}"
                 if recorded.get("expires_at"):
                     line += f" expires_at={recorded['expires_at']}"
+                if recorded.get("valid_from"):
+                    line += f" valid_from={recorded['valid_from']}"
+                if recorded.get("valid_to"):
+                    line += f" valid_to={recorded['valid_to']}"
                 if result["superseded_claims"]:
                     line += " superseded=" + ",".join(result["superseded_claims"])
                 if result["conflicts_with"]:
                     line += f" conflicts_with={','.join(result['conflicts_with'])}"
                 print(line)
+        elif args.command == "resolve":
+            outcome = ("sustain" if args.sustain else
+                       "withdraw" if args.withdraw else "supersede")
+            result = ClaimStore(args.store).resolve(
+                args.claim_id, outcome=outcome, text=args.text, topic=args.topic,
+                tags=args.tag, source=args.source, quote=args.quote,
+                session_hint=args.session_hint, scope=args.scope)
+            if args.json:
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+            else:
+                line = f"resolved {result['dispute']} outcome={result['outcome']}"
+                if result["superseded_claims"]:
+                    line += " superseded=" + ",".join(result["superseded_claims"])
+                if result.get("recorded"):
+                    line += f" as {result['recorded']['claim_id']}"
+                print(line)
         elif args.command == "brief":
             packet = ClaimStore(args.store).brief(max_bytes=args.max_bytes, topic=args.topic,
-                                                  scope=args.scope)
+                                                  scope=args.scope, at=args.at)
             if args.compact:
                 print(serialize_packet(packet), end="")
             else:
@@ -1082,7 +1451,7 @@ def main(argv=None):
                 raise ClaimStoreError("limit must be between 1 and 1000")
             rows = ClaimStore(args.store).claims(
                 status=args.status, topic=args.topic, query=args.query,
-                include_redacted=args.include_redacted)
+                include_redacted=args.include_redacted, at=args.at)
             print(json.dumps({"ok": True, "count": len(rows),
                               "claims": rows[:args.limit]}, ensure_ascii=False, indent=2))
         return 0

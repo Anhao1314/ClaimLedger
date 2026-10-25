@@ -19,7 +19,7 @@ def main(argv=None):
         from .mcp_server import main as mcp_main
         return mcp_main(argv[1:])
     if argv and argv[0] in {
-            "init", "record", "brief", "claims", "recall", "suggest", "index",
+            "init", "record", "resolve", "brief", "claims", "recall", "suggest", "index",
             "backup", "backups", "audit", "restore", "redact", "delete"}:
         from .claims import main as claims_main
         return claims_main(argv)
@@ -65,6 +65,7 @@ def main(argv=None):
     commands.add_parser("skill", help="install or inspect the portable Agent Skill")
     commands.add_parser("init", help="create an empty claim store and print next steps")
     commands.add_parser("record", help="capture one claim at decision time")
+    commands.add_parser("resolve", help="close a recorded dispute")
     commands.add_parser("brief", help="render a byte-bounded current-state brief")
     commands.add_parser("claims", help="list or search captured claims")
     commands.add_parser("recall", help="brief plus optional status-filtered RAG evidence")
