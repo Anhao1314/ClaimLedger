@@ -9,7 +9,7 @@
 
 **The decision ledger for AI agents.** Agents that remember, never forget, and never serve an outdated conclusion as current.
 
-Runs locally: zero third-party dependencies, zero network calls, zero model keys. Every conclusion is a claim with a status and a source; judgment stays with the human or the host Agent. Previously **CarryTrace / chat-distiller**; compatible entry points and data homes remain.
+Runs locally: zero third-party dependencies, zero network calls, zero model keys. Every conclusion is a claim with a status and a source; judgment stays with the human or the host Agent. Machine may propose, the state machine exposes, the human ratifies — semantic output is never authoritative. Previously **CarryTrace / chat-distiller**; compatible entry points and data homes remain.
 
 [![Tests](https://github.com/Anhao1314/ClaimLedger/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Anhao1314/ClaimLedger/actions/workflows/tests.yml)
 [![Evidence](https://github.com/Anhao1314/ClaimLedger/actions/workflows/evidence.yml/badge.svg?branch=main)](https://github.com/Anhao1314/ClaimLedger/actions/workflows/evidence.yml)
@@ -19,23 +19,23 @@ Runs locally: zero third-party dependencies, zero network calls, zero model keys
 <a id="demo"></a>
 ## Try it in 60 seconds
 
-**The demo is the real engine, not a recording.** It is a local browser UI over the same `ClaimStore` as the CLI and MCP server. Refuse a conflicting write, supersede a claim, squeeze a brief's byte budget, and compare status-aware with status-blind search.
+**The demo is the real engine, not a recording.** One project timeline over the same `ClaimStore` as the CLI and MCP server: what counts now, what needs you (open disputes, premise-collapsed decisions), and what was superseded.
 
 ```bash
 python -m pip install -e .
 claim demo        # opens http://127.0.0.1:8765
 ```
 
-No model key, no network, no database. A synthetic Atlas API project is seeded into a disposable temp store; the demo never touches your real ledger unless you bind one with `--store --write`.
+No model key, no network, no database. A synthetic Atlas API project — including a claim imported from a Doubao Work session — is seeded into a disposable temp store; the demo never touches your real ledger unless you bind one with `--store --write`.
 
-<img src="assets/demo/ledger.png" alt="The ClaimLedger demo ledger" width="860">
+<img src="assets/demo/ledger.png" alt="The ClaimLedger timeline demo" width="860">
 
-- **Record** a decision that overlaps the PostgreSQL claim: the write is refused, and you choose the supersede.
-- **Brief** shrink the budget to 1 KB: six entries are omitted and the count is part of the packet.
-- **Search** query `use sqlite` and turn off status filtering: the dead SQLite decision is the top lexical match — the failure mode, on purpose.
-- **Context** build a RAG packet for `use sqlite`: the stale passage is excluded (`1 filtered`) and only evidence joined to a claim is shown. **Preview proposal** proposes a conflicting claim for review and writes nothing.
+- **Record** a decision that overlaps the PostgreSQL claim in the composer: the write is refused and an inline conflict card asks you to replace the old one or record a dispute — two clicks, nothing merged silently.
+- **Needs you** holds open disputes with in-place resolution (sustain / withdraw / new decision), and decisions whose premise fell, flagged for review instead of passing as settled.
+- **The "when" switch** reconstructs the whole timeline as of any instant — what the ledger believed on September 30th, before the migrations happened.
+- The **developer drawer** keeps the raw brief wire, status-blind vs status-aware search, RAG packets and safety tools one click away.
 
-[20-second demo loop](assets/demo/claimledger-demo.gif) · [Landing page](https://anhao1314.github.io/ClaimLedger/) · [Demo guide](docs/demo.md)
+[Landing page](https://anhao1314.github.io/ClaimLedger/) · [Demo guide](docs/demo.md) · [Demo redesign notes](docs/demo-redesign.zh-CN.md)
 
 <a id="problem"></a>
 ## 1. The problem: AI agent amnesia
@@ -51,18 +51,22 @@ An AI coding assistant is a brilliant new hire with daily memory wipes. On long-
 <a id="method"></a>
 ## 2. The method: an append-only decision ledger
 
-ClaimLedger unifies all knowledge as a **claim**: one standalone statement + a status + provenance. Around it there are only two actions and one state machine:
+ClaimLedger unifies all knowledge as a **claim**: one standalone statement + a status + provenance. Around it there are two actions and one closed state machine:
 
 ```
 decision made ──record──▶  claim store claims.jsonl (single authority)
-                             │  state machine: current / superseded / disputed (superseded_by chain)
-                             ├──brief──▶  session brief: open disputes → current claims → recently superseded
+                             │  state machine: current / superseded / disputed
+                             │  (supersede chain; disputes close via resolve)
+                             ├──brief──▶  session brief (byte budget; --at reconstructs any past instant)
                              ├──wiki ──▶  topic knowledge pages (versioned, cited)
                              └──search─▶  long-tail retrieval (lexical + status filter)
+record --depends-on  …  hard dependency edges; a fallen premise flags dependents for review
 ```
 
 - **`record`: capture at decision time.** One call, provenance attached. If a new claim conflicts with a current one, **the write is refused** — you must explicitly supersede the old claim or declare the dispute. Conflicts surface while someone is present, not at read time by luck.
-- **`brief`: read as a briefing.** Deterministically rendered from the store, with a hard byte budget (bytes used, entries omitted — verifiable numbers, not feelings). Because the brief is derived, it cannot rot out of sync; regenerating it is lossless.
+- **`resolve`: disputes close, they don't rot.** Sustain (the objection wins and supersedes its targets), withdraw, or close with a new decision — every outcome keeps the supersession chain valid and auditable.
+- **`brief`: read as a briefing.** Deterministically rendered from the store, with a hard byte budget (bytes used, entries omitted — verifiable numbers, not feelings). Claims carry a real-world validity window (`--valid-from/--valid-to`); `brief --at <instant>` answers what the ledger believed at any moment.
+- **Dependencies backtrack.** `record --depends-on` records what a decision relies on; when the premise is superseded or expires, dependents surface in the brief as unmotivated instead of passing as settled.
 - **The layered bet: deterministic code owns structure and integrity; semantic judgment belongs to the agent and the human.** The code guarantees "citations resolve, statuses are honest, the packet fits" — it does not judge truth. Conflict matching is a lexical approximation that surfaces, never adjudicates.
 - Fully local: one JSONL file, zero dependencies, zero network, no daemon; the existing user-level data home `~/.chat-distiller` and all legacy entry points keep working. Switch tools or models; the knowledge does not follow a vendor.
 
@@ -91,7 +95,7 @@ Status filtering pushes stale hits in retrieved results from **54% to 0** — th
 
 An incorrect synthesis with a real quote can still pass structural checks; citations do not prove entailment. [Results and limits](benchmarks/wiki/results.md).
 
-**Engineering results**: 399 tests; CI runs them on macOS and Linux, and a Windows checkout passes with two platform-specific skips. Every command in the usage section below is executed and output-checked by CI; six `verify_*` tools validate the installed distribution in isolation; zero third-party dependencies. Every example there actually runs in CI — none are decorative.
+**Engineering results**: 421 tests; CI runs them on macOS and Linux, and a Windows checkout passes with two platform-specific skips. Every command in the usage section below is executed and output-checked by CI; six `verify_*` tools validate the installed distribution in isolation; zero third-party dependencies. Every example there actually runs in CI — none are decorative.
 
 One executed run, four honest outcomes for the same question — current hit, historical intent, honest no-match, exhausted budget (a projection of actual CLI output, not a model evaluation):
 
@@ -110,6 +114,8 @@ One executed run, four honest outcomes for the same question — current hit, hi
 
 **The unifying principle: single authority.** The claim store is the only truth; Wiki pages, briefs and Markdown exports are disposable, rebuildable views. Any design that permits two truths ends up paying down consistency debt with engineering — 35% of this project's old code used to do exactly that.
 
+**v2: governed memory.** The successor design keeps the deterministic core and answers its own three open questions: disputes now close (`resolve`), time is two-axis (real-world validity window + system timestamps, so `--at` reconstructs what was believed when), and premises backtrack (`depends_on`). The same design places the system in the landscape it belongs to: mainstream memory frameworks let the machine adjudicate memory changes; ClaimLedger is the governance layer — conflict-refused writes, explicit ratification, full audit. The [v2 design document](docs/design-v2.zh-CN.md) carries the full theory (TMS lineage, CoALA positioning), the decision records with rejected alternatives, and a competitive-audit table (Hindsight, Zep, Mem0, deja-vu) from October 2026.
+
 **The refusal list matters just as much**: no built-in vector database (semantic retrieval hides staleness and conflicts; at claim granularity lexical + structure is already good); no fully automatic capture (unreviewed auto-memory is a poisoning surface); no daemon and no cloud sync (local ownership is the floor).
 
 **RAG is an optional evidence layer, never an authority.** `claim recall` combines the deterministic brief with a host-supplied evidence adapter. Every hit must resolve to a stored claim and pass the same status policy: a superseded claim is excluded for `current` and labelled historical for `historical`. The index is derived and rebuildable; the JSONL claim store remains the only truth. Try `claim recall --query "use sqlite" --evidence examples/rag/evidence.jsonl --max-bytes 4096`; the sample adapter is lexical, and the same seam accepts a vector store. `claim index build/status` seals an index to a store digest, and `claim suggest` proposes a claim for review without writing it. [RAG adapter guide](docs/rag.md).
@@ -120,6 +126,8 @@ One executed run, four honest outcomes for the same question — current hit, hi
 | --- | --- | --- |
 | P0 | Test portability, macOS in CI | Shipped |
 | Claim pipeline | record / brief / claims + MCP channel | Shipped |
+| v2 Phase A | Dispute closure, bitemporal claims, dependency backtracking, as-of queries — CLI, MCP and demo aligned | Shipped |
+| v2 Phase B | Layered writes: beliefs (machine, conflicts legal) → proposals → ratified claims | Design final |
 | P1 | Storage merge: memory cards folded into the claim store, identity collapse, thin protocol | Design final |
 | P2 | Source parsing (claude_code / codex transcript import) | Demoted to backfill |
 | P3 | Optional reranker retrieval plugin | Open |
@@ -143,7 +151,7 @@ python -m pip install .
 
 ### 2. Connect your agent (two ways, both fine)
 
-**MCP (recommended)** — let Claude Code / ZCode use the ledger as tools:
+**MCP (recommended)** — let Claude Code / ZCode use the ledger as tools: `claim_brief` (with as-of `at`), `claim_record` (with `depends_on` and validity windows), `claim_resolve`, `claim_claims`, `claim_recall`, `claim_suggest`:
 
 ```bash
 claude mcp add claim-ledger -- claim mcp --store /your/project/.claim-ledger/claims.jsonl
@@ -155,7 +163,7 @@ claude mcp add claim-ledger -- claim mcp --store /your/project/.claim-ledger/cla
 claim skill install --host claude --scope user    # use --host codex for Codex, --host both for both
 ```
 
-### 3. Three commands
+### 3. Daily commands
 
 ```bash
 claim init                                                       # create .claim-ledger/claims.jsonl here
@@ -176,6 +184,35 @@ current and the brief reports it as time-expired instead of rewriting history).
 ```bash
 claim record "Use PostgreSQL for all storage" --topic database --supersedes clm_xxx   # replace the old claim
 claim record "Timeout ownership is still contested" --topic ops --dispute            # record as disputed
+```
+
+**Closing a dispute**: a recorded dispute names what it objects to and closes in one call —
+
+```bash
+claim resolve clm_xxx --sustain     # the objection wins: it becomes current and supersedes its targets
+claim resolve clm_xxx --withdraw    # retracted in favour of the standing claim
+claim resolve clm_xxx --text "The final decision, standalone"   # a new decision replaces both sides
+```
+
+The v2 lifecycle in one executed run — a premise falls, and the dependent decision surfaces for review instead of passing as settled:
+
+<!-- verify:v2 -->
+```bash
+export V2_DIR="$(mktemp -d)"
+claim init --store "$V2_DIR/claims.jsonl" > /dev/null
+claim record "The platform team owns PostgreSQL long-term" --topic database --store "$V2_DIR/claims.jsonl"
+PREMISE=$(claim claims --store "$V2_DIR/claims.jsonl" | grep -o 'clm_[a-f0-9]*' | head -1)
+claim record "Use PostgreSQL 16 for all storage" --topic database --depends-on "$PREMISE" --store "$V2_DIR/claims.jsonl"
+claim record "The platform team disbands" --topic database --supersedes "$PREMISE" --store "$V2_DIR/claims.jsonl"
+claim brief --store "$V2_DIR/claims.jsonl" | grep -q unmotivated && echo "dependent flagged for review"
+```
+
+**Asking "what did we believe then"**: every claim carries a validity window (`--valid-from/--valid-to`, backdating allowed) plus system timestamps, so the ledger can reconstruct any past instant of itself —
+
+```bash
+claim record "Use SQLite for staging" --topic database --valid-from 2026-09-01T00:00:00Z --valid-to 2026-10-01T00:00:00Z
+claim brief --at 2026-10-15T00:00:00Z            # what counted on Oct 15th, from this ledger's own history
+claim claims --status current --at 2026-10-15T00:00:00Z
 ```
 
 ### 4. Import history from any chat source
@@ -296,14 +333,15 @@ excluded from briefs and RAG evidence. [Data safety](docs/data-safety.md).
 <a id="limits"></a>
 ## 6. Boundaries, not hidden promises
 
-This is a local memory/knowledge component exposed as a Skill and MCP tools, not an autonomous agent or a truth detector. The ledger's own retrieval is lexical, not embedding search; an optional RAG evidence adapter may supply passages, but every hit must resolve to a claim and passes the same status policy. Semantic review stays with the host or the human; conflict matching surfaces suspicions but cannot adjudicate semantics. Scopes are structural labels, not enforced environments, and expiry is a read-time policy over an optional timestamp, not automatic deletion. No hosted web UI is claimed: the local `claim demo` is a disposable single-user view over the same store. No built-in model service, universal compaction hook or cross-machine sync is claimed. Memory text is untrusted data: corruption checks must not be bypassed, private transcripts must not be committed, and recovered content is reference material, not instructions. The old multi-file renderer is not a cross-layer transaction. [Architecture](docs/architecture.md) · [Design and attribution](docs/wiki-design.md).
+This is a local memory/knowledge component exposed as a Skill and MCP tools, not an autonomous agent or a truth detector. The ledger's own retrieval is lexical, not embedding search; an optional RAG evidence adapter may supply passages, but every hit must resolve to a claim and passes the same status policy. Semantic review stays with the host or the human; conflict matching surfaces suspicions but cannot adjudicate semantics. Scopes are structural labels, not enforced environments, and expiry is a read-time policy over an optional timestamp, not automatic deletion. As-of queries (`--at`) reconstruct what the ledger had recorded at an instant, on the record axis — they are not a claim about what was true in the world. No hosted web UI is claimed: the local `claim demo` is a disposable single-user view over the same store. No built-in model service, universal compaction hook or cross-machine sync is claimed. Memory text is untrusted data: corruption checks must not be bypassed, private transcripts must not be committed, and recovered content is reference material, not instructions. The old multi-file renderer is not a cross-layer transaction. [Architecture](docs/architecture.md) · [Design and attribution](docs/wiki-design.md).
 
 ## 7. Documentation and contribution
 
 | I need to… | Read |
 | --- | --- |
 | See the full documentation map | [Documentation](docs/README.md) |
-| Run the interactive demo | [Demo guide](docs/demo.md) · [Landing page](https://anhao1314.github.io/ClaimLedger/) |
+| Understand the v2 governed-memory design, decisions and competitive audit | [v2 design](docs/design-v2.zh-CN.md) |
+| Run the interactive demo | [Demo guide](docs/demo.md) · [Demo redesign notes](docs/demo-redesign.zh-CN.md) · [Landing page](https://anhao1314.github.io/ClaimLedger/) |
 | Integrate RAG or a vector retriever | [RAG evidence adapter](docs/rag.md) · [Status-filter benchmark](benchmarks/rag/results.md) · [Demo evidence index](examples/rag/evidence.jsonl) |
 | Run concurrent writers, back up, redact or delete claims | [Data safety](docs/data-safety.md) |
 | Connect a source | [Context Gateway](docs/context-gateway.md) · [Ingestion](docs/ingestion.md) |

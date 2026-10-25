@@ -3,6 +3,31 @@
 Package versions below describe the Python distribution, not a claim of a PyPI release
 or a corresponding Git tag.
 
+## Unreleased — governed memory v2, one-timeline demo, structural cleanup
+
+**Engine (Phase A, all zero-model and deterministic):**
+- Bitemporal claims: `valid_from` / `valid_to` real-world validity windows and an
+  explicit `superseded_at` system timestamp; `brief --at` / `claims --at`
+  reconstruct what the ledger believed at any instant.
+- Dependency backtracking: `record --depends-on` records hard premises; a fallen
+  premise surfaces dependents in the brief as unmotivated instead of settled.
+- Dispute lifecycle closure: disputes record what they object to and close via
+  `claim resolve --sustain | --withdraw | --text`; every outcome keeps the
+  supersession chain valid.
+- MCP surface aligned with the CLI: `claim_resolve`, `at` parameters on
+  brief/claims, `depends_on` / validity windows on record.
+
+**Demo:** rebuilt from seven engine views into one project timeline (what counts
+now / needs you / superseded) with a Kimi-measured visual language — tokens
+(type ladder, #1783ff accent, motion curves) and components (24px composer,
+borderless chips) extracted from kimi.com's live stylesheet; point-in-time view,
+inline conflict resolution and the Doubao→Codex handoff narrative first-class.
+
+**Structure:** the CLI split out of the store engine (`claims_cli.py`); the
+three stored statuses defined once in `status.py`; declarative `data-i18n`
+bindings replace hand-updated UI strings; naming layers documented as a
+compatibility decision.
+
 ## Package 0.10.0: the demo speaks Chinese — bilingual UI with a toggle (runtime 0.10.0)
 
 - The demo interface is now bilingual (中文 / English) with a topbar toggle;

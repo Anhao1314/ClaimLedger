@@ -7,13 +7,15 @@ contracts live here and in `references/`, rather than being repeated on the home
 | I need to… / 我想… | Read / 阅读 |
 | --- | --- |
 | Run the interactive demo and see the product page | [Demo guide](demo.md) · [Showcase kit](../SHOWCASE.md) · [Landing page](https://anhao1314.github.io/ClaimLedger/) |
+| Understand the v2 governed-memory design, ADRs and the competitive audit | [v2 design](design-v2.zh-CN.md) |
+| Review the one-timeline demo redesign | [Demo redesign notes](demo-redesign.zh-CN.md) |
 | Integrate a RAG or vector retriever as an evidence layer | [RAG evidence adapter](rag.md) · [Status-filter benchmark](../benchmarks/rag/results.md) · [Demo evidence index](../examples/rag/evidence.jsonl) |
 | Run concurrent agents safely, back up, redact or delete claims | [Data safety](data-safety.md) |
 | Connect Doubao Work and recover context | [Context Gateway](context-gateway.md) · [Gateway proposal](../references/gateway-proposal.md) |
 | Try the low-level engine without touching real memory | [Quick start](../README.md#quick-start) / [快速体验](../README.zh-CN.md#quick-start) |
 | Import conversations or upgrade existing data | [Ingestion and migration](ingestion.md) |
 | Integrate a Python agent or understand packet limits | [Memory Engine API](memory-engine.md) |
-| Understand authority and trust boundaries | [Architecture](architecture.md) |
+| Understand authority and trust boundaries | [Architecture](architecture.md) · [Naming layers](architecture.md#naming-layers-deliberate-not-drift) |
 | Compile versioned topic pages and recover layered context | [Knowledge Wiki](knowledge-wiki.md) · [Proposal contract](../references/knowledge-schema.md) |
 | Understand the research and controlled wiki experiments | [Design](wiki-design.md) · [Verification](wiki-verification.md) · [CompileBench](../benchmarks/wiki/results.md) |
 | Inspect test evidence and reproduce results | [Verification ledger](verification.md) · [Handoff recovery experiment](experiments/handoff-recovery-2026-10-08.md) |
