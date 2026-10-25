@@ -26,6 +26,7 @@ from .. import __version__
 from ..claims import (
     ClaimStore, ClaimStoreBusy, ClaimStoreError, DEFAULT_MAX_BYTES, find_conflicts,
     find_unmotivated, status_at, RESOLVE_OUTCOMES,
+    STATUS_CURRENT, STATUS_DISPUTED, STATUS_SUPERSEDED,
 )
 from ..context import ContextError, JsonlEvidenceIndex, build_context, serialize_context, suggest_claim
 from ..recovery import serialize_packet
@@ -40,9 +41,7 @@ EVIDENCE_SOURCES = (
     Path(__file__).resolve().parent / "evidence.jsonl",
 )
 MAX_BODY = 512 * 1024
-STATUS_CURRENT = "现行"
-STATUS_DISPUTED = "有争议"
-STATUS_SUPERSEDED = "已过期"
+# The stored statuses come from the engine; the demo never redefines them.
 
 
 def _read_json_file(path, fallback):

@@ -13,7 +13,10 @@ import json
 import sys
 
 from . import __version__
-from .claims import DEFAULT_MAX_BYTES, ClaimStore, ClaimStoreError
+from .claims import (
+    DEFAULT_MAX_BYTES, ClaimStore, ClaimStoreError,
+    STATUS_CURRENT, STATUS_DISPUTED, STATUS_SUPERSEDED,
+)
 from .context import ContextError, JsonlEvidenceIndex, build_context, serialize_context, suggest_claim
 
 SUPPORTED_VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18")
@@ -173,7 +176,7 @@ def _tool_definitions():
                 "properties": {
                     "status": {"type": "string",
                                "enum": ["current", "superseded", "disputed", "all",
-                                        "现行", "已过期", "有争议"],
+                                        STATUS_CURRENT, STATUS_SUPERSEDED, STATUS_DISPUTED],
                                "description": "default current (现行); English aliases accepted"},
                     "topic": {"type": "string"},
                     "query": {"type": "string"},

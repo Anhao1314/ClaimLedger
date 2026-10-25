@@ -114,7 +114,7 @@ class DataSafetyTests(unittest.TestCase):
             self.store.__class__(target).init()
 
     def test_cli_init_backups_and_audit(self):
-        from chat_distiller import claims as claims_module
+        from chat_distiller import claims_cli as claims_module
         target = self.root / "cli" / "claims.jsonl"
         rc = claims_module.main(["init", "--store", str(target)])
         self.assertEqual(rc, 0)
@@ -247,7 +247,7 @@ class DataSafetyTests(unittest.TestCase):
         self.assertEqual(after["unresolved_excluded"], 1)
 
     def test_cli_backup_redact_delete_and_restore(self):
-        from chat_distiller import claims as claims_module
+        from chat_distiller import claims_cli as claims_module
         claim = self.store.record(self.unique())["recorded"]
         backup_dir = self.root / "cli-backups"
         rc = claims_module.main([

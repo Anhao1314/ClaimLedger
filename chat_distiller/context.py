@@ -24,7 +24,9 @@ from typing import Any, Dict, List, Optional, Protocol
 from ._internal.query_memory import features
 
 SCHEMA_VERSION = 1
-STATUS_LABELS = {"现行": "current", "已过期": "superseded", "有争议": "disputed"}
+from .status import STATUS_CURRENT, STATUS_DISPUTED, STATUS_SUPERSEDED
+
+STATUS_LABELS = {STATUS_CURRENT: "current", STATUS_SUPERSEDED: "superseded", STATUS_DISPUTED: "disputed"}
 DEFAULT_CONTEXT_BYTES = 4096
 MIN_CONTEXT_BYTES = 2048
 MAX_CONTEXT_BYTES = 1_048_576
@@ -301,7 +303,7 @@ class StatusAwareRetriever:
             if claim is None:
                 selection.unresolved_excluded += 1
                 continue
-            if claim["status"] == "已过期" and intent == "current":
+            if claim["status"] == STATUS_SUPERSEDED and intent == "current":
                 selection.stale_excluded += 1
                 continue
             if claim_counts.get(claim_id, 0) >= self.max_per_claim:
@@ -325,8 +327,8 @@ class StatusAwareRetriever:
                 "excerpt": excerpt,
                 "excerpt_truncated": raw.quote is None and len(raw.text) > 400,
                 "score": round(float(raw.score), 6),
-                "historical": claim["status"] == "已过期",
-                "disputed": claim["status"] == "有争议",
+                "historical": claim["status"] == STATUS_SUPERSEDED,
+                "disputed": claim["status"] == STATUS_DISPUTED,
             })
             if len(selection.hits) >= top_k:
                 break
@@ -527,7 +529,7 @@ def suggest_claim(store, text, *, topic="general", tags=None, query=None,
             not isinstance(retriever_timeout, (int, float)) or retriever_timeout <= 0):
         raise ContextError("retriever_timeout must be a positive number of seconds or None")
 
-    conflicts = find_conflicts(text, store.claims(status="现行"))
+    conflicts = find_conflicts(text, store.claims(status=STATUS_CURRENT))
     packet = {
         "schema_version": SCHEMA_VERSION,
         "kind": "claim_proposal",

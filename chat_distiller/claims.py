@@ -30,8 +30,10 @@ SCHEMA_VERSION = 1
 BACKUP_KIND = "claim-ledger-backup"
 AUDIT_KIND = "claim-ledger-audit"
 REDACTED_TEXT = "[redacted]"
-STATUSES = ("现行", "已过期", "有争议")
-STATUS_ALIASES = {"current": "现行", "superseded": "已过期", "disputed": "有争议"}
+from .status import (  # noqa: F401  — re-exported; the public import path stays chat_distiller.claims
+    STATUS_CURRENT, STATUS_DISPUTED, STATUS_SUPERSEDED, STATUSES,
+)
+STATUS_ALIASES = {"current": STATUS_CURRENT, "superseded": STATUS_SUPERSEDED, "disputed": STATUS_DISPUTED}
 CLAIM_ID_RE = re.compile(r"clm_[0-9a-f]{16}\Z")
 TOPIC_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,39}\Z")
 ISO_Z_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
@@ -119,9 +121,9 @@ def status_at(claim, moment):
     for edge in ("valid_to", "expires_at", "superseded_at"):
         value = claim.get(edge)
         if value and _parse_moment(value, edge) <= moment:
-            return "已过期"
-    if claim["status"] == "已过期":
-        return "已过期" if _parse_moment(superseded_moment(claim), "superseded_at") <= moment else "现行"
+            return STATUS_SUPERSEDED
+    if claim["status"] == STATUS_SUPERSEDED:
+        return STATUS_SUPERSEDED if _parse_moment(superseded_moment(claim), "superseded_at") <= moment else STATUS_CURRENT
     return claim["status"]
 
 
@@ -135,14 +137,14 @@ def find_unmotivated(rows):
     by_id = {row["claim_id"]: row for row in rows}
     out = []
     for claim in rows:
-        if claim["status"] != "现行" or claim.get("redacted_at"):
+        if claim["status"] != STATUS_CURRENT or claim.get("redacted_at"):
             continue
         if not claim_effective_at(claim):
             continue
         broken = []
         for target_id in claim.get("depends_on") or ():
             target = by_id.get(target_id)
-            if target is None or target["status"] == "已过期" \
+            if target is None or target["status"] == STATUS_SUPERSEDED \
                     or target.get("redacted_at") or claim_expired_at(target):
                 broken.append(target_id)
         if broken:
@@ -230,7 +232,7 @@ def _validate_claim(claim):
         if superseded_at is not None:
             if not isinstance(superseded_at, str) or not ISO_Z_RE.fullmatch(superseded_at):
                 raise ClaimStoreError(f"invalid superseded_at on {claim['claim_id']}")
-            if claim["status"] != "已过期":
+            if claim["status"] != STATUS_SUPERSEDED:
                 raise ClaimStoreError(
                     f"superseded_at set on non-expired claim: {claim['claim_id']}")
     for key in ("depends_on", "disputes"):
@@ -243,7 +245,7 @@ def _validate_claim(claim):
             _normalize_id_list(value, key)
             if claim["claim_id"] in value:
                 raise ClaimStoreError(f"{key} must not reference itself: {claim['claim_id']}")
-    if claim.get("disputes") and claim["status"] != "有争议":
+    if claim.get("disputes") and claim["status"] != STATUS_DISPUTED:
         raise ClaimStoreError(f"disputes set on non-disputed claim: {claim['claim_id']}")
 
 
@@ -305,7 +307,7 @@ def _validate_rows(rows, source):
         by_id[claim["claim_id"]] = claim
     for claim in rows:
         target = claim["superseded_by"]
-        if claim["status"] == "已过期":
+        if claim["status"] == STATUS_SUPERSEDED:
             if target is None:
                 raise ClaimStoreError(f"{source}: expired claim without successor: {claim['claim_id']}")
             if target not in by_id:
@@ -642,10 +644,10 @@ class ClaimStore:
                 raise ClaimStoreError(f"--supersedes target not found: {target}")
             if by_id[target].get("redacted_at"):
                 raise ClaimStoreError(f"--supersedes target is redacted: {target}")
-            if by_id[target]["status"] == "已过期":
+            if by_id[target]["status"] == STATUS_SUPERSEDED:
                 raise ClaimStoreError(f"--supersedes target already superseded: {target}")
         current = [c for c in rows
-                   if c["status"] == "现行" and not c.get("redacted_at")
+                   if c["status"] == STATUS_CURRENT and not c.get("redacted_at")
                    and not claim_expired_at(c)
                    and scope_overlaps(scope, claim_scope(c))]
         conflicts = find_conflicts(text, current)
@@ -662,7 +664,7 @@ class ClaimStore:
                 raise ClaimStoreError(
                     f"unresolved conflict with current claim(s): {ids}; "
                     "supersede every detected conflict, or use --dispute")
-        status = "有争议" if dispute else "现行"
+        status = STATUS_DISPUTED if dispute else STATUS_CURRENT
         # A dispute that resolved detected conflicts records what it objects to,
         # so `resolve` can later close the loop without guessing.
         disputes = sorted(conflict_ids) if dispute else []
@@ -683,7 +685,7 @@ class ClaimStore:
         _validate_claim(claim)
         for target in targets:
             replaced = by_id[target]
-            replaced["status"] = "已过期"
+            replaced["status"] = STATUS_SUPERSEDED
             replaced["superseded_by"] = claim_id
             replaced["superseded_at"] = now
             replaced["updated_at"] = now
@@ -724,19 +726,19 @@ class ClaimStore:
             if claim_id not in by_id:
                 raise ClaimStoreError(f"claim not found: {claim_id}")
             dispute_claim = by_id[claim_id]
-            if dispute_claim["status"] != "有争议":
+            if dispute_claim["status"] != STATUS_DISPUTED:
                 raise ClaimStoreError(f"claim is not disputed: {claim_id}")
             if dispute_claim.get("redacted_at"):
                 raise ClaimStoreError(f"disputed claim is redacted: {claim_id}")
             targets = dispute_claim.get("disputes") or []
             standing = [t for t in targets
-                        if by_id[t]["status"] == "现行" and not by_id[t].get("redacted_at")
+                        if by_id[t]["status"] == STATUS_CURRENT and not by_id[t].get("redacted_at")
                         and not claim_expired_at(by_id[t])]
             superseded_ids = []
             now = _utc_now()
 
             def retire(row, successor):
-                row["status"] = "已过期"
+                row["status"] = STATUS_SUPERSEDED
                 row["superseded_by"] = successor
                 row["superseded_at"] = now
                 row["updated_at"] = now
@@ -752,7 +754,7 @@ class ClaimStore:
             elif outcome == "sustain":
                 winner_text = dispute_claim["text"]
                 others = [c for c in rows
-                          if c["status"] == "现行" and not c.get("redacted_at")
+                          if c["status"] == STATUS_CURRENT and not c.get("redacted_at")
                           and not claim_expired_at(c)
                           and c["claim_id"] != claim_id
                           and c["claim_id"] not in standing]
@@ -764,12 +766,12 @@ class ClaimStore:
                         "supersede or dispute those first")
                 for target in standing:
                     retire(by_id[target], claim_id)
-                dispute_claim["status"] = "现行"
+                dispute_claim["status"] = STATUS_CURRENT
                 dispute_claim.pop("disputes", None)
                 dispute_claim["updated_at"] = now
             else:  # supersede
                 others = [c for c in rows
-                          if c["status"] == "现行" and not c.get("redacted_at")
+                          if c["status"] == STATUS_CURRENT and not c.get("redacted_at")
                           and not claim_expired_at(c)
                           and c["claim_id"] not in targets]
                 leftovers = find_conflicts(text, others)
@@ -781,7 +783,7 @@ class ClaimStore:
                 new_id = "clm_" + uuid.uuid4().hex[:16]
                 while new_id in by_id:
                     new_id = "clm_" + uuid.uuid4().hex[:16]
-                decision = {"claim_id": new_id, "text": text, "status": "现行",
+                decision = {"claim_id": new_id, "text": text, "status": STATUS_CURRENT,
                             "topic": topic or "general", "tags": list(tags or []),
                             "created_at": now, "updated_at": now,
                             "superseded_by": None, "source": source, "quote": quote,
@@ -824,7 +826,7 @@ class ClaimStore:
         if scope is not None:
             scope = _normalize_scope(scope)
             rows = [c for c in rows if scope_overlaps(scope, claim_scope(c))]
-        if status == "现行" and not include_time_expired and at is None:
+        if status == STATUS_CURRENT and not include_time_expired and at is None:
             rows = [c for c in rows if not claim_expired_at(c)]
         if query:
             q = features(query)
@@ -861,13 +863,13 @@ class ClaimStore:
 
             now = datetime.now(timezone.utc)
             stored_current = [c for c in visible
-                              if c["status"] == "现行" and (topic is None or c["topic"] == topic)]
+                              if c["status"] == STATUS_CURRENT and (topic is None or c["topic"] == topic)]
             time_expired = [c for c in stored_current if claim_expired_at(c)]
             current = [c for c in stored_current
                        if not claim_expired_at(c) and claim_effective_at(c, now)
                        and window_open(c, now)]
-            disputed = [c for c in visible if c["status"] == "有争议" and (topic is None or c["topic"] == topic)]
-            expired = [c for c in visible if c["status"] == "已过期" and (topic is None or c["topic"] == topic)]
+            disputed = [c for c in visible if c["status"] == STATUS_DISPUTED and (topic is None or c["topic"] == topic)]
+            expired = [c for c in visible if c["status"] == STATUS_SUPERSEDED and (topic is None or c["topic"] == topic)]
             unmotivated = [u for u in find_unmotivated(visible)
                            if topic is None or next(
                                c for c in visible if c["claim_id"] == u["claim_id"])["topic"] == topic]
@@ -878,9 +880,9 @@ class ClaimStore:
             # a validity edge count as ended, while the supersession section
             # stays the recorded chain with real successors.
             moment = _parse_moment(at, "at")
-            current = [c for c in visible if status_at(c, moment) == "现行" and (topic is None or c["topic"] == topic)]
-            disputed = [c for c in visible if status_at(c, moment) == "有争议" and (topic is None or c["topic"] == topic)]
-            expired = [c for c in visible if status_at(c, moment) == "已过期" and (topic is None or c["topic"] == topic)]
+            current = [c for c in visible if status_at(c, moment) == STATUS_CURRENT and (topic is None or c["topic"] == topic)]
+            disputed = [c for c in visible if status_at(c, moment) == STATUS_DISPUTED and (topic is None or c["topic"] == topic)]
+            expired = [c for c in visible if status_at(c, moment) == STATUS_SUPERSEDED and (topic is None or c["topic"] == topic)]
             time_expired = []
             unmotivated = []
         expired.sort(key=lambda c: c["updated_at"], reverse=True)

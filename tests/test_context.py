@@ -11,7 +11,7 @@ from chat_distiller import (
     ClaimStore, ContextError, EvidenceHit, JsonlEvidenceIndex, build_context,
     serialize_context, suggest_claim,
 )
-from chat_distiller import claims as claims_module
+from chat_distiller import claims_cli as claims_module
 from chat_distiller.demo import scenario
 
 ROOT = Path(__file__).resolve().parents[1]

@@ -8,7 +8,10 @@ import argparse
 import json
 import sys
 
-from .claims import DEFAULT_MAX_BYTES, ClaimStore, ClaimStoreError
+from .claims import (
+    DEFAULT_MAX_BYTES, ClaimStore, ClaimStoreError,
+    STATUS_CURRENT,
+)
 from .context import (
     DEFAULT_CONTEXT_BYTES, JsonlEvidenceIndex, build_context, serialize_context, suggest_claim,
 )
@@ -76,7 +79,7 @@ def main(argv=None):
 
     listing = commands.add_parser("claims", help="list or search claims")
     listing.add_argument("--store")
-    listing.add_argument("--status", default="现行")
+    listing.add_argument("--status", default=STATUS_CURRENT)
     listing.add_argument("--topic")
     listing.add_argument("--query")
     listing.add_argument("--limit", type=int, default=100)
