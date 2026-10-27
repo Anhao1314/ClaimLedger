@@ -141,9 +141,9 @@ code { font-family: var(--mono); }
 .browser img { width: 100%; height: auto; }
 
 .float-card {
-  position: absolute; right: -14px; bottom: -26px; z-index: 2;
+  position: absolute; left: -30px; bottom: 48px; z-index: 2;
   border: 2px solid #fff; background: #000; padding: 12px 16px;
-  font-size: 12.5px; max-width: 300px;
+  font-size: 12.5px; width: 300px;
 }
 .float-card__tag {
   display: inline-block; background: #fff; color: #000;
@@ -152,7 +152,7 @@ code { font-family: var(--mono); }
 }
 .float-card code { color: var(--soft); }
 .float-card__action { display: block; margin-top: 6px; color: var(--soft); }
-.visual-caption { margin-top: 40px; font-size: 11.5px; color: var(--dim); max-width: 58%; }
+.visual-caption { margin-top: 40px; font-size: 11.5px; color: var(--dim); }
 .visual-caption code { color: var(--soft); }
 
 /* ---------- hosts strip ---------- */
@@ -418,7 +418,7 @@ code { font-family: var(--mono); }
 /* ---------- responsive ---------- */
 @media (max-width: 960px) {
   .hero { grid-template-columns: 1fr; gap: 30px; padding-top: 52px; }
-  .float-card { right: 8px; bottom: -20px; }
+  .float-card { left: -8px; bottom: 48px; }
   .problem-grid, .method-grid, .gallery { grid-template-columns: 1fr; }
   .evidence-grid, .boundary-grid, .quick-grid, .demo-install { grid-template-columns: 1fr; }
   .site-nav__links { display: none; }
@@ -431,8 +431,8 @@ code { font-family: var(--mono); }
   .compile-stats { grid-template-columns: 1fr 1fr; }
   .facts li { font-size: 10.5px; }
   [data-lang="zh"] .hero h1 { font-size: 27px; }
-  .float-card { position: static; margin-top: 14px; max-width: none; }
-  .visual-caption { margin-top: 12px; max-width: none; }
+  .float-card { position: static; margin-top: 14px; width: auto; }
+  .visual-caption { margin-top: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
