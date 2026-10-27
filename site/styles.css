@@ -152,7 +152,7 @@ code { font-family: var(--mono); }
 }
 .float-card code { color: var(--soft); }
 .float-card__action { display: block; margin-top: 6px; color: var(--soft); }
-.visual-caption { margin-top: 40px; font-size: 11.5px; color: var(--dim); }
+.visual-caption { margin-top: 40px; font-size: 11.5px; color: var(--dim); max-width: 58%; }
 .visual-caption code { color: var(--soft); }
 
 /* ---------- hosts strip ---------- */
@@ -432,7 +432,7 @@ code { font-family: var(--mono); }
   .facts li { font-size: 10.5px; }
   [data-lang="zh"] .hero h1 { font-size: 27px; }
   .float-card { position: static; margin-top: 14px; max-width: none; }
-  .visual-caption { margin-top: 12px; }
+  .visual-caption { margin-top: 12px; max-width: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
