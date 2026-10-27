@@ -1,31 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 440" role="img" aria-labelledby="title desc" lang="en">
 <title id="title">Knowledge changes. Keep the trail.</title>
 <desc id="desc">Executed synthetic lifecycle: publish, mark stale, fall back to updated memory, and recompile. No model evaluation.</desc>
-<rect width="680" height="440" rx="18" fill="#0e1626"/>
+<rect width="680" height="440" fill="#000000"/>
 <g font-family="system-ui, -apple-system, 'Noto Sans CJK SC', sans-serif">
-<text x="28" y="38" fill="#9db0c9" font-size="12" letter-spacing="1.5">CLAIMLEDGER / KNOWLEDGE LIFECYCLE</text>
+<text x="28" y="38" fill="#9a9a9a" font-size="12" letter-spacing="1.5">CLAIMLEDGER / KNOWLEDGE LIFECYCLE</text>
 <text x="28" y="76" fill="#ffffff" font-size="25" font-weight="600">Knowledge changes. Keep the trail.</text>
-<line x1="46" y1="106" x2="46" y2="368" stroke="#2a3b58" stroke-width="2"/>
-<circle cx="46" cy="128" r="8" fill="#63e2a4"/>
-<text x="68" y="110" fill="#63e2a4" font-size="12" font-weight="700" letter-spacing="1.4">01 / PUBLISH</text>
+<line x1="46" y1="106" x2="46" y2="368" stroke="#242424" stroke-width="2"/>
+<circle cx="46" cy="128" r="8" fill="#ffffff"/>
+<text x="68" y="110" fill="#ffffff" font-size="12" font-weight="700" letter-spacing="1.4">01 / PUBLISH</text>
 <text x="68" y="136" fill="#ffffff" font-size="24" font-weight="600">SQLite · rev 1</text>
 
-<text x="644" y="134" fill="#9db0c9" font-size="15" text-anchor="end">Citations + dispute</text>
-<circle cx="46" cy="202" r="8" fill="#e8c268"/>
-<text x="68" y="184" fill="#e8c268" font-size="12" font-weight="700" letter-spacing="1.4">02 / SOURCE UPDATE</text>
+<text x="644" y="134" fill="#9a9a9a" font-size="15" text-anchor="end">Citations + dispute</text>
+<circle cx="46" cy="202" r="8" fill="#bdbdbd"/>
+<text x="68" y="184" fill="#bdbdbd" font-size="12" font-weight="700" letter-spacing="1.4">02 / SOURCE UPDATE</text>
 <text x="68" y="210" fill="#ffffff" font-size="24" font-weight="600">1 stale page</text>
-<line x1="66" y1="198" x2="216" y2="208" stroke="#9db0c9" stroke-width="2" opacity=".7"/>
-<text x="644" y="208" fill="#9db0c9" font-size="15" text-anchor="end">Recheck before reuse</text>
-<circle cx="46" cy="276" r="8" fill="#6cb8ff"/>
-<text x="68" y="258" fill="#6cb8ff" font-size="12" font-weight="700" letter-spacing="1.4">03 / FALLBACK</text>
+<line x1="66" y1="198" x2="216" y2="208" stroke="#9a9a9a" stroke-width="2" opacity=".7"/>
+<text x="644" y="208" fill="#9a9a9a" font-size="15" text-anchor="end">Recheck before reuse</text>
+<circle cx="46" cy="276" r="8" fill="#ffffff"/>
+<text x="68" y="258" fill="#ffffff" font-size="12" font-weight="700" letter-spacing="1.4">03 / FALLBACK</text>
 <text x="68" y="284" fill="#ffffff" font-size="24" font-weight="600">PostgreSQL</text>
 
-<text x="644" y="282" fill="#9db0c9" font-size="15" text-anchor="end">0 stale Wiki pages served</text>
-<circle cx="46" cy="350" r="8" fill="#63e2a4"/>
-<text x="68" y="332" fill="#63e2a4" font-size="12" font-weight="700" letter-spacing="1.4">04 / RECOMPILE</text>
+<text x="644" y="282" fill="#9a9a9a" font-size="15" text-anchor="end">0 stale Wiki pages served</text>
+<circle cx="46" cy="350" r="8" fill="#ffffff"/>
+<text x="68" y="332" fill="#ffffff" font-size="12" font-weight="700" letter-spacing="1.4">04 / RECOMPILE</text>
 <text x="68" y="358" fill="#ffffff" font-size="24" font-weight="600">rev 2 · same ID</text>
 
-<text x="644" y="356" fill="#9db0c9" font-size="15" text-anchor="end">Old revision retained</text>
-<text x="28" y="416" fill="#9db0c9" font-size="15">16 CLI steps · 12 checks · synthetic data · no model</text>
+<text x="644" y="356" fill="#9a9a9a" font-size="15" text-anchor="end">Old revision retained</text>
+<text x="28" y="416" fill="#9a9a9a" font-size="15">16 CLI steps · 12 checks · synthetic data · no model</text>
 </g>
 </svg>

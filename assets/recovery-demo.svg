@@ -1,42 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 382" role="img" aria-labelledby="title desc">
 <title id="title">ClaimLedger: executed recovery demo</title>
 <desc id="desc">One synthetic question, four honest outcomes: current hit, historical intent, honest no-match, exhausted budget. A display projection of actual CLI output, not a model evaluation.</desc>
-<rect width="1040" height="382" rx="18" fill="#0e1626"/>
+<rect width="1040" height="382" fill="#000000"/>
 <g font-family="Arial, Helvetica, sans-serif">
-<text x="42" y="42" fill="#9db0c9" font-size="12" letter-spacing="2">CLAIMLEDGER / EXECUTED DEMO · 实跑演示</text>
+<text x="42" y="42" fill="#9a9a9a" font-size="12" letter-spacing="2">CLAIMLEDGER / EXECUTED DEMO · 实跑演示</text>
 <text x="42" y="78" fill="#ffffff" font-size="24" font-weight="600">One question, four honest outcomes.</text>
-<g fill="#9db0c9" font-size="12" letter-spacing="1">
+<g fill="#9a9a9a" font-size="12" letter-spacing="1">
 <text x="42" y="118">SCENARIO · 场景</text><text x="420" y="118">STATUS · 状态</text>
 <text x="620" y="118">RECORDS · 记录</text><text x="740" y="118">EXPIRED · 过期</text><text x="850" y="118">SIZE · 字节</text>
 </g>
-<rect x="28" y="126" width="984" height="42" rx="10" fill="#131e33"/>
-<text x="42" y="155" fill="#eef2f7" font-size="15">Current retrieval · 现行检索</text>
-<rect x="420" y="137" width="62" height="24" rx="12" fill="#63e2a4" opacity=".16"/>
-<text x="451" y="154" fill="#63e2a4" font-size="13" font-family="ui-monospace,monospace" text-anchor="middle">ready</text>
-<text x="620" y="155" fill="#eef2f7" font-size="15" font-family="ui-monospace,monospace">2</text>
-<text x="740" y="155" fill="#eef2f7" font-size="15" font-family="ui-monospace,monospace">0</text>
-<text x="850" y="155" fill="#eef2f7" font-size="15" font-family="ui-monospace,monospace">1398 B</text>
-<rect x="28" y="176" width="984" height="42" rx="10" fill="#0f1930"/>
-<text x="42" y="205" fill="#eef2f7" font-size="15">Historical intent · 历史意图</text>
-<rect x="420" y="187" width="62" height="24" rx="12" fill="#63e2a4" opacity=".16"/>
-<text x="451" y="204" fill="#63e2a4" font-size="13" font-family="ui-monospace,monospace" text-anchor="middle">ready</text>
-<text x="620" y="205" fill="#eef2f7" font-size="15" font-family="ui-monospace,monospace">3</text>
-<text x="740" y="205" fill="#e8c268" font-size="15" font-family="ui-monospace,monospace">1</text>
-<text x="850" y="205" fill="#eef2f7" font-size="15" font-family="ui-monospace,monospace">1956 B</text>
-<rect x="28" y="226" width="984" height="42" rx="10" fill="#131e33"/>
-<text x="42" y="255" fill="#eef2f7" font-size="15">No match · 未命中</text>
-<rect x="420" y="237" width="84" height="24" rx="12" fill="#9db0c9" opacity=".16"/>
-<text x="462" y="254" fill="#9db0c9" font-size="13" font-family="ui-monospace,monospace" text-anchor="middle">no_match</text>
-<text x="620" y="255" fill="#eef2f7" font-size="15" font-family="ui-monospace,monospace">0</text>
-<text x="740" y="255" fill="#eef2f7" font-size="15" font-family="ui-monospace,monospace">0</text>
-<text x="850" y="255" fill="#eef2f7" font-size="15" font-family="ui-monospace,monospace">426 B</text>
-<rect x="28" y="276" width="984" height="42" rx="10" fill="#0f1930"/>
-<text x="42" y="305" fill="#eef2f7" font-size="15">Tight budget · 预算过小</text>
-<rect x="420" y="287" width="142" height="24" rx="12" fill="#e8c268" opacity=".16"/>
-<text x="491" y="304" fill="#e8c268" font-size="13" font-family="ui-monospace,monospace" text-anchor="middle">budget_exhausted</text>
-<text x="620" y="305" fill="#eef2f7" font-size="15" font-family="ui-monospace,monospace">0</text>
-<text x="740" y="305" fill="#eef2f7" font-size="15" font-family="ui-monospace,monospace">0</text>
-<text x="850" y="305" fill="#eef2f7" font-size="15" font-family="ui-monospace,monospace">432 B</text>
-<text x="42" y="366" fill="#9db0c9" font-size="13">Handwritten synthetic cards · real CLI execution, not a model evaluation · 合成数据，CLI 实跑，非模型评测</text>
+<rect x="28" y="126" width="984" height="42" fill="#0b0b0b"/>
+<text x="42" y="155" fill="#f2f2f2" font-size="15">Current retrieval · 现行检索</text>
+<rect x="420" y="137" width="62" height="24" fill="#ffffff" opacity=".16"/>
+<text x="451" y="154" fill="#ffffff" font-size="13" font-family="ui-monospace,monospace" text-anchor="middle">ready</text>
+<text x="620" y="155" fill="#f2f2f2" font-size="15" font-family="ui-monospace,monospace">2</text>
+<text x="740" y="155" fill="#f2f2f2" font-size="15" font-family="ui-monospace,monospace">0</text>
+<text x="850" y="155" fill="#f2f2f2" font-size="15" font-family="ui-monospace,monospace">1398 B</text>
+<rect x="28" y="176" width="984" height="42" fill="#080808"/>
+<text x="42" y="205" fill="#f2f2f2" font-size="15">Historical intent · 历史意图</text>
+<rect x="420" y="187" width="62" height="24" fill="#ffffff" opacity=".16"/>
+<text x="451" y="204" fill="#ffffff" font-size="13" font-family="ui-monospace,monospace" text-anchor="middle">ready</text>
+<text x="620" y="205" fill="#f2f2f2" font-size="15" font-family="ui-monospace,monospace">3</text>
+<text x="740" y="205" fill="#f2f2f2" font-size="15" font-family="ui-monospace,monospace">1</text>
+<text x="850" y="205" fill="#f2f2f2" font-size="15" font-family="ui-monospace,monospace">1956 B</text>
+<rect x="28" y="226" width="984" height="42" fill="#0b0b0b"/>
+<text x="42" y="255" fill="#f2f2f2" font-size="15">No match · 未命中</text>
+<rect x="420" y="237" width="84" height="24" fill="#6f6f6f" opacity=".16"/>
+<text x="462" y="254" fill="#6f6f6f" font-size="13" font-family="ui-monospace,monospace" text-anchor="middle">no_match</text>
+<text x="620" y="255" fill="#f2f2f2" font-size="15" font-family="ui-monospace,monospace">0</text>
+<text x="740" y="255" fill="#f2f2f2" font-size="15" font-family="ui-monospace,monospace">0</text>
+<text x="850" y="255" fill="#f2f2f2" font-size="15" font-family="ui-monospace,monospace">426 B</text>
+<rect x="28" y="276" width="984" height="42" fill="#080808"/>
+<text x="42" y="305" fill="#f2f2f2" font-size="15">Tight budget · 预算过小</text>
+<rect x="420" y="287" width="142" height="24" fill="#ffffff" opacity=".16"/>
+<text x="491" y="304" fill="#ffffff" font-size="13" font-family="ui-monospace,monospace" text-anchor="middle">budget_exhausted</text>
+<text x="620" y="305" fill="#f2f2f2" font-size="15" font-family="ui-monospace,monospace">0</text>
+<text x="740" y="305" fill="#f2f2f2" font-size="15" font-family="ui-monospace,monospace">0</text>
+<text x="850" y="305" fill="#f2f2f2" font-size="15" font-family="ui-monospace,monospace">432 B</text>
+<text x="42" y="366" fill="#9a9a9a" font-size="13">Handwritten synthetic cards · real CLI execution, not a model evaluation · 合成数据，CLI 实跑，非模型评测</text>
 </g>
 </svg>

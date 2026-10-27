@@ -95,9 +95,9 @@ def summarize(packet):
 
 def demo_svg(cases):
     """Static display projection of executed results, not a terminal recording."""
-    bg, panel_a, panel_b, line = '#0e1626', '#131e33', '#0f1930', '#2a3b58'
-    ink, soft = '#eef2f7', '#9db0c9'
-    chip = {'ready': '#63e2a4', 'no_match': '#9db0c9', 'budget_exhausted': '#e8c268'}
+    bg, panel_a, panel_b, line = '#000000', '#0b0b0b', '#080808', '#242424'
+    ink, soft = '#f2f2f2', '#9a9a9a'
+    chip = {'ready': '#ffffff', 'no_match': '#6f6f6f', 'budget_exhausted': '#ffffff'}
     labels = (('current', 'Current retrieval · 现行检索'),
               ('historical', 'Historical intent · 历史意图'),
               ('unknown', 'No match · 未命中'),
@@ -108,19 +108,19 @@ def demo_svg(cases):
         y = 150 + i * 50
         color = chip.get(case['status'], soft)
         width = int(len(case['status']) * 7.3) + 26
-        rows.append(f'<rect x="28" y="{y-24}" width="984" height="42" rx="10" fill="{panel_a if i % 2 == 0 else panel_b}"/>')
+        rows.append(f'<rect x="28" y="{y-24}" width="984" height="42" fill="{panel_a if i % 2 == 0 else panel_b}"/>')
         rows.append(f'<text x="42" y="{y+5}" fill="{ink}" font-size="15">{html.escape(label)}</text>')
-        rows.append(f'<rect x="420" y="{y-13}" width="{width}" height="24" rx="12" fill="{color}" opacity=".16"/>')
+        rows.append(f'<rect x="420" y="{y-13}" width="{width}" height="24" fill="{color}" opacity=".16"/>')
         rows.append(f'<text x="{420 + width // 2}" y="{y+4}" fill="{color}" font-size="13" font-family="ui-monospace,monospace" text-anchor="middle">{html.escape(case["status"])}</text>')
         values = ((620, str(case['memory_count'])), (740, str(case['expired_count'])),
                   (850, str(case['used_bytes']) + ' B'))
         for x, value in values:
-            fill = '#e8c268' if (x == 740 and case['expired_count'] > 0) else ink
+            fill = ink
             rows.append(f'<text x="{x}" y="{y+5}" fill="{fill}" font-size="15" font-family="ui-monospace,monospace">{html.escape(value)}</text>')
     return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 382" role="img" aria-labelledby="title desc">
 <title id="title">ClaimLedger: executed recovery demo</title>
 <desc id="desc">One synthetic question, four honest outcomes: current hit, historical intent, honest no-match, exhausted budget. A display projection of actual CLI output, not a model evaluation.</desc>
-<rect width="1040" height="382" rx="18" fill="{bg}"/>
+<rect width="1040" height="382" fill="{bg}"/>
 <g font-family="Arial, Helvetica, sans-serif">
 <text x="42" y="42" fill="{soft}" font-size="12" letter-spacing="2">CLAIMLEDGER / EXECUTED DEMO · 实跑演示</text>
 <text x="42" y="78" fill="#ffffff" font-size="24" font-weight="600">One question, four honest outcomes.</text>
@@ -318,8 +318,8 @@ def lifecycle_svg(receipt, language="en"):
             or receipt["published"]["dispute_retained"] is not True):
         raise ValueError("receipt does not support lifecycle illustration")
     published, changed, fallback, refreshed = [receipt[k] for k in ("published", "source_changed", "fallback", "refreshed")]
-    bg, line, ink, soft = '#0e1626', '#2a3b58', '#eef2f7', '#9db0c9'
-    green, amber, blue = '#63e2a4', '#e8c268', '#6cb8ff'
+    bg, line, ink, soft = '#000000', '#242424', '#ffffff', '#9a9a9a'
+    green, amber, blue = '#ffffff', '#bdbdbd', '#ffffff'
     if language == "en":
         kicker = "CLAIMLEDGER / KNOWLEDGE LIFECYCLE"
         desc = "Executed synthetic lifecycle: publish, mark stale, fall back to updated memory, and recompile. No model evaluation."
@@ -341,7 +341,7 @@ def lifecycle_svg(receipt, language="en"):
     parts = [f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 440" role="img" aria-labelledby="title desc" lang="{language}">
 <title id="title">{html.escape(heading)}</title>
 <desc id="desc">{html.escape(desc)}</desc>
-<rect width="680" height="440" rx="18" fill="{bg}"/>
+<rect width="680" height="440" fill="{bg}"/>
 <g font-family="system-ui, -apple-system, 'Noto Sans CJK SC', sans-serif">
 <text x="28" y="38" fill="{soft}" font-size="12" letter-spacing="1.5">{html.escape(kicker)}</text>
 <text x="28" y="76" fill="#ffffff" font-size="25" font-weight="600">{html.escape(heading)}</text>

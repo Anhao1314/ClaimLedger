@@ -1,31 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 440" role="img" aria-labelledby="title desc" lang="zh-CN">
 <title id="title">知识会变化，来路不丢失。</title>
 <desc id="desc">实跑的合成生命周期：发布、标记失效、回退到最新记忆、重新编译。不是模型评测。</desc>
-<rect width="680" height="440" rx="18" fill="#0e1626"/>
+<rect width="680" height="440" fill="#000000"/>
 <g font-family="system-ui, -apple-system, 'Noto Sans CJK SC', sans-serif">
-<text x="28" y="38" fill="#9db0c9" font-size="12" letter-spacing="1.5">CLAIMLEDGER / 知识生命周期</text>
+<text x="28" y="38" fill="#9a9a9a" font-size="12" letter-spacing="1.5">CLAIMLEDGER / 知识生命周期</text>
 <text x="28" y="76" fill="#ffffff" font-size="25" font-weight="600">知识会变化，来路不丢失。</text>
-<line x1="46" y1="106" x2="46" y2="368" stroke="#2a3b58" stroke-width="2"/>
-<circle cx="46" cy="128" r="8" fill="#63e2a4"/>
-<text x="68" y="110" fill="#63e2a4" font-size="12" font-weight="700" letter-spacing="1.4">01 / 发布知识</text>
+<line x1="46" y1="106" x2="46" y2="368" stroke="#242424" stroke-width="2"/>
+<circle cx="46" cy="128" r="8" fill="#ffffff"/>
+<text x="68" y="110" fill="#ffffff" font-size="12" font-weight="700" letter-spacing="1.4">01 / 发布知识</text>
 <text x="68" y="136" fill="#ffffff" font-size="24" font-weight="600">SQLite · 版本 1</text>
 
-<text x="644" y="134" fill="#9db0c9" font-size="15" text-anchor="end">保留引用与未决争议</text>
-<circle cx="46" cy="202" r="8" fill="#e8c268"/>
-<text x="68" y="184" fill="#e8c268" font-size="12" font-weight="700" letter-spacing="1.4">02 / 来源更新</text>
+<text x="644" y="134" fill="#9a9a9a" font-size="15" text-anchor="end">保留引用与未决争议</text>
+<circle cx="46" cy="202" r="8" fill="#bdbdbd"/>
+<text x="68" y="184" fill="#bdbdbd" font-size="12" font-weight="700" letter-spacing="1.4">02 / 来源更新</text>
 <text x="68" y="210" fill="#ffffff" font-size="24" font-weight="600">1 个旧页失效</text>
-<line x1="66" y1="198" x2="153" y2="208" stroke="#9db0c9" stroke-width="2" opacity=".7"/>
-<text x="644" y="208" fill="#9db0c9" font-size="15" text-anchor="end">复核之前不默认复用</text>
-<circle cx="46" cy="276" r="8" fill="#6cb8ff"/>
-<text x="68" y="258" fill="#6cb8ff" font-size="12" font-weight="700" letter-spacing="1.4">03 / 原子回退</text>
+<line x1="66" y1="198" x2="153" y2="208" stroke="#9a9a9a" stroke-width="2" opacity=".7"/>
+<text x="644" y="208" fill="#9a9a9a" font-size="15" text-anchor="end">复核之前不默认复用</text>
+<circle cx="46" cy="276" r="8" fill="#ffffff"/>
+<text x="68" y="258" fill="#ffffff" font-size="12" font-weight="700" letter-spacing="1.4">03 / 原子回退</text>
 <text x="68" y="284" fill="#ffffff" font-size="24" font-weight="600">PostgreSQL</text>
 
-<text x="644" y="282" fill="#9db0c9" font-size="15" text-anchor="end">返回 0 个过时 Wiki 页</text>
-<circle cx="46" cy="350" r="8" fill="#63e2a4"/>
-<text x="68" y="332" fill="#63e2a4" font-size="12" font-weight="700" letter-spacing="1.4">04 / 重新编译</text>
+<text x="644" y="282" fill="#9a9a9a" font-size="15" text-anchor="end">返回 0 个过时 Wiki 页</text>
+<circle cx="46" cy="350" r="8" fill="#ffffff"/>
+<text x="68" y="332" fill="#ffffff" font-size="12" font-weight="700" letter-spacing="1.4">04 / 重新编译</text>
 <text x="68" y="358" fill="#ffffff" font-size="24" font-weight="600">版本 2 · 身份不变</text>
 
-<text x="644" y="356" fill="#9db0c9" font-size="15" text-anchor="end">旧版本仍可检查</text>
-<text x="28" y="416" fill="#9db0c9" font-size="15">16 步 CLI · 12 项检查 · 合成数据 · 无模型调用</text>
+<text x="644" y="356" fill="#9a9a9a" font-size="15" text-anchor="end">旧版本仍可检查</text>
+<text x="28" y="416" fill="#9a9a9a" font-size="15">16 步 CLI · 12 项检查 · 合成数据 · 无模型调用</text>
 </g>
 </svg>

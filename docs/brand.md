@@ -8,21 +8,28 @@ ClaimLedger is a local-first, Skill-first developer tool. The public name is **C
 
 ## Visual direction
 
-A continuous C-shaped trace and forward movement connect earlier work to the next step. Cream and deep-blue surfaces, a lime trace and a cyan evidence point connect the identity to Eason's Playground without copying the personal mascot. Use legible system typography rather than embedded fonts or third-party services.
+One hue carries the whole identity: **black paper, white ink, gray history**. The ledger is drawn, not colored — the current claim is a solid white line, the superseded claim is a struck gray line, the disputed claim is a dashed line. A 1-bit checker dither gives depth without a second color. Hard edges everywhere, one monospace type family, no gradients and no rounded panels.
 
-| Token | Light | Dark |
+Status is the only semantic the palette needs to express, so the palette is the smallest one that can express it:
+
+| Token | Value | Use |
 | --- | --- | --- |
-| Surface | `#f6f5ee` | `#142035` |
-| Text | `#182b49` | `#f4f5ef` |
-| Secondary text | `#526176` | `#a9b6c8` |
-| Accent | `#385dba` | `#c2f586` |
-| Evidence point | `#67cfe7` | `#67cfe7` |
+| Surface | `#000000` | Page and panel background |
+| Panel | `#0a0a0a` / `#0d0d0d` | Raised cards, terminals, chips |
+| Line | `#242424` | Borders and structure |
+| Ink | `#ffffff` | Headlines, current state, primary actions |
+| Secondary ink | `#9a9a9a` | Labels, captions, superseded text |
+| Struck | `#6f6f6f` | Superseded bars and stale metrics |
 
-The headline is always static text. The optional decorative line draws once over 4.6 seconds and stops. Independent static SVGs are the default fallback; README `<picture>` opts into motion only for `prefers-reduced-motion: no-preference`. Artwork is illustrative, not an experiment replay.
+Screenshots of the real product are unretouched pixels shown in grayscale: the color in them belongs to the product, not to this page. The headline is always static text. The optional decorative bars draw in once over 1.1 seconds and stop. Independent static SVGs are the default fallback; README `<picture>` opts into motion only for `prefers-reduced-motion: no-preference`. Artwork is illustrative, not an experiment replay.
 
 ```bash
 python tools/build_brand_assets.py --check
 ```
+
+## Lineage of the visual system
+
+This is the second visual system the repository has had. The first — cream and deep-blue surfaces, a lime trace, a cyan evidence point — was retired in October 2026; its bytes stay inspectable in git history, which is where superseded things belong. The current system is a deliberate study of [Moonshot AI's careers site](https://careers.kimi.com/): one hue, one type family, dithering instead of gradients, restraint instead of ornament. No affiliation.
 
 ## Migration boundary
 

@@ -28,6 +28,16 @@ three stored statuses defined once in `status.py`; declarative `data-i18n`
 bindings replace hand-updated UI strings; naming layers documented as a
 compatibility decision.
 
+**Visual system (second rebrand — docs + site + README):** the identity moves to
+a monochrome 1-bit evidence system: black paper, white ink, gray history; status
+is drawn (solid / struck gray / dashed) instead of colored. Brand heroes and the
+mark, the recovery projection and the wiki lifecycle illustrations are all
+regenerated from their generators (`tools/build_brand_assets.py`,
+`tools/verify_docs.py`), and `docs/brand.md` records the new tokens plus the
+lineage of the retired palette. The landing page is reskinned on the same system
+with system fonts only; real product screenshots stay unretouched and are shown
+in grayscale.
+
 ## Package 0.10.0: the demo speaks Chinese — bilingual UI with a toggle (runtime 0.10.0)
 
 - The demo interface is now bilingual (中文 / English) with a topbar toggle;

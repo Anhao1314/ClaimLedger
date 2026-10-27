@@ -11,6 +11,8 @@
 
 本地运行：零第三方依赖、零网络调用、零模型密钥。每条结论都是带状态、带出处的"声明"；机器可以提案，状态机负责摊开，拍板权留给拍板者——语义输出永不当权威。曾用名 **CarryTrace / chat-distiller**，兼容入口与数据目录均保留。
 
+> 检索命中 ≠ 结论现行；冲突已记录 ≠ 争议已收场；引用存在 ≠ 结论正确。
+
 [![测试](https://github.com/Anhao1314/ClaimLedger/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Anhao1314/ClaimLedger/actions/workflows/tests.yml)
 [![验证证据](https://github.com/Anhao1314/ClaimLedger/actions/workflows/evidence.yml/badge.svg?branch=main)](https://github.com/Anhao1314/ClaimLedger/actions/workflows/evidence.yml)
 

@@ -11,6 +11,8 @@
 
 Runs locally: zero third-party dependencies, zero network calls, zero model keys. Every conclusion is a claim with a status and a source; judgment stays with the human or the host Agent. Machine may propose, the state machine exposes, the human ratifies — semantic output is never authoritative. Previously **CarryTrace / chat-distiller**; compatible entry points and data homes remain.
 
+> Retrieval hit ≠ current conclusion. A recorded conflict ≠ a resolved dispute. A quote that exists ≠ a conclusion that holds.
+
 [![Tests](https://github.com/Anhao1314/ClaimLedger/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Anhao1314/ClaimLedger/actions/workflows/tests.yml)
 [![Evidence](https://github.com/Anhao1314/ClaimLedger/actions/workflows/evidence.yml/badge.svg?branch=main)](https://github.com/Anhao1314/ClaimLedger/actions/workflows/evidence.yml)
 
