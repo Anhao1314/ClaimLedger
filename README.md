@@ -102,6 +102,17 @@ sealed: 83d35c649f37df31…  prev 0000000000000000…
 The two conflicting records were pulled in by selection, caught by stage 2, and
 held for human review — nothing was silently admitted or silently dropped.
 
+### Console
+
+The same flow, in a local web console (dark mode, with outcome collection):
+
+![ClaimLedger console — dark mode, with conflict localization and outcome buttons](docs/img/console.png)
+
+```bash
+python -m jev_first console --store records.jsonl
+# → http://127.0.0.1:8766
+```
+
 ```bash
 python -m pip install .
 python -m jev_first record --store records.jsonl --text "All storage must use PostgreSQL." --source agent
