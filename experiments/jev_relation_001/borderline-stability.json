@@ -1,0 +1,28 @@
+{
+  "schema": "jev_borderline_stability_v1",
+  "date": "2026-11-03",
+  "pair": {
+    "a": "All storage must use PostgreSQL.",
+    "b": "SQLite is deprecated for this service.",
+    "note": "Borderline: the 30-pair fixture's P11 (same pair without 'must') was judged complementary by Jev in 3/3 runs. This 'must' variant was judged contradiction once, in the jev_first_demo stage-2 run."
+  },
+  "measurements": {
+    "jev_1_14_0": {
+      "runs": 5,
+      "labels": {"complementary": 5, "contradiction": 0},
+      "plus_demo_context": "1 earlier stage-2 observation: contradiction (n=1)"
+    },
+    "deepseek_v4_1_flash": {
+      "runs": 5,
+      "labels": {"complementary": 5, "contradiction": 0}
+    }
+  },
+  "findings": [
+    "NO stable cross-model disagreement: both judge models answer complementary consistently.",
+    "The demo's contradiction was a sampling outlier: 1 contradiction in 6 Jev observations of this pair (~17%).",
+    "Unambiguous pairs (the 30-fixture) show zero flips across runs; this borderline pair flips. Ambiguity, not model family, drives variance.",
+    "A single observation of a borderline pair must never be treated as a judgment. Repeat or require a margin."
+  ],
+  "architectural_consequence": "The policy needs a margin rule: when the top-two options are close, output review instead of the argmax label. Current argmax-without-margin is what produced the demo outlier.",
+  "correction_record": "An earlier report claimed a 'first real cross-model disagreement' from n=1 vs n=1. The 5x5 stability check above refutes it. The claim is withdrawn."
+}
