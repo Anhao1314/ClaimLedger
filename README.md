@@ -79,6 +79,56 @@ flowchart LR
     ERR["transport error"] --> DEG["all review<br/>degraded = true"]
 ```
 
+## How it works — the daily loop
+
+Three roles, one cycle:
+
+| Role | What they do | How |
+| --- | --- | --- |
+| **Your agent** (Claude / Cursor / ZCode) | Records decisions as they happen; queries constraints before starting work | MCP tools (`memory_record`, `memory_decide`, `memory_brief`) |
+| **You** (developer) | Reviews outcomes: was the agent's judgment right? | Console or CLI (`outcome`) |
+| **The system** | Tracks how well its own judgments match reality | Calibration view (`calibrate`) |
+
+### The core loop
+
+```
+ Agent does work
+       │
+       ▼
+ memory_decide(task)          ← "which constraints apply right now?"
+       │
+       ▼
+ ┌─ Brief returned to the agent ──────────────────────────┐
+ │ ✓ ACTIVE: All storage must use PostgreSQL.              │  → agent follows
+ │ ⚠ REVIEW: banned for analytics  ⟂ all-PostgreSQL        │  → held for human
+ └────────────────────────────────────────────────────────┘
+       │
+       ▼
+ Agent writes code — but avoids the conflicted territory
+       │
+       ▼
+ Human opens console → clicks upheld / overturned
+       │
+       ▼
+ Calibration data grows → thresholds become evidence-backed
+```
+
+### What happens when you swap models
+
+```
+ Before (Claude):   records → judge(old model) → action
+ After (DeepSeek):  records → judge(new model) → action
+                             ↑
+                   records unchanged (no status field)
+                   question set unchanged (contract v1, sha256 frozen)
+                   policy unchanged (v2.2)
+                   the only thing that changed: the generation model
+```
+
+Old judgments and new judgments are directly comparable — every judgment carries its model
+version and full probability distribution. The cross-model replay already showed **29/29
+label agreement** between Jev and DeepSeek on the frozen pairs.
+
 ## Quick start
 
 A live decision on a 10-record store — one command, no other steps:
