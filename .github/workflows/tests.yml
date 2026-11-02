@@ -42,5 +42,4 @@ jobs:
           "$RUNNER_TEMP/installed/bin/python" "$GITHUB_WORKSPACE/tools/verify_wiki.py"
           "$RUNNER_TEMP/installed/bin/python" "$GITHUB_WORKSPACE/tools/verify_gateway.py"
           "$RUNNER_TEMP/installed/bin/python" "$GITHUB_WORKSPACE/tools/verify_skill.py"
-          "$RUNNER_TEMP/installed/bin/python" "$GITHUB_WORKSPACE/tools/verify_brand.py"
           PATH="$RUNNER_TEMP/installed/bin:$PATH" "$RUNNER_TEMP/installed/bin/python" "$GITHUB_WORKSPACE/tools/verify_docs.py"

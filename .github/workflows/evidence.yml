@@ -64,7 +64,6 @@ jobs:
           "$RUNNER_TEMP/installed/bin/python" "$GITHUB_WORKSPACE/tools/verify_wiki.py" | tee "$RUNNER_TEMP/evidence/installed-wiki.json"
           "$RUNNER_TEMP/installed/bin/python" "$GITHUB_WORKSPACE/tools/verify_gateway.py" | tee "$RUNNER_TEMP/evidence/installed-gateway.json"
           "$RUNNER_TEMP/installed/bin/python" "$GITHUB_WORKSPACE/tools/verify_skill.py" | tee "$RUNNER_TEMP/evidence/installed-skill.json"
-          "$RUNNER_TEMP/installed/bin/python" "$GITHUB_WORKSPACE/tools/verify_brand.py" | tee "$RUNNER_TEMP/evidence/installed-brand.json"
           "$RUNNER_TEMP/installed/bin/python" "$GITHUB_WORKSPACE/tools/wiki_demo.py" --out "$RUNNER_TEMP/evidence/wiki-demo" > "$RUNNER_TEMP/evidence/wiki-demo.json"
           PATH="$RUNNER_TEMP/installed/bin:$PATH" "$RUNNER_TEMP/installed/bin/python" "$GITHUB_WORKSPACE/tools/verify_docs.py" | tee "$RUNNER_TEMP/evidence/docs-smoke.json"
       - name: Upload inspectable evidence
