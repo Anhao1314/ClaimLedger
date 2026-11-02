@@ -30,7 +30,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/Anhao1314/ClaimLedger"
-Documentation = "https://anhao1314.github.io/ClaimLedger/"
+Documentation = "https://github.com/Anhao1314/ClaimLedger/tree/main/docs"
 Repository = "https://github.com/Anhao1314/ClaimLedger"
 Changelog = "https://github.com/Anhao1314/ClaimLedger/blob/main/CHANGELOG.md"
 Issues = "https://github.com/Anhao1314/ClaimLedger/issues"
