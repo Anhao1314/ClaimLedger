@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 256 256" role="img" aria-label="ClaimLedger">
+  <rect x="28" y="28" width="200" height="200" rx="30" fill="#ffffff" stroke="#111111" stroke-width="14"/>
+  <line x1="55" y1="82" x2="57" y2="178" stroke="#111111" stroke-width="10"/>
+  <line x1="55" y1="82" x2="76" y2="82" stroke="#111111" stroke-width="10"/>
+  <line x1="55" y1="130" x2="76" y2="130" stroke="#111111" stroke-width="10"/>
+  <line x1="55" y1="178" x2="76" y2="178" stroke="#111111" stroke-width="10"/>
+  <rect x="76" y="68" width="112" height="28" rx="9" fill="#111111"/>
+  <rect x="76" y="116" width="72" height="28" rx="9" fill="#111111"/>
+  <rect x="76" y="164" width="36" height="28" rx="9" fill="#111111"/>
+  <circle cx="200" cy="200" r="50" fill="#111111"/>
+  <polyline points="179,201 194,216 222,187" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

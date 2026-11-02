@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/img/logo.svg" width="120" alt="ClaimLedger — a sealed ledger">
+</p>
+
 # ClaimLedger · a Jev-first memory layer for agents
 
 > **Status (2026-11) — an engineering artifact, not a research contribution.**

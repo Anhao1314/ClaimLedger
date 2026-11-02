@@ -1,42 +1,39 @@
-# ClaimLedger / 续迹: visual and naming system
+# Brand
 
-**The continuity skill for AI agents.**
+One mark, one rule: **every element of the logo maps to a real component of the
+system.** The logo is a projection of the design, exactly like the evidence
+charts — nothing decorative, nothing that would not survive the question
+"what does this part do?"
 
-Your work continues. Keep the decisions. Bring the evidence.
+## The mark
 
-ClaimLedger is a local-first, Skill-first developer tool. The public name is **ClaimLedger**, the machine-readable Skill and preferred CLI are **claim**. Avoid names that imply universal history access, automatic truth verification or measured task success.
+| Element | Component it represents |
+| --- | --- |
+| Rounded badge | one sealed decision |
+| Three bars (full / medium / short) | the record set — lengths encode the three actions: `admit` · `review` · `exclude` |
+| Left spine + ticks | the hash chain linking records |
+| Solid seal with check, overlapping the badge edge | the judgment that closes it — placed by the policy, not by the model |
 
-## Visual direction
+## Files
 
-One hue carries the whole identity: **black paper, white ink, gray history**. The ledger is drawn, not colored — the current claim is a solid white line, the superseded claim is a struck gray line, the disputed claim is a dashed line. A 1-bit checker dither gives depth without a second color. Hard edges everywhere, one monospace type family, no gradients and no rounded panels.
+| File | Use |
+| --- | --- |
+| [logo.svg](img/logo.svg) | primary mark, light surfaces |
+| [logo-dark.svg](img/logo-dark.svg) | dark surfaces (inverted ink) |
+| [logo-wordmark.svg](img/logo-wordmark.svg) | header / banner with the name |
+| [logo-mark.svg](img/logo-mark.svg) | 64 px icon (favicon / avatar source) |
 
-Status is the only semantic the palette needs to express, so the palette is the smallest one that can express it:
+## Rules
 
-| Token | Value | Use |
-| --- | --- | --- |
-| Surface | `#000000` | Page and panel background |
-| Panel | `#0a0a0a` / `#0d0d0d` | Raised cards, terminals, chips |
-| Line | `#242424` | Borders and structure |
-| Ink | `#ffffff` | Headlines, current state, primary actions |
-| Secondary ink | `#9a9a9a` | Labels, captions, superseded text |
-| Struck | `#6f6f6f` | Superseded bars and stale metrics |
+- Monochrome only: ink `#111111` on white, or `#f2f2f2` on dark. One accent
+  would be one more thing to defend — the repo ships evidence, not decoration.
+- Clear space: one bar-height on every side. The seal may overlap the badge
+  edge; nothing else may cross it.
+- Do not rotate, gradient, shadow, or recolor the seal. The seal is the
+  judgment — it stays solid and closed.
 
-Screenshots of the real product are unretouched pixels shown in grayscale: the color in them belongs to the product, not to this page. The headline is always static text. The optional decorative bars draw in once over 1.1 seconds and stop. Independent static SVGs are the default fallback; README `<picture>` opts into motion only for `prefers-reduced-motion: no-preference`. Artwork is illustrative, not an experiment replay.
+## History
 
-```bash
-python tools/build_brand_assets.py --check
-```
-
-## Lineage of the visual system
-
-This is the second visual system the repository has had. The first — cream and deep-blue surfaces, a lime trace, a cyan evidence point — was retired in October 2026; its bytes stay inspectable in git history, which is where superseded things belong. The current system is a deliberate study of [Moonshot AI's careers site](https://careers.kimi.com/): one hue, one type family, dithering instead of gradients, restraint instead of ornament. No affiliation.
-
-## Migration boundary
-
-Update current branding, navigation and repository links. Preserve historical evidence and old public interfaces where compatibility matters. The small “formerly chat-distiller” label belongs on the overview and migration guide, not on every heading. See [migration contracts](brand-migration.md).
-
-## Primary references consulted
-
-- [Agent Skills specification](https://agentskills.io/specification): name/parent-directory alignment and progressive disclosure.
-- [PyPA entry points](https://packaging.python.org/en/latest/specifications/entry-points/): independent console command names over the same distribution.
-- [GitHub repository renaming](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository): redirects and explicit remote updates.
+The original brand (hero SVG, demo GIF, 1-bit landing system) was removed with
+the retired product surface it advertised. This mark was drawn after the
+inversion, for the layer that survived.

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="160" viewBox="0 0 640 160" role="img" aria-label="ClaimLedger — a Jev-first memory layer for agents">
+  <g transform="translate(16,16) scale(0.5)">
+    <rect x="28" y="28" width="200" height="200" rx="30" fill="#ffffff" stroke="#111111" stroke-width="9"/>
+    <line x1="57" y1="82" x2="57" y2="178" stroke="#111111" stroke-width="7"/>
+    <line x1="57" y1="82" x2="70" y2="82" stroke="#111111" stroke-width="7"/>
+    <line x1="57" y1="130" x2="70" y2="130" stroke="#111111" stroke-width="7"/>
+    <line x1="57" y1="178" x2="70" y2="178" stroke="#111111" stroke-width="7"/>
+    <rect x="70" y="70" width="124" height="24" rx="7" fill="#111111"/>
+    <rect x="70" y="118" width="82" height="24" rx="7" fill="#111111"/>
+    <rect x="70" y="166" width="44" height="24" rx="7" fill="#111111"/>
+    <circle cx="202" cy="202" r="44" fill="#111111"/>
+    <polyline points="184,202 197,215 222,190" fill="none" stroke="#ffffff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="160" y="78" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="44" font-weight="700" fill="#111111">ClaimLedger</text>
+  <text x="162" y="112" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="17" fill="#8a8a8a">a Jev-first memory layer · model proposes, the ledger decides</text>
+</svg>
