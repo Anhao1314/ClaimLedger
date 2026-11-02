@@ -2,7 +2,12 @@
   <img src="docs/img/logo.svg" width="120" alt="ClaimLedger — a sealed ledger">
 </p>
 
-# ClaimLedger · a Jev-first memory layer for agents
+<h1 align="center">ClaimLedger</h1>
+
+<p align="center">
+  <strong>Agent memory governance: the model proposes, the ledger decides.</strong><br>
+  <span style="color:#6b6b6b">A Jev-first memory layer — frozen typed questions, deterministic policy, a sealed judgment log.</span>
+</p>
 
 > **Status (2026-11) — an engineering artifact, not a research contribution.**
 > This repository's founding question — do agents act on superseded conclusions, and does
@@ -18,6 +23,25 @@
 > sealed decision log do.** The generation model can be swapped without touching any of them.
 > [Why the research framing was withdrawn](docs/DECISION.md) ·
 > [the literature check](docs/prior-art.md) · [why Jev sits at the center](docs/JEV-FIRST.md)
+
+## Why I built this
+
+Every AI coding agent I used had the same failure mode: **each new session started from
+zero.** The architecture decision I argued over last week, the "do not touch API v1"
+constraint, the migration we reverted — all gone. I tried CLAUDE.md, tried mem0, tried
+manually maintaining a constraints file. Each had its own failure mode:
+
+- CLAUDE.md constraints silently contradict and silently expire
+- mem0 retrieves by embedding similarity — a superseded conclusion returns as confidently
+  as a current one
+- Manual maintenance doesn't scale past ~20 constraints
+
+What was missing wasn't another memory system — it was **a layer that judges what still
+counts.** Not "what is similar" (that's retrieval), not "what was decided" (that's logging),
+but "what constraints still apply to the task I'm about to do, and which ones conflict."
+
+I built this layer, discovered my initial research framing was already covered by prior
+art, withdrew the claim, and kept the engineering. This repository is the result.
 
 **What it does:** an agent writes decisions into an append-only, hash-chained record store.
 For each task, a candidate selector picks ≤6 records; a judgment engine asks the
@@ -156,6 +180,42 @@ has been measured.
 
 **Multi-agent teams:** structurally necessary (agents writing conflicting memories need a
 shared authority), but the merge semantics are not built yet.
+
+## Positioning
+
+How this layer compares to tools developers actually use:
+
+| | mem0 | Letta / MemGPT | Zep / Graphiti | **ClaimLedger** |
+| --- | --- | --- | --- | --- |
+| Core capability | fact extraction + vector retrieval | stateful agent runtime | temporal knowledge graph | **governance: what still counts** |
+| Judgment layer | none (embedding similarity) | none (LLM self-judgment) | none (edge invalidation) | **typed questions + calibrated probability** |
+| Conflict handling | silent merge | none | edge invalidation only | **pairwise localization → review** |
+| Auditability | retrieval log | conversation history | provenance graph | **sealed judgment log + hash chain** |
+| Model-independent | yes (retrieval) | no (memory format tied to model) | yes (graph) | **yes (question set + policy are frozen)** |
+| Calibration | none | none | none | **per-bucket upheld rate + Brier** |
+| Dependencies | several | several | several | **zero** |
+
+**The layer this occupies:** every system above answers "what was decided and what does it
+look like now." None of them answers **"is that decision still valid, and how confident am I
+in that answer?"** — which is the question that matters when the generation model changes.
+
+## Operations
+
+Two incidents from real usage, recorded because they shaped the design:
+
+**Incident 1 — TypeSafe API region block (HTTP 451).** The judgment provider became
+unreachable mid-session. Every `memory_decide` call failed. The fail-open semantics
+designed into the policy held: all records went to review, nothing was silently admitted
+or excluded. **Lesson: an outage must never look like a confident exclusion.** The
+transport abstraction (`caller` parameter + `TYPESAFE_URL` env) allows switching to a
+proxy without code changes.
+
+**Incident 2 — borderline sampling flip (~17%).** The judgment model flipped a
+complementary pair to contradiction once in six runs, while unambiguous pairs never
+flipped. A single observation was initially reported as a cross-model disagreement; a
+5×5 stability check refuted it. **Lesson: argmax without a margin rule lets sampling
+noise become a decision.** Policy v2.2 added the margin rule; the ablation that
+validated δ=0.2 is committed alongside the code.
 
 ## Quick start
 
