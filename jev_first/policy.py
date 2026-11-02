@@ -1,14 +1,15 @@
-"""Deterministic policy: probability in, action out.
+"""Deterministic policy: a typed answer in, an action out. v2.
 
-The asymmetry is deliberate and belongs here, not in a prompt:
+The score formula (p(applies) × p(holds)) is retired — see
+contracts/questions.v1.json "retired". The model now answers `admit` directly
+as a three-way choice; this policy only applies two structural rules:
 
-* wrongly suppressing a valid claim is a silent failure — the agent proceeds
-  without a real constraint;
-* wrongly retaining a stale claim is visible — it appears in the result.
-
-So a low score excludes, but any meaningful contradiction forces review rather
-than automatic exclusion. Thresholds are data (versioned), not code constants:
-calibration evidence has to be able to replay them.
+* **Outage and contradiction are not evidence.** A transport failure fails open
+  to review (handled by the judge); a contradiction in the candidate set forces
+  review and makes `admit` structurally impossible for that decision.
+* **Governing is a tie-breaker, not a veto.** A confident governing claim may
+  promote `review` to `admit` — but never overrides `exclude`, and never
+  overrides the contradiction rule.
 """
 from __future__ import annotations
 
@@ -22,37 +23,33 @@ ACTIONS = (ADMIT, REVIEW, EXCLUDE)
 
 @dataclass(frozen=True)
 class Policy:
-    version: str = "v1.1"
-    admit_at: float = 0.60
-    review_at: float = 0.30
+    version: str = "v2"
     contradiction_review_at: float = 0.70
-    # Jev's single-claim "which claim governs this task" answer is its
-    # highest-value output. A confident governing claim is admitted even when
-    # the set is contradictory; the contradiction stays visible as its own
-    # field, so nothing is silently suppressed.
     governing_at: float = 0.80
 
     def __post_init__(self) -> None:
-        if not 0.0 <= self.review_at <= self.admit_at <= 1.0:
-            raise ValueError("require 0 <= review_at <= admit_at <= 1")
-        if not 0.0 <= self.contradiction_review_at <= 1.0:
-            raise ValueError("contradiction_review_at must be within [0, 1]")
-        if not 0.0 <= self.governing_at <= 1.0:
-            raise ValueError("governing_at must be within [0, 1]")
+        for name in ("contradiction_review_at", "governing_at"):
+            value = getattr(self, name)
+            if not 0.0 <= value <= 1.0:
+                raise ValueError(f"{name} must be within [0, 1]")
 
-    def action(self, score: float, *, contradiction: float = 0.0,
+    def action(self, choice: str, *, contradiction: float = 0.0,
                governing: bool = False) -> str:
-        if not 0.0 <= score <= 1.0:
-            raise ValueError("score must be within [0, 1]")
-        if score < self.review_at:
+        """Apply the structural rules to the model's argmax choice."""
+        if choice not in ACTIONS:
+            raise ValueError(f"unknown action: {choice!r}")
+        if not 0.0 <= contradiction <= 1.0:
+            raise ValueError("contradiction must be within [0, 1]")
+        if choice == EXCLUDE:
             return EXCLUDE
-        if governing:
-            return ADMIT
+        # `admit` and an unresolved contradiction are mutually exclusive by
+        # construction: the conflict must be looked at, not auto-resolved by a
+        # governing signal.
         if contradiction >= self.contradiction_review_at:
             return REVIEW
-        if score >= self.admit_at:
+        if governing and choice == REVIEW:
             return ADMIT
-        return REVIEW
+        return choice
 
     def to_dict(self) -> dict:
         return asdict(self)

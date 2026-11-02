@@ -1,21 +1,30 @@
-"""Jev-first memory decisions.
+"""Jev-first memory: contracts → records → judgments → views.
 
-The product layer of this project is not a store and not a retriever. It is:
+The product layers, in order of authority:
 
-    a typed question set + a deterministic policy + a calibratable decision log
+* ``contracts/`` — the frozen question set and record schema (the IP)
+* ``records.py`` — append-only, hash-chained record store (no stored status)
+* ``judge.py``   — contract-driven judgment engine (one request per decision)
+* ``policy.py``  — deterministic action rules (no score formula)
+* ``log.py``     — sealed judgment log (hash-chained)
+* ``cache.py``   — judgment cache keyed by the full input
 
-All three are independent of any generation model, which is what makes
-"change models, keep memory" possible. The claim store is only the data source.
+None of these depend on which generation model is running.
 """
-from .decide import Decision, Entry, decide
-from .policy import Policy
-from .questions import build_questions, render_state
+from .cache import Cache
+from .contracts import (ContractError, make_record, relation_question,
+                        validate_record, verify_manifest)
+from .judge import Entry, Judgment, judge
+from .log import append_judgment, verify as verify_log
+from .log import read as read_log
+from .policy import ADMIT, EXCLUDE, REVIEW, Policy
+from .questions import render_state
+from .records import RecordStore
 
 __all__ = [
-    "Decision",
-    "Entry",
-    "Policy",
-    "decide",
-    "build_questions",
-    "render_state",
+    "ADMIT", "EXCLUDE", "REVIEW",
+    "Cache", "ContractError", "Entry", "Judgment", "Policy", "RecordStore",
+    "append_judgment", "judge", "make_record", "read_log",
+    "relation_question", "render_state", "validate_record",
+    "verify_log", "verify_manifest",
 ]

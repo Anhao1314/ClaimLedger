@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""End-to-end demo of the Jev-first decision layer.
+"""End-to-end demo of the Jev-first core:
 
-One request, four claims, one typed decision, one appended log line.
-Status is deliberately NOT shown to the model: it must judge from content.
+    record store (hash chain) → judge (cache miss then hit) → sealed log
+
+Status is never stored and never shown to the model. The second call is served
+from the cache in microseconds; the log is verified at the end.
 
     . ~/.config/claimledger/jev.env
     python scripts/jev_first_demo.py
@@ -11,21 +13,45 @@ from __future__ import annotations
 
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from chat_distiller import jev  # noqa: E402
-from jev_first import decide, log  # noqa: E402
+from jev_first import Cache, RecordStore, judge, log  # noqa: E402
 
 TASK = "Write a storage adapter for the analytics service."
 
-CLAIMS = [
-    {"claim_id": "clm_pg", "text": "All storage must use PostgreSQL.", "status": "现行"},
-    {"claim_id": "clm_compat", "text": "SQLite is deprecated for this service.", "status": "现行"},
-    {"claim_id": "clm_analytics", "text": "PostgreSQL is banned for the analytics service.", "status": "现行"},
-    {"claim_id": "clm_staging", "text": "Use SQLite for staging.", "status": "已过期"},
+RECORDS = [
+    ("All storage must use PostgreSQL.", "agent"),
+    ("SQLite is deprecated for this service.", "agent"),
+    ("PostgreSQL is banned for the analytics service.", "human"),
+    ("Use SQLite for staging.", "agent"),
 ]
+
+
+def print_judgment(judgment, label):
+    print(f"--- {label} ---")
+    print(f"model {judgment.model}   qset {judgment.question_set_version}   "
+          f"cached {judgment.cached}   latency {judgment.latency_ms} ms")
+    print(f"contradiction {judgment.contradiction:.2f}   governing {judgment.governing}")
+    print(f"{'record':18} {'action':8} {'p(admit)':>9} {'gov':4} {'in':3}")
+    print("-" * 50)
+    for entry in sorted(judgment.entries, key=lambda e: (e.p_admit or 0), reverse=True):
+        print(f"{entry.record_id:18} {entry.action:8} "
+              f"{entry.p_admit if entry.p_admit is not None else '':>9} "
+              f"{'yes' if entry.governing else '':4} "
+              f"{'yes' if entry.included else 'no':3}")
+    print(f"bytes {judgment.used_bytes}/{judgment.budget_bytes}   omitted {judgment.omitted}\n")
+
+
+def explain(judgment):
+    if judgment.contradiction >= judgment.policy["contradiction_review_at"]:
+        print("NOTE: the candidate set contains an unresolved contradiction, so every "
+              "record is review by design — a human must resolve the conflict before "
+              "anything is admitted. Localizing the conflict (per-pair relation) is "
+              "the next build item.\n")
 
 
 def main() -> int:
@@ -33,30 +59,34 @@ def main() -> int:
         print("TYPESAFE_API_KEY is not set; source ~/.config/claimledger/jev.env first.")
         return 2
 
-    decision = decide(TASK, CLAIMS, budget_bytes=1024)
-
-    print(f"task      : {decision.task}")
-    print(f"model     : {decision.model}   policy: {decision.policy['version']}")
-    print(f"latency   : {decision.latency_ms} ms   tokens: {decision.usage}")
-    print(f"contradict: {decision.contradiction:.2f}   governing: {decision.governing}"
-          f" ({decision.governing_confidence})")
-    print()
-    print(f"{'claim':14} {'p(applies)':>10} {'p(holds)':>9} {'score':>6}  {'action':7} {'in':3} {'gov':3}")
-    print("-" * 68)
-    for entry in sorted(decision.entries, key=lambda e: e.score, reverse=True):
-        print(f"{entry.claim_id:14} {entry.p_applies:>10.2f} {entry.p_holds:>9.2f} "
-              f"{entry.score:>6.2f}  {entry.action:7} {'yes' if entry.included else 'no':3} "
-              f"{'yes' if entry.governing else '':3}")
-    print("-" * 68)
-    print(f"bytes {decision.used_bytes}/{decision.budget_bytes}   omitted {decision.omitted}")
-
     with tempfile.TemporaryDirectory(prefix="jev-first-") as tmp:
-        path = Path(tmp) / "decisions.jsonl"
-        log.append(path, decision)
-        row = log.read(path)[0]
-        print(f"\nlogged one decision ({len(row['entries'])} entries) -> {path.name}")
+        base = Path(tmp)
+        store = RecordStore(base / "records.jsonl")
+        for text, source in RECORDS:
+            store.append(text, source)
+        records = store.load()
+        print(f"records: {len(records)} (chain verified, no stored status)\n")
 
-    return 0 if decision.governing == "clm_analytics" else 1
+        cache = Cache(base / "cache.jsonl")
+        cold = judge(TASK, records, budget_bytes=1024, cache=cache)
+        started = time.monotonic()
+        warm = judge(TASK, records, budget_bytes=1024, cache=cache)
+        warm_served_ms = int((time.monotonic() - started) * 1000)
+        print_judgment(cold, "cold (one Jev request)")
+        explain(cold)
+        print_judgment(warm, f"warm (cache hit, served in {warm_served_ms} ms, "
+                             f"original latency preserved)")
+
+        sealed = [log.append_judgment(base / "judgments.jsonl", j.to_dict())
+                  for j in (cold, warm)]
+        count = log.verify(base / "judgments.jsonl")
+        print(f"log: {count} judgments sealed, chain verified")
+        print(f"last hash: {sealed[-1]['judgment_hash'][:24]}…")
+
+        same = all(a.to_dict()["entries"] == b.to_dict()["entries"]
+                   for a, b in zip([cold], [warm]))
+        print(f"cache served an identical decision: {same}")
+        return 0 if (warm.cached and count == 2 and same) else 1
 
 
 if __name__ == "__main__":
