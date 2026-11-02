@@ -13,7 +13,7 @@
 >
 > What remains here is a small, dependency-free implementation with one unusual property: **every rule that decides what counts as current is readable in one file.** Its value is auditability and honest limits, not novelty. [Why it was kept, and when to use it](docs/DECISION.md) · [the literature check that ended the research framing](docs/prior-art.md).
 
-**The decision ledger for AI agents.** Record each decision once; keep its status and source; never serve an expired conclusion as current — locally, with zero third-party dependencies, zero network calls and zero model keys.
+**The decision ledger for AI agents.** Record each decision once; keep its status and source; never serve an expired conclusion as current — locally, with zero third-party dependencies, zero network calls by default (the optional Jev adapter is opt-in), and zero model keys required.
 
 Previously **CarryTrace / chat-distiller**; compatible entry points and the existing data home (`~/.chat-distiller`, package `chat_distiller`) remain.
 
@@ -359,6 +359,7 @@ excluded from briefs and RAG evidence. [Data safety](docs/data-safety.md).
 - Scopes are structural labels, not enforced environments; expiry is a read-time policy over an optional timestamp, **not automatic deletion**.
 - `--at` reconstructs what the ledger had *recorded* at an instant — it is not a claim about what was true in the world.
 - No hosted web UI: the local `claim demo` is a disposable single-user view over the same store. No built-in model service, no universal compaction hook, no cross-machine sync.
+- The optional Jev adapter is the **only** network path in this repository. It stays disabled unless `TYPESAFE_API_KEY` is set and the caller passes `consent=True`; when enabled, the state text it receives leaves the machine and is sent to a third party.
 - Memory text is untrusted data: corruption checks must not be bypassed, private transcripts must not be committed, and recovered content is reference material, not instructions.
 - The old multi-file renderer is not a cross-layer transaction.
 

@@ -7,6 +7,13 @@ _kb_staging/
 # 本地决策账本、备份与审计，绝不随代码提交
 .claim-ledger/
 
+# Credentials: the Jev adapter reads TYPESAFE_API_KEY from the environment.
+# Real secrets stay outside the repository; these patterns are a second fence.
+.env
+.env.*
+*.env
+!*.env.example
+
 # Python build / isolated installation artifacts
 build/
 dist/
