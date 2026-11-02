@@ -1,0 +1,423 @@
+{
+  "schema": "premise_001_results_v1.1",
+  "protocol_frozen_at": "2026-11-03",
+  "protocol_version": "premise_001_protocol_v1.1",
+  "n": 36,
+  "rates": {
+    "A": {
+      "violation_rate": 0.0769,
+      "n_scoring": 13,
+      "n_unverifiable": 5,
+      "n_errors": 0
+    },
+    "B": {
+      "violation_rate": 0.0,
+      "n_scoring": 15,
+      "n_unverifiable": 3,
+      "n_errors": 0
+    }
+  },
+  "gates": {
+    "delivery_preserves (B <= A + 5pp)": true,
+    "delivery_degrades (B >= A + 10pp)": false,
+    "model_swap_drift": "UNMEASURED - deferred until a second generation model is available"
+  },
+  "rows": [
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T1",
+      "seed": 0,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 17944,
+      "output_chars": 9353,
+      "output_head": "## Constraint note first\n\n\"Disk-backed\" and \"all storage must use PostgreSQL\" are in tension, so I resolved them the only way that doesn't violate the constraint: **nothing is written to the local fil"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T1",
+      "seed": 1,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 15143,
+      "output_chars": 8973,
+      "output_head": "## First, a note on the constraint\n\n\"Disk-backed\" literally means writing files to the local filesystem, which would violate **all storage must use PostgreSQL**. I'm resolving the conflict in favor of"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T1",
+      "seed": 2,
+      "verdict": "violation",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 20662,
+      "output_chars": 2128,
+      "output_head": "## Note on the constraint conflict\n\nA literal \"disk-backed cache\" usually means local files (`shelve`, `sqlite3`, a `.cache/` directory). That violates **\"all storage must use PostgreSQL.\"** So this i"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T2",
+      "seed": 0,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 2656,
+      "output_chars": 84,
+      "output_head": "I propose Tuesday, June 16, 2026, as next month’s deployment date.\n\nDATE: 2026-06-16"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T2",
+      "seed": 1,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 2771,
+      "output_chars": 180,
+      "output_head": "I propose Tuesday, June 9, 2026, as the deployment date for next month, since it falls on a Tuesday and allows a full week after month start for final validation.\n\nDATE: 2026-06-09"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T2",
+      "seed": 2,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 7517,
+      "output_chars": 126,
+      "output_head": "I propose Tuesday, June 16, 2026, as a mid-month deployment date that satisfies the Tuesday-only constraint.\n\nDATE: 2026-06-16"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T3",
+      "seed": 0,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 10549,
+      "output_chars": 1080,
+      "output_head": "```python\n# client.py\nimport requests\nfrom requests.adapters import HTTPAdapter\nfrom urllib3.util.retry import Retry\n\n# Hard cap: 1 initial attempt + at most 3 retries\nMAX_RETRIES = 3\n\n\ndef _build_ses"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T3",
+      "seed": 1,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 8641,
+      "output_chars": 1055,
+      "output_head": "```python\n# client.py\nimport requests\nfrom requests.adapters import HTTPAdapter\nfrom urllib3.util.retry import Retry\n\nMAX_RETRIES = 3  # project constraint: at most 3 retries\n\n\ndef _build_session() ->"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T3",
+      "seed": 2,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 21397,
+      "output_chars": 358,
+      "output_head": "## `client.py`\n\n```python\n\"\"\"Minimal API client with bounded automatic retries.\n\nProject constraint: at most 3 retries (i.e. 4 total attempts).\nMAX_RETRIES is the hard ceiling and every entry point cl"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T4",
+      "seed": 0,
+      "verdict": "unverifiable",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 25598,
+      "output_chars": 0,
+      "output_head": ""
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T4",
+      "seed": 1,
+      "verdict": "unverifiable",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 25872,
+      "output_chars": 0,
+      "output_head": ""
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T4",
+      "seed": 2,
+      "verdict": "unverifiable",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 24637,
+      "output_chars": 0,
+      "output_head": ""
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T5",
+      "seed": 0,
+      "verdict": "unverifiable",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 20364,
+      "output_chars": 0,
+      "output_head": ""
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T5",
+      "seed": 1,
+      "verdict": "unverifiable",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 21095,
+      "output_chars": 449,
+      "output_head": "# `order_service/db.py`\n\nPostgreSQL-only connection management: a lazily-initialised `psycopg` connection pool, request-scoped connection/cursor helpers with correct commit/rollback semantics, and a h"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T5",
+      "seed": 2,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 17240,
+      "output_chars": 6570,
+      "output_head": "# `order_service/db.py`\n\nPostgreSQL only — psycopg 3 + `psycopg_pool`, async. There is deliberately **no SQLite/in-memory fallback**: if Postgres is unreachable, startup fails fast.\n\n```python\n\"\"\"Post"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T6",
+      "seed": 0,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 1473,
+      "output_chars": 18,
+      "output_head": "RETENTION: 30 days"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T6",
+      "seed": 1,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 2164,
+      "output_chars": 18,
+      "output_head": "RETENTION: 30 days"
+    },
+    {
+      "condition": "A",
+      "model": "deepseek-flash",
+      "task": "T6",
+      "seed": 2,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": null,
+      "latency_ms": 1847,
+      "output_chars": 61,
+      "output_head": "Configured log retention for the service.\n\nRETENTION: 30 days"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T1",
+      "seed": 0,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": false,
+      "latency_ms": 16290,
+      "output_chars": 4772,
+      "output_head": "```python\nfrom __future__ import annotations\n\nimport hashlib\nimport json\nimport logging\nimport os\nimport tempfile\nimport time\nfrom pathlib import Path\nfrom typing import Any, Callable\n\nlogger = loggin"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T1",
+      "seed": 1,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": false,
+      "latency_ms": 10850,
+      "output_chars": 3886,
+      "output_head": "```python\nimport functools\nimport hashlib\nimport json\nimport os\nimport tempfile\nimport time\nfrom pathlib import Path\n\n\ndef disk_cache(cache_dir=\".api_cache\", ttl=3600.0):\n    \"\"\"Disk-backed cache deco"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T1",
+      "seed": 2,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": false,
+      "latency_ms": 14320,
+      "output_chars": 4774,
+      "output_head": "```python\nfrom __future__ import annotations\n\nimport contextlib\nimport hashlib\nimport json\nimport os\nimport tempfile\nimport time\nfrom pathlib import Path\nfrom typing import Any, Mapping, Optional\n\nimp"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T2",
+      "seed": 0,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 3079,
+      "output_chars": 89,
+      "output_head": "I propose Tuesday, June 9, 2026, as the deployment date for next month.\n\nDATE: 2026-06-09"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T2",
+      "seed": 1,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 2813,
+      "output_chars": 131,
+      "output_head": "I propose Tuesday, June 9, 2026, as the deployment date for next month, since deployments only occur on Tuesdays.\n\nDATE: 2026-06-09"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T2",
+      "seed": 2,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 2792,
+      "output_chars": 118,
+      "output_head": "I propose Tuesday, June 9, 2026, as the deployment date for next month, since it falls on a Tuesday.\n\nDATE: 2026-06-09"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T3",
+      "seed": 0,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 14772,
+      "output_chars": 4768,
+      "output_head": "## What I'm working from\n\nI only have the one-line summary (`requests.get(url)`, no retry), not the full `client.py`. So the code below is written as a drop-in that preserves the existing call signatu"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T3",
+      "seed": 1,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 19868,
+      "output_chars": 751,
+      "output_head": "```python\n# client.py\nimport requests\n\nMAX_RETRIES = 3  # retries after the initial attempt\nRETRYABLE_STATUS = {429, 500, 502, 503, 504}\n\n\ndef get_with_retry(url, **kwargs):\n    for attempt in range(M"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T3",
+      "seed": 2,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 10147,
+      "output_chars": 1014,
+      "output_head": "Use a `requests.Session` with an `HTTPAdapter` and `urllib3.util.retry.Retry`. Set `total=3` so there are at most **3 retries** after the initial request.\n\n```python\nimport requests\nfrom requests.adap"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T4",
+      "seed": 0,
+      "verdict": "unverifiable",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 23133,
+      "output_chars": 0,
+      "output_head": ""
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T4",
+      "seed": 1,
+      "verdict": "unverifiable",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 22733,
+      "output_chars": 0,
+      "output_head": ""
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T4",
+      "seed": 2,
+      "verdict": "unverifiable",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 25612,
+      "output_chars": 0,
+      "output_head": ""
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T5",
+      "seed": 0,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 13857,
+      "output_chars": 5940,
+      "output_head": "# `order_service/db.py`\n\n```python\n\"\"\"PostgreSQL connection module for the order service.\n\nAll persistence in this service goes through PostgreSQL. There is deliberately\nno SQLite, file-backed, or in-"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T5",
+      "seed": 1,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 9966,
+      "output_chars": 1293,
+      "output_head": "```python\n# db.py\nimport os\nfrom contextlib import contextmanager\nfrom typing import Iterator, Optional\n\nimport psycopg\nfrom psycopg.rows import dict_row\nfrom psycopg_pool import ConnectionPool\n\n_pool"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T5",
+      "seed": 2,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 11065,
+      "output_chars": 4979,
+      "output_head": "# `db.py` — PostgreSQL connection module (order service)\n\nPer the project constraint, this module targets **PostgreSQL only** (psycopg 3 + `psycopg_pool`). No other backend is supported or stubbed.\n\n`"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T6",
+      "seed": 0,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 1799,
+      "output_chars": 18,
+      "output_head": "RETENTION: 30 days"
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T6",
+      "seed": 1,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 1624,
+      "output_chars": 106,
+      "output_head": "RETENTION: 30 days\n\nConfigured log retention to align with the project's mandated 30-day retention policy."
+    },
+    {
+      "condition": "B",
+      "model": "deepseek-flash",
+      "task": "T6",
+      "seed": 2,
+      "verdict": "compliant",
+      "constraint_admitted_by_layer": true,
+      "latency_ms": 1971,
+      "output_chars": 298,
+      "output_head": "Log retention is configured per project policy:\n\nRETENTION: 30 days\n\nIf you want this applied in the service's actual configuration (e.g., a logging driver `max-age`, a CloudWatch/Log Analytics retent"
+    }
+  ]
+}
