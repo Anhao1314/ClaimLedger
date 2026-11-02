@@ -129,6 +129,34 @@ Old judgments and new judgments are directly comparable — every judgment carri
 version and full probability distribution. The cross-model replay already showed **29/29
 label agreement** between Jev and DeepSeek on the frozen pairs.
 
+### When you need this — and when you don't
+
+Honest scaling assessment. This layer earns its complexity at a specific project size; below
+that, a `CLAUDE.md` file is simpler and better.
+
+| | CLAUDE.md | ClaimLedger |
+| --- | --- | --- |
+| Setup | open a file and write | install + MCP + agent instructions |
+| Latency | **0ms** (always in context) | 1–5 s per judgment (Jev call) |
+| Reliability | **100%** (the model cannot miss it) | depends on the agent calling `memory_decide` |
+| Dependencies | none | TypeSafe key + network |
+| Conflict detection | none — contradictions pass silently | pairwise localization → held for review |
+| Stale-constraint handling | none — expired rules stay forever | re-judged on every `decide` call |
+| Calibration | impossible | per-bucket upheld rate + Brier score |
+| Scale ceiling | ~20 constraints before context bloats | designed for 50+ (untested at scale) |
+
+**Small projects (< 20 constraints): use CLAUDE.md.** It is simpler, faster, always in
+context, and has no external dependency. This layer adds complexity without benefit at
+this scale.
+
+**Large projects (50+ constraints, changing requirements): this is where a judgment layer
+earns its keep.** CLAUDE.md constraints silently contradict and silently expire. This layer
+catches both. But this advantage is currently theoretical — no real project at this scale
+has been measured.
+
+**Multi-agent teams:** structurally necessary (agents writing conflicting memories need a
+shared authority), but the merge semantics are not built yet.
+
 ## Quick start
 
 A live decision on a 10-record store — one command, no other steps:
@@ -305,6 +333,9 @@ part the checks could not kill: an auditable judgment layer with an honest bound
 - Calibration v1 scores `admit` entries only; `review`/`exclude` outcomes are recorded but not
   yet scored.
 - The candidate selector is lexical; a record with zero token overlap is not selected.
-- No web UI, no daemon, no cross-machine sync.
+- No web UI (the console is a local view, not a product surface), no daemon, no cross-machine sync.
+- **For projects with fewer than ~20 stable constraints, a `CLAUDE.md` file is simpler and
+  better.** This layer earns its complexity at scale; below that threshold it adds a
+  dependency and latency without measurable benefit.
 
 [MIT](LICENSE)
