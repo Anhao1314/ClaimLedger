@@ -60,6 +60,12 @@ class BriefTests(unittest.TestCase):
         self.assertIn("UNRESOLVED CONFLICTS", brief["text"])
         self.assertIn("⟂", brief["text"])
         self.assertIn(records[0]["record_id"], brief["warnings"])
+        # A conflicted record is in review, so it must NOT read as something
+        # the agent may rely on.
+        active = brief["text"].split("NEEDS HUMAN REVIEW")[0]
+        self.assertNotIn("SQLite only.", active)
+        self.assertIn("NEEDS HUMAN REVIEW", brief["text"])
+        self.assertIn("[conflicts with another record]", brief["text"])
 
     def test_degraded_note(self):
         records = make_records(["Use PostgreSQL."])
