@@ -1,0 +1,53 @@
+{
+  "schema": "jev_relation_001_protocol_v1",
+  "frozen_at": "2026-11-02T21:40:00Z",
+  "status": "FROZEN_BEFORE_SCORED_CALLS",
+  "question": "Can Jev separate contradiction from complementary and from unrelated on real decision-style statements, including pairs where lexical overlap points the wrong way?",
+  "model": "jev-latest",
+  "assessment_unit": "one claim pair",
+  "n_pairs": 30,
+  "label_distribution": {
+    "contradiction": 10,
+    "complementary": 10,
+    "unrelated": 10
+  },
+  "typed_question": {
+    "type": "choice",
+    "options": ["contradiction", "complementary", "unrelated"],
+    "decision_rule": "argmax of the returned probability map"
+  },
+  "primary_metrics": {
+    "contradiction_recall": "of the 10 contradiction pairs, the fraction judged contradiction",
+    "false_suppression_rate": "of the 20 non-contradiction pairs, the fraction judged contradiction"
+  },
+  "gate": {
+    "contradiction_recall_min": 0.70,
+    "false_suppression_rate_max": 0.10,
+    "decision": "PASS only if both hold; otherwise STOP this direction"
+  },
+  "secondary_metrics": [
+    "overall accuracy",
+    "per-label confusion matrix",
+    "latency median and max",
+    "confidence calibration by label (descriptive only, n=30)"
+  ],
+  "controls": {
+    "single_call_per_pair": true,
+    "no_status_field_in_state": true,
+    "no_retries": true,
+    "temperature_or_sampling": "provider default; not settable by the client"
+  },
+  "limitations": [
+    "Pairs were authored by one person; labels are not independently adjudicated.",
+    "Statements are drawn from this project's own domains, so vocabulary overlap with the model's training data is unknown.",
+    "n=30 is too small for calibration; Brier/ECE are descriptive only.",
+    "A pass does not establish production value; it only clears the gate for the next step."
+  ],
+  "prohibited_after_freeze": [
+    "changing labels",
+    "adding or removing pairs",
+    "changing the decision rule",
+    "changing the thresholds",
+    "re-running until a pass"
+  ]
+}

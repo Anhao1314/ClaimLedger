@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
 from chat_distiller import jev
 
-from .policy import ADMIT, EXCLUDE, Policy
+from .policy import ADMIT, EXCLUDE, REVIEW, Policy
 from .questions import build_questions, render_state
 
 Caller = Callable[[str, Mapping[str, Mapping[str, Any]]], Mapping[str, Any]]
@@ -51,6 +51,7 @@ class Decision:
     omitted: int
     latency_ms: int
     usage: Dict[str, Any] = field(default_factory=dict)
+    degraded: bool = False
 
     @property
     def admitted(self) -> List[Entry]:
@@ -72,6 +73,7 @@ class Decision:
             "omitted": self.omitted,
             "latency_ms": self.latency_ms,
             "usage": self.usage,
+            "degraded": self.degraded,
             "entries": [e.to_dict() for e in self.entries],
         }
 
@@ -91,12 +93,21 @@ def decide(task: str, claims: Sequence[Mapping[str, Any]], *,
            policy: Policy = Policy(),
            budget_bytes: int = DEFAULT_BUDGET_BYTES,
            include_status: bool = False,
+           on_error: str = "raise",
            timeout: float = 30.0) -> Decision:
-    """Ask Jev one question set, then apply the deterministic policy."""
+    """Ask Jev one question set, then apply the deterministic policy.
+
+    ``on_error="review"`` turns a transport failure into a degraded decision in
+    which every candidate is returned as ``review``. That is the only safe
+    fallback: failing closed would silently suppress constraints, and a model
+    outage must never look like a confident exclusion.
+    """
     if not task or not task.strip():
         raise ValueError("task must be a non-empty string")
     if budget_bytes <= 0:
         raise ValueError("budget_bytes must be positive")
+    if on_error not in ("raise", "review"):
+        raise ValueError('on_error must be "raise" or "review"')
     if caller is None:
         def caller(state: str, questions: Mapping[str, Mapping[str, Any]]) -> Mapping[str, Any]:
             return jev.ask(state, questions, consent=True, timeout=timeout)
@@ -104,7 +115,32 @@ def decide(task: str, claims: Sequence[Mapping[str, Any]], *,
     state = render_state(task, claims, include_status=include_status)
     questions = build_questions(claims)
     started = time.monotonic()
-    parsed = caller(state, questions)
+    try:
+        parsed = caller(state, questions)
+    except jev.JevError:
+        if on_error == "raise":
+            raise
+        latency_ms = int((time.monotonic() - started) * 1000)
+        fallback: List[Entry] = []
+        used_fallback = 0
+        omitted_fallback = 0
+        for claim in claims:
+            claim_id = str(claim["claim_id"])
+            text = str(claim["text"])
+            size = len(f"- {claim_id}: {text}\n".encode("utf-8"))
+            fits = used_fallback + size <= budget_bytes
+            if fits:
+                used_fallback += size
+            else:
+                omitted_fallback += 1
+            fallback.append(Entry(claim_id, text, 0.0, 0.0, 0.0, REVIEW, fits))
+        return Decision(
+            task=task, model="unavailable", policy=policy.to_dict(),
+            entries=fallback, contradiction=0.0, governing=None,
+            governing_confidence=None, used_bytes=used_fallback,
+            budget_bytes=budget_bytes, omitted=omitted_fallback,
+            latency_ms=latency_ms, usage={}, degraded=True,
+        )
     latency_ms = int((time.monotonic() - started) * 1000)
 
     contradiction = _prob(jev.answer(parsed, "contradiction"), "noul", "contradiction")

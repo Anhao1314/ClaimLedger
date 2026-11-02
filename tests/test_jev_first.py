@@ -160,6 +160,27 @@ class DecideTests(unittest.TestCase):
         self.assertEqual(decision.model, "jev-test")
         self.assertNotIn("generation_model", decision.to_dict())
 
+    def test_transport_failure_raises_by_default(self):
+        from chat_distiller import jev
+        def boom(state, questions):
+            raise jev.JevError("timeout")
+        with self.assertRaises(jev.JevError):
+            decide("t", CLAIMS, caller=boom)
+
+    def test_transport_failure_fails_open_to_review(self):
+        from chat_distiller import jev
+        def boom(state, questions):
+            raise jev.JevError("timeout")
+        decision = decide("t", CLAIMS, caller=boom, on_error="review")
+        self.assertTrue(decision.degraded)
+        self.assertEqual(decision.model, "unavailable")
+        self.assertTrue(all(e.action == REVIEW for e in decision.entries))
+        self.assertFalse(any(e.action == EXCLUDE for e in decision.entries))
+
+    def test_bad_on_error_rejected(self):
+        with self.assertRaises(ValueError):
+            decide("t", CLAIMS, caller=fake_caller({"clm_a": (0.9, 0.9)}), on_error="ignore")
+
 
 class LogTests(unittest.TestCase):
     def test_append_and_read(self):
