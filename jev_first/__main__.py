@@ -114,6 +114,12 @@ def main(argv=None) -> int:
     p_audit.add_argument("--log", required=True)
     p_audit.add_argument("--record-id", help="only judgments touching this record")
 
+    p_console = sub.add_parser("console", help="local single-user memory console (web)")
+    p_console.add_argument("--store", required=True)
+    p_console.add_argument("--dir", default="~/.jev-memory",
+                           help="directory for log/cache/outcomes")
+    p_console.add_argument("--port", type=int, default=8766)
+
     args = parser.parse_args(argv)
 
     if args.command == "record":
@@ -233,6 +239,11 @@ def main(argv=None) -> int:
             print(json.dumps(summarize(args.log, reader=log.read),
                              ensure_ascii=False, indent=2))
         return 0
+
+    if args.command == "console":
+        from .web import main as console_main
+        return console_main(["--store", args.store, "--dir", args.dir,
+                             "--port", str(args.port)])
 
     parser.print_usage()
     return 2
