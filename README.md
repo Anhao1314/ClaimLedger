@@ -236,6 +236,51 @@ Sensitivity-triple consistency: Jev 1.0, DeepSeek 0.8.
 Known limitation, recorded honestly: the candidate selector is lexical, so a record with zero
 token overlap is not selected. Semantic recall is deferred to a topic field (contract v2).
 
+## How this compares to RAG
+
+RAG and this layer answer **different questions**:
+
+| | RAG | ClaimLedger |
+| --- | --- | --- |
+| Core question | "What content is **similar** to this query?" | "What constraints **still apply** to this task?" |
+| Optimizes | relevance (semantic similarity) | validity (status + conflict + calibration) |
+| Failure mode | returns a 2023 document as confidently as one from today | lexical entrance misses zero-overlap records |
+| Output | text chunks + similarity score | `admit / review / exclude` + calibrated probability |
+| Auditable | black box (embedding score has no semantic explanation) | every decision has a probability + policy version + hash chain |
+
+**They are layers, not competitors.** RAG finds candidates; this layer judges what still
+counts among them. The old README had a RAG adapter doing exactly this — RAG as a candidate
+source, every hit resolving to a claim and passing the status policy.
+
+### Measured difference (from the adversarial benchmark)
+
+The lexical baseline in [relation_002](experiments/relation_002/results.json) is a proxy for
+RAG's ranking mechanism — bag-of-words overlap used for retrieval and ordering:
+
+| Tier | Lexical (≈ RAG ranking) | Jev (judgment layer) | Gap |
+| --- | ---: | ---: | ---: |
+| HN — looks-conflict, isn't | 0.467 | **0.933** | **+47pp** |
+| HP — looks-compatible, conflicts | 0.467 | 0.800 | **+33pp** |
+| S — one-word flips | 0.333 | **1.000** | **+67pp** |
+
+The gap concentrates exactly where word overlap stops predicting meaning — the same class
+of error that motivates a governance layer on top of retrieval.
+
+### When RAG alone is enough
+
+Honest answer: **if your generation model is strong and your prompt is clear, RAG + a good
+system prompt handles most cases.** The Jev layer's value proposition narrows to:
+
+- **Model swaps**: judgments are model-independent (29/29 cross-model agreement), so the
+  governance semantics don't change when you switch from Claude to DeepSeek
+- **Auditability**: you can prove why a constraint was included or excluded (probability +
+  policy version + hash chain), not just "the model decided"
+- **Conflict safety**: contradictory records are held for human review, never silently
+  co-resolved by the generation model
+
+Without evidence that RAG + prompting fails in these scenarios at rates that matter,
+this layer is a well-engineered option, not a necessity.
+
 ## What was withdrawn and why
 
 The original framing — a novel "decision ledger" — was withdrawn after a two-hour literature
