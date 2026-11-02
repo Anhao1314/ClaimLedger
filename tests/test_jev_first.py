@@ -104,9 +104,11 @@ class RecordStoreTests(unittest.TestCase):
 
     def test_duplicate_content_is_rejected(self):
         self.store.append("Use PostgreSQL.", "agent")
-        self.store.append("Use PostgreSQL.", "agent")
+        # Content-addressed identity: an exact repeat is refused at the write,
+        # not deferred to a load-time failure.
         with self.assertRaises(contracts.ContractError):
-            self.store.load()
+            self.store.append("Use PostgreSQL.", "agent")
+        self.assertEqual(len(self.store.load()), 1)
 
     def test_tampering_breaks_the_chain(self):
         self.store.append("Use PostgreSQL.", "agent")
