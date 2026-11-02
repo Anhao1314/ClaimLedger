@@ -1,157 +1,168 @@
 # Architecture and trust boundaries
 
-chat-distiller has two paths: **explicit publishing** and **validated reading**.
-Neither path makes model judgments disappear. A structurally consistent claim can still
-be wrong, outdated, or malicious.
+**Updated** 2026-11-02. The project inverted its centre of gravity: judgment now
+belongs to a typed question set and a deterministic policy, not to the ledger.
+See [JEV-FIRST.md](JEV-FIRST.md) for why, and [DECISION.md](DECISION.md) for what
+was withdrawn.
 
-## 1. Publish structured memory
+Dashed edges are **not wired yet**.
+
+## 1. Current architecture
 
 ```mermaid
-flowchart TD
-    A[Doubao Work or Generic JSONL] --> B[Deterministic extraction]
-    B --> C[Transcripts]
-    C --> D[Human or host-agent semantic judgment]
-    D --> E[Draft cards or edits to existing source]
-    E --> F[Explicit init, upgrade, or register]
-    F --> G[Render and structural validation]
-    G --> H[Published v2 source]
-    G --> I[Registry mirror, notes, and index]
+flowchart TB
+    subgraph HOST["Agent host — the part that gets swapped"]
+        H1["Claude"]
+        H2["GPT"]
+        H3["Qwen / DeepSeek / local"]
+    end
+
+    subgraph IFACE["Interfaces"]
+        CLI["claim CLI"]
+        MCP["MCP server"]
+        SK["Skill"]
+    end
+
+    subgraph DEC["Decision layer — model-invariant · jev_first/"]
+        Q["questions.py<br/>render_state · typed question set"]
+        D["decide.py<br/>one request → score → byte-budget pack"]
+        P["policy.py v1.1<br/>thresholds · asymmetric cost"]
+        L["log.py<br/>append-only decision log"]
+    end
+
+    subgraph TR["Transport · chat_distiller/jev.py"]
+        J["POST /v1/systemone<br/>Bearer key from env · consent=True"]
+    end
+
+    JEV[("Jev 1.14.0<br/>choice · score · noul")]
+
+    subgraph DATA["Data layer — legacy, demoted"]
+        CS["ClaimStore<br/>JSONL · status · --at · digest"]
+    end
+
+    OUT["Decision<br/>entries · actions · contradiction<br/>governing · degraded · latency"]
+
+    H1 --> IFACE
+    H2 --> IFACE
+    H3 --> IFACE
+    IFACE --> Q
+    CS -. "not yet wired" .-> Q
+    Q --> D
+    P --> D
+    D --> L
+    D --> J
+    J --> JEV
+    JEV --> J
+    J --> D
+    D --> OUT
+
+    subgraph CUT["Planned cut — documented, not executed"]
+        C1["wiki"]
+        C2["RAG / vector index"]
+        C3["demo server"]
+        C4["site + brand assets"]
+    end
 ```
 
-The semantic step selects claims, states, and relationships. It is not a hidden model
-service inside this package. The [demo fixture](../examples/recovery/distill.json) is
-handwritten and skips that judgment step; it does not measure distillation quality.
+The swapped part is the agent host. The question set, the policy and the log stay
+fixed, which is what makes "change models, keep memory" a structural property
+rather than a promise.
 
-For a new source, `migrate --mode init` allocates identities. For an existing v2 source,
-`register` adds identities without replacing old ones. Legacy vaults use an explicit
-`upgrade` with validation against existing files. [Migration contract](../references/stable-memory.md).
+## 2. Decision pipeline
 
-## 2. Read and construct recovery packets
+```mermaid
+sequenceDiagram
+    participant C as Caller
+    participant Q as questions
+    participant J as Jev
+    participant P as policy
+    participant L as log
+    C->>Q: task + candidate claims
+    Q->>Q: render_state (status hidden by default)
+    Q->>J: one request, 2N+2 typed questions
+    J-->>Q: probabilities + governing + contradiction
+    Q->>P: score = p(applies) × p(holds)
+    P-->>C: admit / review / exclude per claim
+    C->>L: append decision (model, policy, probabilities, latency)
+```
+
+`include_status=False` is the default: the model must judge from content, not from
+a status field the legacy runtime already produced.
+
+## 3. Policy state machine
 
 ```mermaid
 flowchart LR
-    A[CLI or Python caller] --> B[MemoryStore]
-    B --> C[Validate published state]
-    C --> D[Lexical ranking and explicit intent]
-    D --> E[Search results]
-    D --> F[Whole-record byte-budget selection]
-    F --> G[Recovery packet]
-    G --> H[Caller inspects and decides]
-    I[Compaction hook] -. reminder only .-> A
+    S["score = p(applies) × p(holds)"] --> A{"score < 0.30?"}
+    A -- yes --> EX["exclude"]
+    A -- no --> B{"governing and<br/>confidence ≥ 0.80?"}
+    B -- yes --> AD["admit"]
+    B -- no --> C{"contradiction ≥ 0.70?"}
+    C -- yes --> RV["review"]
+    C -- no --> E{"score ≥ 0.60?"}
+    E -- yes --> AD
+    E -- no --> RV
+    ERR["transport error<br/>on_error='review'"] --> DEG["all entries review<br/>degraded = true"]
 ```
 
-`search`, `get`, `inspect`, and `recover` do not write to the vault. Each operation checks
-published source consistency, the registry mirror, supported note projections, and the
-regenerated index. `get` can inspect an expired record by stable ID. Search and recovery
-use cards, not conversation summaries that could bypass claim-level status filtering.
+Two invariants are encoded here:
 
-`current` and `historical` are caller-selected retrieval policies, not inferred time
-intervals. Current mode filters declared expired cards and ranks current cards before
-disputed ones. Historical mode includes all states. This is not automatic temporal
-reasoning or conflict detection.
+- **Asymmetry.** Wrong suppression is silent; wrong retention is visible. So a
+  contradiction forces `review`, never automatic `exclude`.
+- **Outage is not evidence.** A transport failure fails open to `review`; a model
+  that cannot answer must never look like a confident exclusion.
 
-## Authority, not two databases
+## 4. Measured constraints
+
+| Constraint | Value | Source |
+|---|---|---|
+| Claims per request | ≤ 6 | 10 questions took 11.2 s once, 2.9 s another time |
+| Pair-judgement latency | median 1,276 ms, max 7,274 ms | 30-pair run |
+| Observed timeout | 1 in 30 (60 s) | same run |
+| Transport failure policy | fail open to `review`, never `exclude` | added after that timeout |
+| Probability reproducibility | decisions stable, values not | 0.89/0.63 vs 0.90/0.68 |
+
+Jev is therefore **write-time and batch only**. It is permanently out of any
+interactive read path at this latency.
+
+## 5. Legacy layer (still present, off the decision path)
+
+The original runtime remains in `chat_distiller/` and is not deleted:
 
 | Object | Responsibility |
-| --- | --- |
-| Complete v2 source and embedded `identity_registry` | Identity authority, including retired reservations |
-| Published `.chat-distiller/distill.json` | Last published source snapshot |
-| Separate registry JSON, notes, and indexes | Derived projections, checked rather than silently trusted |
-| Recovery packet | A read-only selection identified by source SHA-256; not a new source of truth |
-| Optional RAG evidence index | Derived candidate passages joined to claims; never a source of truth |
-| Human / host agent | Semantic judgment, source inspection, and decisions about what to do next |
+|---|---|
+| `ClaimStore` (append-only JSONL) | Claim text, status, supersession chain, `--at` reconstruction, digest |
+| Publish path | Deterministic extraction, explicit init/register, structural validation |
+| Read path | Lexical ranking, byte-budgeted packet, status filtering |
+| Derived views (notes, index, registry mirror) | Rebuildable projections, checked rather than trusted |
+| Human / host agent | Semantic judgment and decisions about what to do next |
 
-`claim recall` composes a byte-bounded packet from the deterministic claim brief
-and an optional evidence adapter. Every evidence hit must resolve to a stored
-claim; superseded evidence is excluded for `current` and labelled historical for
-`historical`. The evidence index is rebuildable, and the packet records how many
-candidates were stale, unlinked, unresolved or omitted rather than hiding them.
+Two facts about it matter for the current design:
 
-Claims carry an optional `scope` label (default `all`) and an optional
-`expires_at` UTC timestamp. Scopes narrow where a decision applies: conflict
-detection only fires between claims whose scopes overlap, so disjoint
-environments can hold different conclusions without superseding each other.
-Expiry is a read-time policy, not a status transition — a claim past its
-deadline is excluded from the current brief, counted under
-`counts.time_expired`, and kept in the JSONL with its chain intact. Neither
-field is an enforcement mechanism: scope is a structural label the caller must
-honor, and expired claims are excluded by query time, never rewritten.
+1. Its status filter is **not** used by `decide()`. The decision layer receives
+   claim text only, so validity comes from model judgment rather than a label.
+2. Its retrieval is **lexical**. That is the specific failure the 30-pair run
+   targeted: `PostgreSQL is banned` vs `Use PostgreSQL` shares almost every token
+   and means the opposite.
 
-The source hash identifies bytes; it is not an authenticity signature. Supported note
-checks cover identity/status/type projections, not every Markdown body byte. Returned
-bodies come from the source-derived index, not unchecked edits to generated Markdown.
+## 6. Naming layers: deliberate, not drift
 
-The claim store serializes read-modify-write mutations with an in-process lock plus
-an OS advisory byte lock. Contention past the timeout is an explicit `ClaimStoreBusy`
-failure, not a last-writer-wins overwrite. `claim backup` writes a canonical snapshot
-with a checksummed manifest; `claim restore` verifies it and preserves the current
-store before replacement. `claim redact` removes content while keeping a content-free
-tombstone and chain, and `claim delete` removes rows; both write a pre-change backup
-(unless explicitly disabled) and an append-only audit entry. Redacted claims are
-excluded from briefs, conflict detection and RAG evidence. See
-[Data safety](data-safety.md).
+| Layer | Name | Why it stays |
+|---|---|---|
+| Product | ClaimLedger | What the repository is called now |
+| Package | `chat_distiller` | Import path used by every existing integration |
+| Data home | `~/.chat-distiller` | Existing user data must not move |
+| Entry points | `claim`, `carrytrace`, `chat-distiller` | Compatibility during migration |
 
-## Storage layout
+Three names for one thing looks like indecision; it is a compatibility decision.
+Renaming the package or the data home would break installed tooling and strand
+existing ledgers.
 
-```text
-<vault>/对话沉淀/
-├── 会话笔记/                     # readable conversation notes
-├── 知识卡片/                     # readable atomic cards
-├── 知识索引.md / 知识索引.jsonl  # derived indexes
-├── 操作日志.md                   # operation log, not a transaction journal
-├── 00 · 对话沉淀 MOC.md / 沉淀索引.base
-└── .chat-distiller/
-    ├── distill.json              # published source
-    ├── identity-registry.json    # checked mirror
-    ├── taxonomy.md               # vocabulary owned by this vault
-    └── pending/                  # hook markers, not distilled memories
-```
+## 7. What is deliberately absent
 
-The claim store lives separately, next to the project that owns it:
+- No retrieval path calls Jev.
+- No embeddings, no wiki, no third read path.
+- No hosted service, no daemon, no cross-machine sync.
+- The optional Jev adapter is the only network path, and it requires explicit consent.
 
-```text
-<project>/.claim-ledger/
-├── claims.jsonl                  # only authority
-├── claims.jsonl.lock             # OS advisory lock target; left in place
-├── claims.audit.jsonl            # redact / delete / restore entries, no content
-└── backups/
-    ├── claims-<utc>.jsonl        # canonical snapshot
-    └── claims-<utc>.manifest.json
-```
-
-Core code lives under `chat_distiller/_internal`; `scripts/` contains compatible entry
-points, not a second implementation. The original standalone compaction hook remains
-separate. Templates are packaged for installed use; an existing vault's vocabulary is
-not reset by an upgrade.
-
-## Failure boundaries
-
-Reads reject detected inconsistency instead of returning apparently valid results.
-The claim store adds an advisory writer lock and pre-change backups, but this is not a
-database transaction, hostile-filesystem defense, or crash-recovery journal; the
-multi-file vault renderer remains single-writer. Repair from a consistent source or
-backup; do not bypass a failed check to obtain a result.
-
-Recovery can return `ready`, `no_match`, or `budget_exhausted`. Whole records retain
-sources and states; oversized records are skipped rather than truncated. The serialized
-UTF-8 budget includes metadata and a newline. [Full packet contract](memory-engine.md#recovery-packet-contract).
-
-Memory text remains untrusted data. This component does not execute it or send it to a
-model. The caller must enforce its own tool permissions and instruction boundaries.
-A status flag or hash alone does not prevent prompt injection.
-
-## Naming layers (deliberate, not drift)
-
-The project carries three public names. This is a compatibility contract, not
-unfinished migration:
-
-| Layer | Name | Status |
-| --- | --- | --- |
-| Product | **ClaimLedger** | current |
-| Distribution / CLI | `claim-ledger` (PyPI), `claim` command | current; `chat-distiller` remains a compatible entry point |
-| Python package | `chat_distiller` | kept: importing code, the user data home `~/.chat-distiller` and the legacy command surface all pin to it |
-
-Renaming the package would break every downstream import and the documented
-data-home compatibility promise for zero behaviour gain. New modules use the
-product vocabulary in docstrings; the package name stays until a v2 line
-deliberately breaks compatibility. Decision recorded 2026-10-25.
+[Back to README](../README.md)

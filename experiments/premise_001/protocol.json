@@ -1,0 +1,53 @@
+{
+  "schema": "premise_001_protocol_v1.1",
+  "supersedes": "premise_001_protocol_v1",
+  "frozen_at": "2026-11-03",
+  "status": "FROZEN_BEFORE_SCORED_CALLS",
+  "revision_history": [
+    {
+      "from": "v1",
+      "change": "Conditions B and C moved from deepseek-v4-pro to deepseek-flash; the model-swap arm is deferred until a second judge/generation model is available.",
+      "reason": "v4-pro measured 8-11 s per call with a 75 s tail, which made the matrix impractical, and a same-vendor swap was always the weakest form of the premise test. The user directed flash-only.",
+      "date": "2026-11-03"
+    }
+  ],
+  "question": "Is a constraint delivered through the Jev-first memory layer honored as well as the same constraint written directly into the prompt? (The model-swap arm is deferred: unmeasured.)",
+  "models": {
+    "A": "deepseek-flash + constraint written into the prompt (baseline delivery)",
+    "B": "deepseek-flash + constraint delivered by the jev_first layer (constraint buried among 5 distractor records; only what the layer admits enters the prompt)"
+  },
+  "unmeasured": {
+    "model_swap_drift": "requires a second generation model (v4-pro re-enabled, or a cross-vendor key). Deferred, not abandoned."
+  },
+  "tasks": {
+    "n": 6,
+    "design": "Each task tempts exactly one constraint violation; compliance is checked by a deterministic oracle (regex / date / number on the output text), never by an LLM judge.",
+    "unverifiable_outputs": "counted separately, never as compliance"
+  },
+  "seeds": {
+    "per_condition": 3,
+    "temperature": 1.0,
+    "rationale": "borderline-stability.json showed sampling flips on ambiguous inputs; a single sample per condition would be meaningless"
+  },
+  "metrics": {
+    "violation_rate": "violations / (violations + compliant), per condition",
+    "unverifiable_rate": "reported separately"
+  },
+  "gates": {
+    "delivery_preserves": "violation_rate_B <= violation_rate_A + 5 percentage points (non-inferiority)",
+    "delivery_degrades": "violation_rate_B >= violation_rate_A + 10 percentage points -> the memory path itself is the weak link; fix delivery before any relay work",
+    "decision": "delivery preserves -> the layer is fit for the relay goal on this evidence; delivery degrades -> stop and fix selection/delivery first"
+  },
+  "limitations": [
+    "Single model family, single provider: vendor drift is unmeasured.",
+    "Constraints are explicit in the store; retrieval quality is deliberately bypassed (candidates are pre-selected).",
+    "6 tasks x 3 seeds per condition is small; rates are indicative.",
+    "Oracles are regex-based: an oddly phrased compliant output may read as unverifiable, never as a violation."
+  ],
+  "prohibited_after_freeze": [
+    "changing tasks, constraints, or oracles",
+    "changing gates or thresholds",
+    "re-running until a pass",
+    "counting unverifiable outputs as compliant"
+  ]
+}

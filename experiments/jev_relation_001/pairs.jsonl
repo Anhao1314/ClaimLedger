@@ -1,0 +1,30 @@
+{"id": "P01", "label": "contradiction", "a": "All storage must use PostgreSQL.", "b": "This service must use SQLite; PostgreSQL is forbidden here."}
+{"id": "P02", "label": "contradiction", "a": "PostgreSQL is banned for this service.", "b": "Use PostgreSQL for all storage."}
+{"id": "P03", "label": "contradiction", "a": "Deployments happen only on Tuesdays.", "b": "Ship this change on Friday."}
+{"id": "P04", "label": "contradiction", "a": "API v1 must remain unchanged.", "b": "Remove the v1 endpoints."}
+{"id": "P05", "label": "contradiction", "a": "The robot must never exceed 0.5 m/s.", "b": "Command 0.8 m/s on this route."}
+{"id": "P06", "label": "contradiction", "a": "Model weights must stay on-premise.", "b": "Upload the weights to the vendor cloud bucket."}
+{"id": "P07", "label": "contradiction", "a": "All inference must use the pinned model jev-1.14.0.", "b": "Always call jev-latest."}
+{"id": "P08", "label": "contradiction", "a": "Only the founder may approve a release.", "b": "Any engineer can approve a release without review."}
+{"id": "P09", "label": "contradiction", "a": "Retries must be at most 3.", "b": "Retry until it succeeds, with no limit."}
+{"id": "P10", "label": "contradiction", "a": "Customer data must not leave the EU.", "b": "Replicate all customer data to us-east-1."}
+{"id": "P11", "label": "complementary", "a": "All storage uses PostgreSQL.", "b": "SQLite is deprecated for this service."}
+{"id": "P12", "label": "complementary", "a": "Storage must run on PostgreSQL 16.", "b": "Use PostgreSQL 16 for all storage."}
+{"id": "P13", "label": "complementary", "a": "Never exceed 0.5 m/s.", "b": "Cap commanded speed at 0.5 m/s on this route."}
+{"id": "P14", "label": "complementary", "a": "API v1 must remain unchanged.", "b": "Do not modify v1 endpoints in this release."}
+{"id": "P15", "label": "complementary", "a": "Only the founder approves releases.", "b": "Release approvals require the founder."}
+{"id": "P16", "label": "complementary", "a": "Retries must be at most 3.", "b": "Do not retry more than three times."}
+{"id": "P17", "label": "complementary", "a": "Customer data stays in the EU.", "b": "EU data must not be replicated outside the EU."}
+{"id": "P18", "label": "complementary", "a": "Inference uses the pinned model.", "b": "Pin the model version used for inference."}
+{"id": "P19", "label": "complementary", "a": "Deployments happen only on Tuesdays.", "b": "Tuesday is the deployment window."}
+{"id": "P20", "label": "complementary", "a": "Store weights on-premise.", "b": "On-premise storage is required for model weights."}
+{"id": "P21", "label": "unrelated", "a": "All storage uses PostgreSQL.", "b": "The release train leaves Friday at 14:00 UTC."}
+{"id": "P22", "label": "unrelated", "a": "Never exceed 0.5 m/s.", "b": "The G1 robot has 23 degrees of freedom."}
+{"id": "P23", "label": "unrelated", "a": "Only the founder approves releases.", "b": "The billing service uses Stripe."}
+{"id": "P24", "label": "unrelated", "a": "Customer data stays in the EU.", "b": "Logs are retained for 30 days."}
+{"id": "P25", "label": "unrelated", "a": "Retries must be at most 3.", "b": "The API returns JSON."}
+{"id": "P26", "label": "unrelated", "a": "API v1 must remain unchanged.", "b": "The frontend uses React 19."}
+{"id": "P27", "label": "unrelated", "a": "Model weights stay on-premise.", "b": "The training cluster has eight H100 GPUs."}
+{"id": "P28", "label": "unrelated", "a": "Deployments happen only on Tuesdays.", "b": "The on-call rotation changes monthly."}
+{"id": "P29", "label": "unrelated", "a": "PostgreSQL is banned for analytics.", "b": "The analytics dashboard has four charts."}
+{"id": "P30", "label": "unrelated", "a": "Inference uses the pinned model.", "b": "Prompts are written in English."}

@@ -30,7 +30,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/Anhao1314/ClaimLedger"
-Documentation = "https://anhao1314.github.io/ClaimLedger/"
+Documentation = "https://github.com/Anhao1314/ClaimLedger/tree/main/docs"
 Repository = "https://github.com/Anhao1314/ClaimLedger"
 Changelog = "https://github.com/Anhao1314/ClaimLedger/blob/main/CHANGELOG.md"
 Issues = "https://github.com/Anhao1314/ClaimLedger/issues"
@@ -41,9 +41,8 @@ carrytrace = "chat_distiller.brand_cli:main"
 claim = "chat_distiller.brand_cli:main"
 
 [tool.setuptools.packages.find]
-include = ["chat_distiller*"]
+include = ["chat_distiller*", "jev_first*"]
 
 [tool.setuptools.package-data]
 "chat_distiller._internal" = ["taxonomy.template.md"]
 "chat_distiller" = ["skills/chat-distiller/SKILL.md", "skills/chat-distiller/references/*.md", "skills/claim-ledger/SKILL.md", "skills/claim-ledger/references/*.md"]
-"chat_distiller.demo" = ["static/*", "evidence.jsonl"]

@@ -63,7 +63,6 @@ Local verification in a clean Linux / Python 3.13.5 environment:
 - The ingestion example extracts synthetic JSONL and lints the rendered demo vault.
 - Four recovery cases are checked: current, historical, no match, and budget exhausted.
   The generated [JSON receipt](../examples/recovery/expected.json) and
-  [display SVG](../assets/recovery-demo.svg) must match fresh execution.
 - Local Markdown file targets and fragments are checked. External HTTP destinations are
   counted but not fetched; this is not an external-link availability audit.
 - Two benchmark runs remain byte-identical to each other and the committed baseline.
