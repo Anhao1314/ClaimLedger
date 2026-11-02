@@ -1,0 +1,60 @@
+{"id": "E01", "tier": "E", "label": "contradiction", "a": "All services must use PostgreSQL for persistence.", "b": "This service persists data in MongoDB."}
+{"id": "E02", "tier": "E", "label": "contradiction", "a": "Deployments happen only on Tuesdays.", "b": "The release is scheduled for Thursday."}
+{"id": "E03", "tier": "E", "label": "complementary", "a": "All services use PostgreSQL.", "b": "SQLite support was removed last quarter."}
+{"id": "E04", "tier": "E", "label": "unrelated", "a": "All services use PostgreSQL.", "b": "The on-call rotation swaps every Monday."}
+{"id": "E05", "tier": "E", "label": "contradiction", "a": "Retries must be capped at 3.", "b": "Retry up to 10 times before failing."}
+{"id": "E06", "tier": "E", "label": "unrelated", "a": "Retries must be capped at 3.", "b": "The API accepts JSON bodies."}
+{"id": "E07", "tier": "E", "label": "complementary", "a": "API v1 is frozen.", "b": "Do not modify v1 endpoints."}
+{"id": "E08", "tier": "E", "label": "contradiction", "a": "Model weights stay on-premise.", "b": "Sync the weights to the vendor bucket."}
+{"id": "E09", "tier": "E", "label": "unrelated", "a": "Model weights stay on-premise.", "b": "The design review is on Wednesday."}
+{"id": "E10", "tier": "E", "label": "complementary", "a": "Speed cap is 0.5 m/s.", "b": "Commanded speed must not exceed 0.5 m/s."}
+{"id": "E11", "tier": "E", "label": "contradiction", "a": "Only the founder merges release branches.", "b": "Any teammate can merge release branches."}
+{"id": "E12", "tier": "E", "label": "unrelated", "a": "Only the founder merges release branches.", "b": "Postgres 16 supports collation changes."}
+{"id": "E13", "tier": "E", "label": "complementary", "a": "Logs are retained 30 days.", "b": "Log retention is 30 days."}
+{"id": "E14", "tier": "E", "label": "contradiction", "a": "Customer data must not leave the EU.", "b": "Replicate customer records to a US region."}
+{"id": "E15", "tier": "E", "label": "unrelated", "a": "Customer data must not leave the EU.", "b": "The dashboard uses dark mode."}
+{"id": "H01", "tier": "HN", "label": "complementary", "a": "All storage must use PostgreSQL.", "b": "The analytics sandbox may use SQLite for scratch work."}
+{"id": "H02", "tier": "HN", "label": "complementary", "a": "Deployments happen only on Tuesdays.", "b": "The weekly cron fires on Tuesdays at noon."}
+{"id": "H03", "tier": "HN", "label": "complementary", "a": "Node 14 is supported until March.", "b": "Node 14 reaches end-of-life in March."}
+{"id": "H04", "tier": "HN", "label": "complementary", "a": "Do not deploy on Fridays unless it is a hotfix.", "b": "Hotfixes may ship any day of the week."}
+{"id": "H05", "tier": "HN", "label": "unrelated", "a": "Never modify API v1.", "b": "API v2 is deprecated and will be removed."}
+{"id": "H06", "tier": "HN", "label": "complementary", "a": "Retries are capped at 3 for the API layer.", "b": "The background worker retries jobs up to 5 times."}
+{"id": "H07", "tier": "HN", "label": "complementary", "a": "Speed cap is 0.5 m/s.", "b": "Commanded speed may not exceed 50 cm/s on this route."}
+{"id": "H08", "tier": "HN", "label": "complementary", "a": "Only the founder approves releases.", "b": "Release approval requires the founder's sign-off."}
+{"id": "H09", "tier": "HN", "label": "unrelated", "a": "All storage must use PostgreSQL.", "b": "The frontend is built with React 19."}
+{"id": "H10", "tier": "HN", "label": "complementary", "a": "PostgreSQL 16 is required.", "b": "Every service must run PostgreSQL 16."}
+{"id": "H11", "tier": "HN", "label": "unrelated", "a": "Logs are retained for 30 days.", "b": "The design doc is due next week."}
+{"id": "H12", "tier": "HN", "label": "complementary", "a": "Customer data stays in the EU.", "b": "EU data residency is mandatory for customer records."}
+{"id": "H13", "tier": "HN", "label": "complementary", "a": "Freeze code on Fridays.", "b": "Friday deployments are not allowed."}
+{"id": "H14", "tier": "HN", "label": "unrelated", "a": "Model weights stay on-premise.", "b": "The evaluation harness runs nightly."}
+{"id": "H15", "tier": "HN", "label": "complementary", "a": "API v1 must remain unchanged.", "b": "The v1 contract is stable and immutable."}
+{"id": "P01", "tier": "HP", "label": "contradiction", "a": "All persistence must go through PostgreSQL.", "b": "Store session state in the embedded SQLite database."}
+{"id": "P02", "tier": "HP", "label": "contradiction", "a": "PostgreSQL is banned for this service.", "b": "The service runs on Postgres 15."}
+{"id": "P03", "tier": "HP", "label": "contradiction", "a": "The robot must never exceed 0.5 m/s.", "b": "Speed cap for this corridor: 60 cm/s."}
+{"id": "P04", "tier": "HP", "label": "contradiction", "a": "Retries must be at most 3.", "b": "Retry at most 5 times on failure."}
+{"id": "P05", "tier": "HP", "label": "contradiction", "a": "PostgreSQL is required for every service.", "b": "The metrics store runs on ClickHouse."}
+{"id": "P06", "tier": "HP", "label": "contradiction", "a": "Only the founder approves releases.", "b": "The on-call lead signs off every release."}
+{"id": "P07", "tier": "HP", "label": "contradiction", "a": "Feature flags are removed after 30 days.", "b": "Keep stale flags for at least a quarter."}
+{"id": "P08", "tier": "HP", "label": "contradiction", "a": "The API must stay on Python 3.9.", "b": "New endpoints should use match statements."}
+{"id": "P09", "tier": "HP", "label": "contradiction", "a": "Logs are retained for 30 days.", "b": "Set log retention to 90 days."}
+{"id": "P10", "tier": "HP", "label": "contradiction", "a": "Deployments happen only on Tuesdays.", "b": "Cut the release this Friday."}
+{"id": "P11", "tier": "HP", "label": "contradiction", "a": "Customer data must not leave the EU.", "b": "Mirror the customer table to a US replica."}
+{"id": "P12", "tier": "HP", "label": "contradiction", "a": "Model weights stay on-premise.", "b": "Upload checkpoints to the cloud bucket."}
+{"id": "P13", "tier": "HP", "label": "contradiction", "a": "Never deploy on a Friday.", "b": "Ship it Friday afternoon."}
+{"id": "P14", "tier": "HP", "label": "contradiction", "a": "API v1 must remain unchanged.", "b": "Drop the v1 auth handler in this PR."}
+{"id": "P15", "tier": "HP", "label": "contradiction", "a": "Speed is capped at 0.5 m/s.", "b": "Run this segment at 0.7 m/s."}
+{"id": "S01", "tier": "S", "group": "speed", "label": "contradiction", "a": "Speed cap is 0.5 m/s.", "b": "Run at 0.8 m/s through this section."}
+{"id": "S02", "tier": "S", "group": "speed", "label": "complementary", "a": "Speed cap is 0.5 m/s.", "b": "Do not exceed 0.5 m/s on this segment."}
+{"id": "S03", "tier": "S", "group": "speed", "label": "unrelated", "a": "Speed cap is 0.5 m/s.", "b": "This corridor has three checkpoints."}
+{"id": "S04", "tier": "S", "group": "deploy", "label": "contradiction", "a": "Deployments only on Tuesdays.", "b": "The release goes out this Thursday."}
+{"id": "S05", "tier": "S", "group": "deploy", "label": "complementary", "a": "Deployments only on Tuesdays.", "b": "Ship it next Tuesday."}
+{"id": "S06", "tier": "S", "group": "deploy", "label": "unrelated", "a": "Deployments only on Tuesdays.", "b": "Tuesday's standup was cancelled."}
+{"id": "S07", "tier": "S", "group": "retry", "label": "contradiction", "a": "Retry at most 3 times.", "b": "Keep retrying until it works."}
+{"id": "S08", "tier": "S", "group": "retry", "label": "complementary", "a": "Retry at most 3 times.", "b": "Retry up to three attempts."}
+{"id": "S09", "tier": "S", "group": "retry", "label": "unrelated", "a": "Retry at most 3 times.", "b": "The timeout is 30 seconds."}
+{"id": "S10", "tier": "S", "group": "approval", "label": "contradiction", "a": "Only the founder approves releases.", "b": "The team lead approved the release."}
+{"id": "S11", "tier": "S", "group": "approval", "label": "complementary", "a": "Only the founder approves releases.", "b": "Founder approval is needed before shipping."}
+{"id": "S12", "tier": "S", "group": "approval", "label": "unrelated", "a": "Only the founder approves releases.", "b": "The release notes are auto-generated."}
+{"id": "S13", "tier": "S", "group": "storage", "label": "contradiction", "a": "All storage must use PostgreSQL.", "b": "Persist the queue in MySQL."}
+{"id": "S14", "tier": "S", "group": "storage", "label": "complementary", "a": "All storage must use PostgreSQL.", "b": "Postgres is the only approved database."}
+{"id": "S15", "tier": "S", "group": "storage", "label": "unrelated", "a": "All storage must use PostgreSQL.", "b": "The queue UI is written in Svelte."}

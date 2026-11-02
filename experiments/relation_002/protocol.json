@@ -1,0 +1,37 @@
+{
+  "schema": "relation_002_protocol_v1",
+  "frozen_at": "2026-11-03",
+  "status": "FROZEN_BEFORE_SCORED_CALLS",
+  "question": "Do judgment models separate contradiction from coincidence better than lexical overlap does, and does that advantage survive adversarial tiers?",
+  "design": "Four tiers x 15 pairs. E = unambiguous floor. HN = looks contradictory but is not (scope carve-outs, unit conversion, same-fact restatement, different component). HP = looks compatible but conflicts (synonym negation, unit drift, implicit incompatibility). S = sensitivity triples: one base statement, three variants whose gold labels differ - measures label sensitivity to single-word changes.",
+  "n_pairs": 60,
+  "tiers": {"E": 15, "HN": 15, "HP": 15, "S": 15},
+  "methods": {
+    "lexical_baseline": "deterministic bag-of-words: overlap >= 0.5 of the smaller side -> complementary; 0.15..0.5 -> contradiction; else unrelated. Deliberately dumb - it exists to prove the benchmark discriminates.",
+    "jev": "TypeSafe Jev via contracts/relation question, argmax, full probability map captured",
+    "deepseek": "deepseek-flash, same criteria verbatim, JSON answer, temperature 0"
+  },
+  "metrics": {
+    "per_tier_accuracy": "per method per tier",
+    "s_group_consistency": "fraction of the 5 S-triples where all three variants match gold",
+    "discriminating_gate": "lexical baseline accuracy on HP tier <= 50% while at least one model >= 70% - otherwise the benchmark cannot separate lexical from semantic systems",
+    "margin_ablation": "offline sweep delta in {0,0.05,0.1,0.15,0.2,0.3,0.4} over Jev probability maps: confirmed-conflict precision/recall vs gold, risk-coverage table"
+  },
+  "gates": {
+    "models_overall_min": 0.70,
+    "easy_tier_min": 0.90,
+    "hard_positive_min": 0.65,
+    "lexical_hp_max": 0.50,
+    "discriminating": "lexical HP <= 0.50 AND max(model HP) >= 0.70"
+  },
+  "limitations": [
+    "Pairs are authored by the maintainer, grounded in platform-engineering conventions rather than extracted from public repos. Independent adjudication is still missing.",
+    "The S tier's gold labels are assigned by construction (one word flips the relation); a model may resolve an ambiguous variant differently and still be defensible - disagreements on S are reported per pair, not just scored.",
+    "n=60: bucketed calibration is still out of scope."
+  ],
+  "prohibited_after_freeze": [
+    "changing pairs, labels, or tiers",
+    "changing the lexical baseline definition",
+    "re-running until a pass"
+  ]
+}

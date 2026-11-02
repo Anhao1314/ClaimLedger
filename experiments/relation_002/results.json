@@ -1,0 +1,1136 @@
+{
+  "schema": "relation_002_results_v1",
+  "protocol": "relation_002_protocol_v1",
+  "models": {
+    "jev": [
+      "jev-1.14.0"
+    ],
+    "deepseek": "deepseek-flash"
+  },
+  "overall": {
+    "lexical": 0.4833,
+    "jev": 0.9333,
+    "deepseek": 0.8475
+  },
+  "per_tier": {
+    "lexical": {
+      "E": 0.6667,
+      "HN": 0.4667,
+      "HP": 0.4667,
+      "S": 0.3333
+    },
+    "jev": {
+      "E": 1.0,
+      "HN": 0.9333,
+      "HP": 0.8,
+      "S": 1.0
+    },
+    "deepseek": {
+      "E": 0.9286,
+      "HN": 0.8,
+      "HP": 0.7333,
+      "S": 0.9333
+    }
+  },
+  "s_group_consistency": {
+    "jev": 1.0,
+    "deepseek": 0.8
+  },
+  "margin_ablation_jev": {
+    "0.0": {
+      "confirmed": 23,
+      "tp": 23,
+      "fp": 0,
+      "precision": 1.0,
+      "recall": 0.8846
+    },
+    "0.05": {
+      "confirmed": 23,
+      "tp": 23,
+      "fp": 0,
+      "precision": 1.0,
+      "recall": 0.8846
+    },
+    "0.1": {
+      "confirmed": 23,
+      "tp": 23,
+      "fp": 0,
+      "precision": 1.0,
+      "recall": 0.8846
+    },
+    "0.15": {
+      "confirmed": 23,
+      "tp": 23,
+      "fp": 0,
+      "precision": 1.0,
+      "recall": 0.8846
+    },
+    "0.2": {
+      "confirmed": 23,
+      "tp": 23,
+      "fp": 0,
+      "precision": 1.0,
+      "recall": 0.8846
+    },
+    "0.3": {
+      "confirmed": 22,
+      "tp": 22,
+      "fp": 0,
+      "precision": 1.0,
+      "recall": 0.8462
+    },
+    "0.4": {
+      "confirmed": 22,
+      "tp": 22,
+      "fp": 0,
+      "precision": 1.0,
+      "recall": 0.8462
+    }
+  },
+  "gates": {
+    "discriminating": true,
+    "models_overall_min": 0.7,
+    "easy_tier_min": 0.9,
+    "hard_positive_min": 0.65
+  },
+  "rows": [
+    {
+      "id": "E01",
+      "tier": "E",
+      "label": "contradiction",
+      "a": "All services must use PostgreSQL for persistence.",
+      "b": "This service persists data in MongoDB.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E02",
+      "tier": "E",
+      "label": "contradiction",
+      "a": "Deployments happen only on Tuesdays.",
+      "b": "The release is scheduled for Thursday.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "PARSE_ERROR",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E03",
+      "tier": "E",
+      "label": "complementary",
+      "a": "All services use PostgreSQL.",
+      "b": "SQLite support was removed last quarter.",
+      "lexical": "unrelated",
+      "jev": "complementary",
+      "deepseek": "ERROR",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0",
+      "ds_error": "<urlopen error [Errno 60] Operation timed out>"
+    },
+    {
+      "id": "E04",
+      "tier": "E",
+      "label": "unrelated",
+      "a": "All services use PostgreSQL.",
+      "b": "The on-call rotation swaps every Monday.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E05",
+      "tier": "E",
+      "label": "contradiction",
+      "a": "Retries must be capped at 3.",
+      "b": "Retry up to 10 times before failing.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E06",
+      "tier": "E",
+      "label": "unrelated",
+      "a": "Retries must be capped at 3.",
+      "b": "The API accepts JSON bodies.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E07",
+      "tier": "E",
+      "label": "complementary",
+      "a": "API v1 is frozen.",
+      "b": "Do not modify v1 endpoints.",
+      "lexical": "contradiction",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E08",
+      "tier": "E",
+      "label": "contradiction",
+      "a": "Model weights stay on-premise.",
+      "b": "Sync the weights to the vendor bucket.",
+      "lexical": "contradiction",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E09",
+      "tier": "E",
+      "label": "unrelated",
+      "a": "Model weights stay on-premise.",
+      "b": "The design review is on Wednesday.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E10",
+      "tier": "E",
+      "label": "complementary",
+      "a": "Speed cap is 0.5 m/s.",
+      "b": "Commanded speed must not exceed 0.5 m/s.",
+      "lexical": "complementary",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E11",
+      "tier": "E",
+      "label": "contradiction",
+      "a": "Only the founder merges release branches.",
+      "b": "Any teammate can merge release branches.",
+      "lexical": "contradiction",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E12",
+      "tier": "E",
+      "label": "unrelated",
+      "a": "Only the founder merges release branches.",
+      "b": "Postgres 16 supports collation changes.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E13",
+      "tier": "E",
+      "label": "complementary",
+      "a": "Logs are retained 30 days.",
+      "b": "Log retention is 30 days.",
+      "lexical": "complementary",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E14",
+      "tier": "E",
+      "label": "contradiction",
+      "a": "Customer data must not leave the EU.",
+      "b": "Replicate customer records to a US region.",
+      "lexical": "contradiction",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "E15",
+      "tier": "E",
+      "label": "unrelated",
+      "a": "Customer data must not leave the EU.",
+      "b": "The dashboard uses dark mode.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H01",
+      "tier": "HN",
+      "label": "complementary",
+      "a": "All storage must use PostgreSQL.",
+      "b": "The analytics sandbox may use SQLite for scratch work.",
+      "lexical": "contradiction",
+      "jev": "complementary",
+      "deepseek": "PARSE_ERROR",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H02",
+      "tier": "HN",
+      "label": "complementary",
+      "a": "Deployments happen only on Tuesdays.",
+      "b": "The weekly cron fires on Tuesdays at noon.",
+      "lexical": "contradiction",
+      "jev": "complementary",
+      "deepseek": "PARSE_ERROR",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H03",
+      "tier": "HN",
+      "label": "complementary",
+      "a": "Node 14 is supported until March.",
+      "b": "Node 14 reaches end-of-life in March.",
+      "lexical": "complementary",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H04",
+      "tier": "HN",
+      "label": "complementary",
+      "a": "Do not deploy on Fridays unless it is a hotfix.",
+      "b": "Hotfixes may ship any day of the week.",
+      "lexical": "unrelated",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H05",
+      "tier": "HN",
+      "label": "unrelated",
+      "a": "Never modify API v1.",
+      "b": "API v2 is deprecated and will be removed.",
+      "lexical": "contradiction",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H06",
+      "tier": "HN",
+      "label": "complementary",
+      "a": "Retries are capped at 3 for the API layer.",
+      "b": "The background worker retries jobs up to 5 times.",
+      "lexical": "contradiction",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H07",
+      "tier": "HN",
+      "label": "complementary",
+      "a": "Speed cap is 0.5 m/s.",
+      "b": "Commanded speed may not exceed 50 cm/s on this route.",
+      "lexical": "complementary",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H08",
+      "tier": "HN",
+      "label": "complementary",
+      "a": "Only the founder approves releases.",
+      "b": "Release approval requires the founder's sign-off.",
+      "lexical": "contradiction",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H09",
+      "tier": "HN",
+      "label": "unrelated",
+      "a": "All storage must use PostgreSQL.",
+      "b": "The frontend is built with React 19.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H10",
+      "tier": "HN",
+      "label": "complementary",
+      "a": "PostgreSQL 16 is required.",
+      "b": "Every service must run PostgreSQL 16.",
+      "lexical": "complementary",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H11",
+      "tier": "HN",
+      "label": "unrelated",
+      "a": "Logs are retained for 30 days.",
+      "b": "The design doc is due next week.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H12",
+      "tier": "HN",
+      "label": "complementary",
+      "a": "Customer data stays in the EU.",
+      "b": "EU data residency is mandatory for customer records.",
+      "lexical": "complementary",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H13",
+      "tier": "HN",
+      "label": "complementary",
+      "a": "Freeze code on Fridays.",
+      "b": "Friday deployments are not allowed.",
+      "lexical": "unrelated",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H14",
+      "tier": "HN",
+      "label": "unrelated",
+      "a": "Model weights stay on-premise.",
+      "b": "The evaluation harness runs nightly.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "H15",
+      "tier": "HN",
+      "label": "complementary",
+      "a": "API v1 must remain unchanged.",
+      "b": "The v1 contract is stable and immutable.",
+      "lexical": "contradiction",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P01",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "All persistence must go through PostgreSQL.",
+      "b": "Store session state in the embedded SQLite database.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P02",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "PostgreSQL is banned for this service.",
+      "b": "The service runs on Postgres 15.",
+      "lexical": "contradiction",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P03",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "The robot must never exceed 0.5 m/s.",
+      "b": "Speed cap for this corridor: 60 cm/s.",
+      "lexical": "unrelated",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P04",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "Retries must be at most 3.",
+      "b": "Retry at most 5 times on failure.",
+      "lexical": "contradiction",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P05",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "PostgreSQL is required for every service.",
+      "b": "The metrics store runs on ClickHouse.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "PARSE_ERROR",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P06",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "Only the founder approves releases.",
+      "b": "The on-call lead signs off every release.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "PARSE_ERROR",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P07",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "Feature flags are removed after 30 days.",
+      "b": "Keep stale flags for at least a quarter.",
+      "lexical": "contradiction",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P08",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "The API must stay on Python 3.9.",
+      "b": "New endpoints should use match statements.",
+      "lexical": "unrelated",
+      "jev": "complementary",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P09",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "Logs are retained for 30 days.",
+      "b": "Set log retention to 90 days.",
+      "lexical": "contradiction",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P10",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "Deployments happen only on Tuesdays.",
+      "b": "Cut the release this Friday.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P11",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "Customer data must not leave the EU.",
+      "b": "Mirror the customer table to a US replica.",
+      "lexical": "contradiction",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P12",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "Model weights stay on-premise.",
+      "b": "Upload checkpoints to the cloud bucket.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P13",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "Never deploy on a Friday.",
+      "b": "Ship it Friday afternoon.",
+      "lexical": "contradiction",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P14",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "API v1 must remain unchanged.",
+      "b": "Drop the v1 auth handler in this PR.",
+      "lexical": "contradiction",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "P15",
+      "tier": "HP",
+      "label": "contradiction",
+      "a": "Speed is capped at 0.5 m/s.",
+      "b": "Run this segment at 0.7 m/s.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S01",
+      "tier": "S",
+      "group": "speed",
+      "label": "contradiction",
+      "a": "Speed cap is 0.5 m/s.",
+      "b": "Run at 0.8 m/s through this section.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S02",
+      "tier": "S",
+      "group": "speed",
+      "label": "complementary",
+      "a": "Speed cap is 0.5 m/s.",
+      "b": "Do not exceed 0.5 m/s on this segment.",
+      "lexical": "unrelated",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S03",
+      "tier": "S",
+      "group": "speed",
+      "label": "unrelated",
+      "a": "Speed cap is 0.5 m/s.",
+      "b": "This corridor has three checkpoints.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S04",
+      "tier": "S",
+      "group": "deploy",
+      "label": "contradiction",
+      "a": "Deployments only on Tuesdays.",
+      "b": "The release goes out this Thursday.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S05",
+      "tier": "S",
+      "group": "deploy",
+      "label": "complementary",
+      "a": "Deployments only on Tuesdays.",
+      "b": "Ship it next Tuesday.",
+      "lexical": "unrelated",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S06",
+      "tier": "S",
+      "group": "deploy",
+      "label": "unrelated",
+      "a": "Deployments only on Tuesdays.",
+      "b": "Tuesday's standup was cancelled.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S07",
+      "tier": "S",
+      "group": "retry",
+      "label": "contradiction",
+      "a": "Retry at most 3 times.",
+      "b": "Keep retrying until it works.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "PARSE_ERROR",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S08",
+      "tier": "S",
+      "group": "retry",
+      "label": "complementary",
+      "a": "Retry at most 3 times.",
+      "b": "Retry up to three attempts.",
+      "lexical": "contradiction",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S09",
+      "tier": "S",
+      "group": "retry",
+      "label": "unrelated",
+      "a": "Retry at most 3 times.",
+      "b": "The timeout is 30 seconds.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S10",
+      "tier": "S",
+      "group": "approval",
+      "label": "contradiction",
+      "a": "Only the founder approves releases.",
+      "b": "The team lead approved the release.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S11",
+      "tier": "S",
+      "group": "approval",
+      "label": "complementary",
+      "a": "Only the founder approves releases.",
+      "b": "Founder approval is needed before shipping.",
+      "lexical": "contradiction",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S12",
+      "tier": "S",
+      "group": "approval",
+      "label": "unrelated",
+      "a": "Only the founder approves releases.",
+      "b": "The release notes are auto-generated.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S13",
+      "tier": "S",
+      "group": "storage",
+      "label": "contradiction",
+      "a": "All storage must use PostgreSQL.",
+      "b": "Persist the queue in MySQL.",
+      "lexical": "unrelated",
+      "jev": "contradiction",
+      "deepseek": "contradiction",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S14",
+      "tier": "S",
+      "group": "storage",
+      "label": "complementary",
+      "a": "All storage must use PostgreSQL.",
+      "b": "Postgres is the only approved database.",
+      "lexical": "unrelated",
+      "jev": "complementary",
+      "deepseek": "complementary",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    },
+    {
+      "id": "S15",
+      "tier": "S",
+      "group": "storage",
+      "label": "unrelated",
+      "a": "All storage must use PostgreSQL.",
+      "b": "The queue UI is written in Svelte.",
+      "lexical": "unrelated",
+      "jev": "unrelated",
+      "deepseek": "unrelated",
+      "ds_conf": null,
+      "jev_served": "jev-1.14.0"
+    }
+  ],
+  "_jev_prob_maps": {
+    "E01": {
+      "contradiction": 1.0,
+      "complementary": 0.0,
+      "unrelated": 0.0
+    },
+    "E02": {
+      "contradiction": 0.97,
+      "complementary": 0.01,
+      "unrelated": 0.02
+    },
+    "E03": {
+      "contradiction": 0.04,
+      "complementary": 0.9,
+      "unrelated": 0.06
+    },
+    "E04": {
+      "contradiction": 0.0,
+      "complementary": 0.0,
+      "unrelated": 1.0
+    },
+    "E05": {
+      "contradiction": 1.0,
+      "complementary": 0.0,
+      "unrelated": 0.0
+    },
+    "E06": {
+      "contradiction": 0.0,
+      "complementary": 0.01,
+      "unrelated": 0.99
+    },
+    "E07": {
+      "contradiction": 0.0,
+      "complementary": 1.0,
+      "unrelated": 0.0
+    },
+    "E08": {
+      "contradiction": 0.97,
+      "complementary": 0.02,
+      "unrelated": 0.01
+    },
+    "E09": {
+      "contradiction": 0.0,
+      "complementary": 0.0,
+      "unrelated": 1.0
+    },
+    "E10": {
+      "contradiction": 0.0,
+      "complementary": 0.99,
+      "unrelated": 0.01
+    },
+    "E11": {
+      "contradiction": 0.99,
+      "complementary": 0.01,
+      "unrelated": 0.0
+    },
+    "E12": {
+      "contradiction": 0.0,
+      "complementary": 0.01,
+      "unrelated": 0.99
+    },
+    "E13": {
+      "contradiction": 0.0,
+      "complementary": 1.0,
+      "unrelated": 0.0
+    },
+    "E14": {
+      "contradiction": 1.0,
+      "complementary": 0.0,
+      "unrelated": 0.0
+    },
+    "E15": {
+      "contradiction": 0.0,
+      "complementary": 0.0,
+      "unrelated": 1.0
+    },
+    "H01": {
+      "contradiction": 0.25,
+      "complementary": 0.69,
+      "unrelated": 0.06
+    },
+    "H02": {
+      "contradiction": 0.0,
+      "complementary": 0.95,
+      "unrelated": 0.05
+    },
+    "H03": {
+      "contradiction": 0.04,
+      "complementary": 0.95,
+      "unrelated": 0.01
+    },
+    "H04": {
+      "contradiction": 0.01,
+      "complementary": 0.99,
+      "unrelated": 0.0
+    },
+    "H05": {
+      "contradiction": 0.0,
+      "complementary": 0.15,
+      "unrelated": 0.85
+    },
+    "H06": {
+      "contradiction": 0.0,
+      "complementary": 0.37,
+      "unrelated": 0.63
+    },
+    "H07": {
+      "contradiction": 0.0,
+      "complementary": 1.0,
+      "unrelated": 0.0
+    },
+    "H08": {
+      "contradiction": 0.0,
+      "complementary": 1.0,
+      "unrelated": 0.0
+    },
+    "H09": {
+      "contradiction": 0.0,
+      "complementary": 0.01,
+      "unrelated": 0.99
+    },
+    "H10": {
+      "contradiction": 0.0,
+      "complementary": 0.98,
+      "unrelated": 0.02
+    },
+    "H11": {
+      "contradiction": 0.0,
+      "complementary": 0.0,
+      "unrelated": 1.0
+    },
+    "H12": {
+      "contradiction": 0.01,
+      "complementary": 0.95,
+      "unrelated": 0.04
+    },
+    "H13": {
+      "contradiction": 0.05,
+      "complementary": 0.75,
+      "unrelated": 0.2
+    },
+    "H14": {
+      "contradiction": 0.0,
+      "complementary": 0.05,
+      "unrelated": 0.95
+    },
+    "H15": {
+      "contradiction": 0.0,
+      "complementary": 1.0,
+      "unrelated": 0.0
+    },
+    "P01": {
+      "contradiction": 0.92,
+      "complementary": 0.04,
+      "unrelated": 0.04
+    },
+    "P02": {
+      "contradiction": 1.0,
+      "complementary": 0.0,
+      "unrelated": 0.0
+    },
+    "P03": {
+      "contradiction": 0.26,
+      "complementary": 0.74,
+      "unrelated": 0.0
+    },
+    "P04": {
+      "contradiction": 0.12,
+      "complementary": 0.88,
+      "unrelated": 0.0
+    },
+    "P05": {
+      "contradiction": 0.64,
+      "complementary": 0.2,
+      "unrelated": 0.16
+    },
+    "P06": {
+      "contradiction": 0.58,
+      "complementary": 0.35,
+      "unrelated": 0.07
+    },
+    "P07": {
+      "contradiction": 0.97,
+      "complementary": 0.02,
+      "unrelated": 0.01
+    },
+    "P08": {
+      "contradiction": 0.09,
+      "complementary": 0.61,
+      "unrelated": 0.3
+    },
+    "P09": {
+      "contradiction": 0.95,
+      "complementary": 0.04,
+      "unrelated": 0.01
+    },
+    "P10": {
+      "contradiction": 0.88,
+      "complementary": 0.03,
+      "unrelated": 0.09
+    },
+    "P11": {
+      "contradiction": 0.99,
+      "complementary": 0.01,
+      "unrelated": 0.0
+    },
+    "P12": {
+      "contradiction": 0.65,
+      "complementary": 0.23,
+      "unrelated": 0.12
+    },
+    "P13": {
+      "contradiction": 1.0,
+      "complementary": 0.0,
+      "unrelated": 0.0
+    },
+    "P14": {
+      "contradiction": 0.99,
+      "complementary": 0.01,
+      "unrelated": 0.0
+    },
+    "P15": {
+      "contradiction": 1.0,
+      "complementary": 0.0,
+      "unrelated": 0.0
+    },
+    "S01": {
+      "contradiction": 1.0,
+      "complementary": 0.0,
+      "unrelated": 0.0
+    },
+    "S02": {
+      "contradiction": 0.0,
+      "complementary": 1.0,
+      "unrelated": 0.0
+    },
+    "S03": {
+      "contradiction": 0.0,
+      "complementary": 0.03,
+      "unrelated": 0.97
+    },
+    "S04": {
+      "contradiction": 0.99,
+      "complementary": 0.0,
+      "unrelated": 0.01
+    },
+    "S05": {
+      "contradiction": 0.0,
+      "complementary": 0.98,
+      "unrelated": 0.02
+    },
+    "S06": {
+      "contradiction": 0.0,
+      "complementary": 0.11,
+      "unrelated": 0.89
+    },
+    "S07": {
+      "contradiction": 0.93,
+      "complementary": 0.06,
+      "unrelated": 0.01
+    },
+    "S08": {
+      "contradiction": 0.05,
+      "complementary": 0.95,
+      "unrelated": 0.0
+    },
+    "S09": {
+      "contradiction": 0.0,
+      "complementary": 0.03,
+      "unrelated": 0.97
+    },
+    "S10": {
+      "contradiction": 0.81,
+      "complementary": 0.16,
+      "unrelated": 0.03
+    },
+    "S11": {
+      "contradiction": 0.0,
+      "complementary": 0.99,
+      "unrelated": 0.01
+    },
+    "S12": {
+      "contradiction": 0.01,
+      "complementary": 0.23,
+      "unrelated": 0.76
+    },
+    "S13": {
+      "contradiction": 0.98,
+      "complementary": 0.01,
+      "unrelated": 0.01
+    },
+    "S14": {
+      "contradiction": 0.0,
+      "complementary": 1.0,
+      "unrelated": 0.0
+    },
+    "S15": {
+      "contradiction": 0.0,
+      "complementary": 0.01,
+      "unrelated": 0.99
+    }
+  }
+}
