@@ -130,7 +130,22 @@ contradiction ≥ 0.70  → 所有相关条目强制 review，禁止自动排除
 3. **概率不是逐位可复现的**：两次运行 `clm_analytics` 分别是 0.89/0.63 和 0.90/0.68。决策稳定，数值不稳定——所以校准必须按分布看，不能按单点看。
 4. 尾部 11 秒意味着：只可用于写入时与批处理，**永久排除交互式读路径**。
 
-### 3.5 governing 规则（v1.1）
+### 3.6 冲突定位（取代全局信号）
+
+实跑发现：全局 `contradiction` 是粗粒度的——它把无冲突的记录也压成 review。
+
+现行流程改为两段式：
+
+1. **Stage 1**：每条记录**单独**面对任务，问一次 `admit` choice。集合里其他记录的冲突不再污染它的答案（这正是被退役的 `applies`/`holds` 存在的理由）。
+2. **Stage 2**：对**被准入**的记录两两提问 `relation`（契约中 VALIDATED 的问题，逐字使用；pair state 与 30 对实验格式完全一致）。确认矛盾的每一对，双方进 review；其余记录保留 stage-1 结论。
+3. **Stage 3**：`governing` 只能在**未卷入冲突**的幸存者上把 review 提升为 admit。
+
+pair state 与任务无关，因此**成对判断跨任务缓存**——第一次贵，之后近乎免费。
+全局 `contradiction` 问题在契约 v1 中保留定义，但引擎不再使用；契约 v2 将正式移除。
+
+实测（2026-11-03，4 条记录）：11 个请求并发，4.7 s；定位出正确冲突对（全部 PostgreSQL vs analytics 禁用），同时模型把一个边界对（must-PostgreSQL vs SQLite-deprecated）判为矛盾——与 30 对实验中措辞稍异的 P11（complementary）相反。边界对的翻转正是校准视图要跟踪的东西。
+
+### 3.5 governing 规则（v1.1，已被 3.6 收编为 stage 3）
 
 第一次运行时发现：Jev 给出 `governing=clm_analytics (0.96)`，但策略完全忽略它，把这条压成了 `review`。
 

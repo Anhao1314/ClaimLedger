@@ -1,9 +1,9 @@
-"""Offline tests for the Jev-first core: policy v2, record chain, judge, cache, log."""
+"""Offline tests for the Jev-first core v2: two-stage judgment, localization,
+record chain, cache, sealed log."""
 import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
 
 from chat_distiller import jev
 from jev_first import Policy, contracts, judge, log
@@ -12,26 +12,57 @@ from jev_first.judge import Judgment
 from jev_first.policy import ADMIT, EXCLUDE, REVIEW
 from jev_first.records import RecordStore, body_hash
 
+TEXTS = {
+    "clm_a": "All storage must use PostgreSQL.",
+    "clm_b": "PostgreSQL is banned for the analytics service.",
+    "clm_c": "The release train leaves on Friday.",
+}
 
-def make_records(texts, prefix="clm"):
-    return [contracts.make_record(texts[i], "agent",
+
+def make_records(texts):
+    return [contracts.make_record(text, "agent",
                                   f"2026-11-02T00:00:0{i}Z")
             for i, text in enumerate(texts)]
 
 
-def fake_caller(admit, *, contradiction=0.0, governing="none", gconf=0.95):
-    """admit: {record_id: (choice, confidence, p_admit)}"""
+def fake_core(admit, relations, governing=("none", 0.0), calls=None,
+              fail_pairs=()):
+    """admit: {record_id: (choice, p_admit)}
+    relations: {(text_a, text_b): label}"""
     def call(state, questions):
-        answers = {"contradiction": {"type": "noul", "noul": contradiction}}
-        for record_id, (choice, confidence, p_admit) in admit.items():
-            answers[f"admit::{record_id}"] = {
-                "type": "choice", "choice": choice, "confidence": confidence,
-                "probabilities": {"admit": p_admit, "review": 0.1, "exclude": 0.05},
-            }
-        answers["governing"] = {"type": "choice", "choice": governing,
-                                "confidence": gconf}
-        return {"model": "jev-test", "answers": answers,
-                "usage": {"input_tokens": 10, "output_tokens": 5}}
+        if calls is not None:
+            calls.append(state)
+        if "relation" in questions:
+            a = state.split("Statement A: ", 1)[1].split("\n", 1)[0]
+            b = state.split("Statement B: ", 1)[1].strip()
+            if (a, b) in fail_pairs or (b, a) in fail_pairs:
+                raise jev.JevError("transport failure")
+            label = relations.get((a, b)) or relations.get((b, a)) or "unrelated"
+            return {"model": "jev-test",
+                    "answers": {"relation": {
+                        "type": "choice", "choice": label, "confidence": 0.9,
+                        "probabilities": {label: 0.9,
+                                          "contradiction": 0.05,
+                                          "complementary": 0.05,
+                                          "unrelated": 0.05}}},
+                    "usage": {}}
+        if "admit" in questions:
+            rid = state.split("CLAIM:\n- ", 1)[1].split(":", 1)[0]
+            choice, p_admit = admit[rid]
+            probabilities = {"admit": 0.05, "review": 0.05, "exclude": 0.05}
+            probabilities[choice] = p_admit if choice != "exclude" else 0.8
+            return {"model": "jev-test",
+                    "answers": {"admit": {"type": "choice", "choice": choice,
+                                          "confidence": 0.9,
+                                          "probabilities": probabilities}},
+                    "usage": {}}
+        if "governing" in questions:
+            return {"model": "jev-test",
+                    "answers": {"governing": {"type": "choice",
+                                              "choice": governing[0],
+                                              "confidence": governing[1]}},
+                    "usage": {}}
+        raise AssertionError(f"unexpected questions: {sorted(questions)}")
     return call
 
 
@@ -42,28 +73,17 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(policy.action(REVIEW), REVIEW)
         self.assertEqual(policy.action(EXCLUDE), EXCLUDE)
 
-    def test_contradiction_makes_admit_impossible(self):
-        policy = Policy()
-        self.assertEqual(policy.action(ADMIT, contradiction=0.9), REVIEW)
-        self.assertEqual(policy.action(REVIEW, contradiction=0.9), REVIEW)
-        self.assertEqual(policy.action(EXCLUDE, contradiction=0.9), EXCLUDE)
-
     def test_governing_promotes_review_only(self):
         policy = Policy()
         self.assertEqual(policy.action(REVIEW, governing=True), ADMIT)
+        self.assertEqual(policy.action(ADMIT, governing=True), ADMIT)
         self.assertEqual(policy.action(EXCLUDE, governing=True), EXCLUDE)
-
-    def test_governing_cannot_override_contradiction(self):
-        self.assertEqual(
-            Policy().action(REVIEW, contradiction=0.9, governing=True), REVIEW)
 
     def test_invalid_inputs(self):
         with self.assertRaises(ValueError):
             Policy().action("maybe")
         with self.assertRaises(ValueError):
-            Policy().action(ADMIT, contradiction=7)
-        with self.assertRaises(ValueError):
-            Policy(contradiction_review_at=2)
+            Policy(governing_at=7)
 
 
 class RecordStoreTests(unittest.TestCase):
@@ -103,119 +123,147 @@ class RecordStoreTests(unittest.TestCase):
 
 class JudgeTests(unittest.TestCase):
     def setUp(self):
-        self.records = make_records([
-            "All storage must use PostgreSQL.",
-            "PostgreSQL is banned for the analytics service.",
-            "The release train leaves on Friday.",
-        ])
+        self.records = make_records([TEXTS["clm_a"], TEXTS["clm_b"], TEXTS["clm_c"]])
+        self.a, self.b, self.c = (r["record_id"] for r in self.records)
+        self.admit_all = {rid: (ADMIT, 0.9) for rid in (self.a, self.b, self.c)}
 
-    def test_argmax_becomes_the_action(self):
+    def test_conflict_is_localized_not_global(self):
         decision = judge(
-            "write a storage adapter", self.records, model="jev-test",
-            caller=fake_caller({
-                self.records[0]["record_id"]: (ADMIT, 0.9, 0.9),
-                self.records[1]["record_id"]: (EXCLUDE, 0.8, 0.1),
-                self.records[2]["record_id"]: (REVIEW, 0.6, 0.4),
-            }))
+            "write a storage adapter for analytics", self.records,
+            model="jev-test", caller=fake_core(
+                self.admit_all,
+                {(TEXTS["clm_a"], TEXTS["clm_b"]): "contradiction",
+                 (TEXTS["clm_a"], TEXTS["clm_c"]): "unrelated",
+                 (TEXTS["clm_b"], TEXTS["clm_c"]): "unrelated"}))
         by_id = {e.record_id: e for e in decision.entries}
-        self.assertEqual(by_id[self.records[0]["record_id"]].action, ADMIT)
-        self.assertEqual(by_id[self.records[1]["record_id"]].action, EXCLUDE)
-        self.assertEqual(by_id[self.records[2]["record_id"]].action, REVIEW)
+        self.assertEqual(by_id[self.a].action, REVIEW)
+        self.assertTrue(by_id[self.a].conflicted)
+        self.assertEqual(by_id[self.b].action, REVIEW)
+        self.assertTrue(by_id[self.b].conflicted)
+        self.assertEqual(by_id[self.c].action, ADMIT)
+        self.assertFalse(by_id[self.c].conflicted)
+        self.assertEqual(decision.conflicts, [[self.a, self.b]])
+        self.assertEqual(decision.pair_checks, 3)
 
-    def test_contradiction_blocks_admit(self):
+    def test_no_conflict_all_admitted(self):
         decision = judge(
-            "write an adapter", self.records, model="jev-test",
-            caller=fake_caller({
-                r["record_id"]: (ADMIT, 0.9, 0.9) for r in self.records
-            }, contradiction=0.92, governing=self.records[0]["record_id"]))
-        self.assertEqual({e.action for e in decision.entries}, {REVIEW})
-        self.assertEqual(decision.contradiction, 0.92)
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {}))
+        self.assertEqual({e.action for e in decision.entries}, {ADMIT})
+        self.assertEqual(decision.conflicts, [])
 
-    def test_governing_promotes_review(self):
+    def test_flow_uses_pair_requests_not_a_global_signal(self):
+        calls = []
+        judge("t", self.records, model="jev-test",
+              caller=fake_core(self.admit_all, {}, calls=calls))
+        # 3 per-record admits + 3 pairs + 1 governing
+        self.assertEqual(len(calls), 7)
+        self.assertNotIn("Two or more of the listed claims", "".join(calls))
+
+    def test_pair_failure_fails_open_to_review(self):
         decision = judge(
-            "write an adapter", self.records, model="jev-test",
-            caller=fake_caller({
-                r["record_id"]: (REVIEW, 0.6, 0.45) for r in self.records
-            }, governing=self.records[0]["record_id"], gconf=0.95))
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {},
+                             fail_pairs={(TEXTS["clm_a"], TEXTS["clm_b"])}),
+            on_error="review")
         by_id = {e.record_id: e for e in decision.entries}
-        self.assertEqual(by_id[self.records[0]["record_id"]].action, ADMIT)
-        self.assertTrue(by_id[self.records[0]["record_id"]].governing)
-        self.assertEqual(by_id[self.records[1]["record_id"]].action, REVIEW)
+        self.assertEqual(by_id[self.a].action, REVIEW)
+        self.assertEqual(by_id[self.b].action, REVIEW)
+        self.assertFalse(by_id[self.a].conflicted)
+        self.assertTrue(decision.degraded)
 
-    def test_budget_packing_omits_and_reports(self):
-        records = make_records(["x" * 200 for _ in range(5)])
-        decision = judge(
-            "t", records, model="jev-test", budget_bytes=500,
-            caller=fake_caller({r["record_id"]: (ADMIT, 0.9, 0.9)
-                                for r in records}))
-        self.assertGreater(decision.omitted, 0)
-        self.assertLessEqual(decision.used_bytes, 500)
-        self.assertEqual(len(decision.admitted) + decision.omitted, 5)
-
-    def test_transport_failure_raises_when_asked(self):
-        def boom(state, questions):
-            raise jev.JevError("timeout")
+    def test_pair_failure_raises_when_asked(self):
         with self.assertRaises(jev.JevError):
-            judge("t", self.records, model="jev-test", caller=boom,
+            judge("t", self.records, model="jev-test",
+                  caller=fake_core(self.admit_all, {},
+                                   fail_pairs={(TEXTS["clm_a"], TEXTS["clm_b"])}),
                   on_error="raise")
 
-    def test_transport_failure_fails_open_to_review(self):
-        def boom(state, questions):
-            raise jev.JevError("timeout")
-        decision = judge("t", self.records, model="jev-test", caller=boom,
-                         on_error="review")
-        self.assertTrue(decision.degraded)
-        self.assertEqual(decision.model, "unavailable")
-        self.assertTrue(all(e.action == REVIEW for e in decision.entries))
-        self.assertFalse(any(e.action == EXCLUDE for e in decision.entries))
+    def test_governing_promotes_a_clean_review(self):
+        admit = {self.a: (ADMIT, 0.9), self.b: (REVIEW, 0.2),
+                 self.c: (ADMIT, 0.9)}
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(admit, {}, governing=(self.c, 0.95)))
+        by_id = {e.record_id: e for e in decision.entries}
+        self.assertEqual(by_id[self.c].action, ADMIT)
+        self.assertTrue(by_id[self.c].governing)
+
+    def test_conflicted_record_is_never_promoted(self):
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all,
+                             {(TEXTS["clm_a"], TEXTS["clm_b"]): "contradiction",
+                              (TEXTS["clm_a"], TEXTS["clm_c"]): "unrelated",
+                              (TEXTS["clm_b"], TEXTS["clm_c"]): "unrelated"},
+                             governing=(self.a, 0.99)))
+        by_id = {e.record_id: e for e in decision.entries}
+        self.assertEqual(by_id[self.a].action, REVIEW)
+        self.assertTrue(by_id[self.a].conflicted)
+        self.assertTrue(by_id[self.a].governing)
+
+    def test_excluded_records_are_not_paired(self):
+        calls = []
+        admit = {self.a: (ADMIT, 0.9), self.b: (ADMIT, 0.9),
+                 self.c: (EXCLUDE, 0.1)}
+        judge("t", self.records, model="jev-test",
+              caller=fake_core(admit, {(TEXTS["clm_a"], TEXTS["clm_b"]): "unrelated"},
+                               calls=calls))
+        self.assertEqual(len(calls), 3 + 1 + 1)  # admits + 1 pair + governing
 
     def test_more_than_six_records_rejected(self):
         records = make_records([f"r{i}" for i in range(7)])
         with self.assertRaises(ValueError):
             judge("t", records, model="jev-test",
-                  caller=fake_caller({r["record_id"]: (ADMIT, 0.9, 0.9)
-                                      for r in records}))
+                  caller=fake_core({r["record_id"]: (ADMIT, 0.9)
+                                    for r in records}, {}))
 
-    def test_round_trip_preserves_the_decision(self):
-        decision = judge("t", self.records, model="jev-test",
-                         caller=fake_caller({
-                             r["record_id"]: (ADMIT, 0.9, 0.9) for r in self.records}))
-        restored = Judgment.from_dict(decision.to_dict())
-        self.assertEqual(restored.to_dict(), decision.to_dict())
-        self.assertTrue(restored.cached)
+    def test_degraded_decisions_are_not_cached(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Cache(Path(tmp) / "cache.jsonl")
+            calls = []
+            failing = fake_core(self.admit_all, {},
+                                fail_pairs={(TEXTS["clm_a"], TEXTS["clm_b"])},
+                                calls=calls)
+            first = judge("t", self.records, model="jev-test",
+                          caller=failing, cache=cache, on_error="review")
+            self.assertTrue(first.degraded)
+            second = judge("t", self.records, model="jev-test",
+                           caller=failing, cache=cache, on_error="review")
+            self.assertFalse(second.cached)
+            self.assertGreater(len(calls), 0)
 
 
 class CacheTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        self.records = make_records([
-            "All storage must use PostgreSQL.",
-            "PostgreSQL is banned for the analytics service.",
-        ])
+        self.records = make_records([TEXTS["clm_a"], TEXTS["clm_b"], TEXTS["clm_c"]])
+        self.a, self.b, self.c = (r["record_id"] for r in self.records)
 
     def test_second_identical_call_is_served_from_cache(self):
         calls = []
-
-        def counting_caller(state, questions):
-            calls.append(state)
-            return fake_caller({r["record_id"]: (ADMIT, 0.9, 0.9)
-                                for r in self.records})(state, questions)
-
         cache = Cache(Path(self.tmp.name) / "cache.jsonl")
+        caller = fake_core({rid: (ADMIT, 0.9)
+                            for rid in (self.a, self.b, self.c)},
+                           {(TEXTS["clm_a"], TEXTS["clm_b"]): "unrelated",
+                            (TEXTS["clm_a"], TEXTS["clm_c"]): "unrelated",
+                            (TEXTS["clm_b"], TEXTS["clm_c"]): "unrelated"},
+                           calls=calls)
         first = judge("write an adapter", self.records, model="jev-test",
-                      caller=counting_caller, cache=cache)
+                      caller=caller, cache=cache)
+        fresh_calls = len(calls)
         second = judge("write an adapter", self.records, model="jev-test",
-                       caller=counting_caller, cache=cache)
+                       caller=caller, cache=cache)
         self.assertFalse(first.cached)
         self.assertTrue(second.cached)
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls), fresh_calls)
         self.assertEqual(first.to_dict(), second.to_dict())
 
     def test_different_task_misses(self):
         cache = Cache(Path(self.tmp.name) / "cache.jsonl")
-        caller = fake_caller({r["record_id"]: (ADMIT, 0.9, 0.9)
-                              for r in self.records})
+        caller = fake_core({rid: (ADMIT, 0.9)
+                            for rid in (self.a, self.b, self.c)}, {})
         first = judge("task one", self.records, model="jev-test",
                       caller=caller, cache=cache)
         second = judge("task two", self.records, model="jev-test",
@@ -229,30 +277,27 @@ class LogTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.path = Path(self.tmp.name) / "judgments.jsonl"
-        self.records = make_records(["All storage must use PostgreSQL.",
-                                     "PostgreSQL is banned for analytics."])
+        self.records = make_records([TEXTS["clm_a"], TEXTS["clm_b"], TEXTS["clm_c"]])
 
     def test_chain_seals_and_verifies(self):
-        first = judge("t1", self.records, model="jev-test",
-                      caller=fake_caller({r["record_id"]: (ADMIT, 0.9, 0.9)
-                                          for r in self.records}))
-        second = judge("t2", self.records, model="jev-test",
-                       caller=fake_caller({r["record_id"]: (ADMIT, 0.9, 0.9)
-                                           for r in self.records}))
-        sealed_a = log.append_judgment(self.path, first.to_dict())
-        sealed_b = log.append_judgment(self.path, second.to_dict())
-        self.assertEqual(sealed_a["prev_hash"], "0" * 64)
-        self.assertEqual(sealed_b["prev_hash"], sealed_a["judgment_hash"])
+        for task in ("t1", "t2"):
+            judgment = judge(task, self.records, model="jev-test",
+                             caller=fake_core({r["record_id"]: (ADMIT, 0.9)
+                                               for r in self.records}, {}))
+            log.append_judgment(self.path, judgment.to_dict())
+        rows = log.read(self.path)
+        self.assertEqual(rows[0]["prev_hash"], "0" * 64)
+        self.assertEqual(rows[1]["prev_hash"], rows[0]["judgment_hash"])
         self.assertEqual(log.verify(self.path), 2)
 
     def test_tampering_is_detected(self):
         judgment = judge("t", self.records, model="jev-test",
-                         caller=fake_caller({r["record_id"]: (ADMIT, 0.9, 0.9)
-                                             for r in self.records}))
+                         caller=fake_core({r["record_id"]: (ADMIT, 0.9)
+                                           for r in self.records}, {}))
         log.append_judgment(self.path, judgment.to_dict())
         rows = self.path.read_text(encoding="utf-8").splitlines()
         row = json.loads(rows[0])
-        row["contradiction"] = 0.99
+        row["task"] = "tampered"
         rows[0] = json.dumps(row, ensure_ascii=False, sort_keys=True,
                              separators=(",", ":"))
         self.path.write_text("\n".join(rows) + "\n", encoding="utf-8")

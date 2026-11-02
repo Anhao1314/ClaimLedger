@@ -24,18 +24,20 @@ def _print_decision(judgment, sealed=None) -> None:
     print(f"model     : {judgment.model}   qset: {judgment.question_set_version}"
           f"   policy: {judgment.policy['version']}"
           f"   cached: {judgment.cached}   degraded: {judgment.degraded}")
-    print(f"latency   : {judgment.latency_ms} ms   tokens: {judgment.usage}")
-    print(f"contradict: {judgment.contradiction:.2f}   governing: {judgment.governing}")
+    print(f"latency   : {judgment.latency_ms} ms   requests: {judgment.requests}"
+          f"   pairs: {judgment.pair_checks}   tokens: {judgment.usage}")
+    print(f"conflicts : {judgment.conflicts or 'none'}   governing: {judgment.governing}")
     print()
-    print(f"{'record':18} {'action':8} {'p(admit)':>9} {'conf':>5} {'gov':4} {'in':3}")
-    print("-" * 56)
+    print(f"{'record':18} {'action':8} {'p(admit)':>9} {'conf':>5} {'gov':4} {'cf':4} {'in':3}")
+    print("-" * 62)
     for entry in sorted(judgment.entries, key=lambda e: (e.p_admit or 0), reverse=True):
         print(f"{entry.record_id:18} {entry.action:8} "
               f"{entry.p_admit if entry.p_admit is not None else '':>9} "
               f"{entry.confidence if entry.confidence is not None else '':>5} "
               f"{'yes' if entry.governing else '':4} "
+              f"{'yes' if entry.conflicted else '':4} "
               f"{'yes' if entry.included else 'no':3}")
-    print("-" * 56)
+    print("-" * 62)
     print(f"bytes {judgment.used_bytes}/{judgment.budget_bytes}   omitted {judgment.omitted}")
     if sealed is not None:
         print(f"sealed     : {sealed['judgment_hash'][:16]}…  "

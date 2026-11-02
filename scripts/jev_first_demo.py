@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """End-to-end demo of the Jev-first core:
 
-    record store (hash chain) → judge (cache miss then hit) → sealed log
+    record store (hash chain)
+      → stage 1: one admit choice per record, judged alone
+      → stage 2: pairwise relation localizes conflicts (validated question)
+      → stage 3: governing
+      → sealed judgment log
 
-Status is never stored and never shown to the model. The second call is served
-from the cache in microseconds; the log is verified at the end.
+The scenario contains a genuine conflict (all-PostgreSQL vs banned-for-
+analytics). Watch what happens to "SQLite is deprecated": it is NOT dragged
+into the conflict, because localization is per-pair, not global.
 
     . ~/.config/claimledger/jev.env
     python scripts/jev_first_demo.py
@@ -34,24 +39,20 @@ RECORDS = [
 def print_judgment(judgment, label):
     print(f"--- {label} ---")
     print(f"model {judgment.model}   qset {judgment.question_set_version}   "
-          f"cached {judgment.cached}   latency {judgment.latency_ms} ms")
-    print(f"contradiction {judgment.contradiction:.2f}   governing {judgment.governing}")
-    print(f"{'record':18} {'action':8} {'p(admit)':>9} {'gov':4} {'in':3}")
-    print("-" * 50)
+          f"cached {judgment.cached}   requests {judgment.requests}   "
+          f"latency {judgment.latency_ms} ms")
+    print(f"conflicts {judgment.conflicts or 'none'}   "
+          f"pair_checks {judgment.pair_checks}   governing {judgment.governing}")
+    print(f"{'record':18} {'action':8} {'p(admit)':>9} {'gov':4} {'cf':4} {'in':3}")
+    print("-" * 54)
     for entry in sorted(judgment.entries, key=lambda e: (e.p_admit or 0), reverse=True):
         print(f"{entry.record_id:18} {entry.action:8} "
               f"{entry.p_admit if entry.p_admit is not None else '':>9} "
               f"{'yes' if entry.governing else '':4} "
+              f"{'yes' if entry.conflicted else '':4} "
               f"{'yes' if entry.included else 'no':3}")
-    print(f"bytes {judgment.used_bytes}/{judgment.budget_bytes}   omitted {judgment.omitted}\n")
-
-
-def explain(judgment):
-    if judgment.contradiction >= judgment.policy["contradiction_review_at"]:
-        print("NOTE: the candidate set contains an unresolved contradiction, so every "
-              "record is review by design — a human must resolve the conflict before "
-              "anything is admitted. Localizing the conflict (per-pair relation) is "
-              "the next build item.\n")
+    print(f"bytes {judgment.used_bytes}/{judgment.budget_bytes}   "
+          f"omitted {judgment.omitted}\n")
 
 
 def main() -> int:
@@ -72,21 +73,25 @@ def main() -> int:
         started = time.monotonic()
         warm = judge(TASK, records, budget_bytes=1024, cache=cache)
         warm_served_ms = int((time.monotonic() - started) * 1000)
-        print_judgment(cold, "cold (one Jev request)")
-        explain(cold)
-        print_judgment(warm, f"warm (cache hit, served in {warm_served_ms} ms, "
-                             f"original latency preserved)")
+        print_judgment(cold, "cold (fresh requests)")
+        print_judgment(warm, f"warm (cache hit, served in {warm_served_ms} ms)")
 
         sealed = [log.append_judgment(base / "judgments.jsonl", j.to_dict())
                   for j in (cold, warm)]
         count = log.verify(base / "judgments.jsonl")
         print(f"log: {count} judgments sealed, chain verified")
-        print(f"last hash: {sealed[-1]['judgment_hash'][:24]}…")
 
-        same = all(a.to_dict()["entries"] == b.to_dict()["entries"]
-                   for a, b in zip([cold], [warm]))
-        print(f"cache served an identical decision: {same}")
-        return 0 if (warm.cached and count == 2 and same) else 1
+        checks = (
+            warm.cached
+            and count == 2
+            and len(cold.conflicts) >= 1
+            and all(e.conflicted for e in cold.entries
+                    if e.record_id in cold.conflicts[0])
+            and not any(e.conflicted for e in cold.entries
+                        if e.record_id not in
+                        [rid for pair in cold.conflicts for rid in pair])
+        )
+        return 0 if checks else 1
 
 
 if __name__ == "__main__":

@@ -1,22 +1,49 @@
-"""The judgment engine: contract-driven questions, one request, typed output."""
+"""The judgment engine: two stages, every question from the frozen contract.
+
+Stage 1 — one `admit` choice per record, against a **single-record state**.
+  The record is judged alone with the task, so a contradiction elsewhere in the
+  set cannot contaminate its answer (this is why the retired applies/holds pair
+  existed, and why the one-big-request flow hedged everything to review).
+
+Stage 2 — the validated `relation` question on every pair of admitted records.
+  Pair states are exactly the frozen 30-pair format and are **task-independent**,
+  so pair judgments cache across every future task. A confirmed contradicting
+  pair sends both records to review; everything else keeps its stage-1 action.
+  The global contradiction signal is retired from the flow: pairwise is strictly
+  more informative and cannot punish uninvolved records.
+
+Stage 3 — `governing` over the surviving set; may promote review to admit,
+  never a conflicted record.
+
+Failures fail open: a record or pair we could not judge goes to review. An
+outage must never look like a clean admission.
+"""
 from __future__ import annotations
 
+import hashlib
+import json
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from itertools import combinations
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
 from chat_distiller import jev
 
-from .contracts import question as contract_question
-from .contracts import questions as question_set
 from .cache import Cache, input_hash
+from .contracts import questions as question_set
 from .policy import ADMIT, EXCLUDE, REVIEW, Policy
-from .questions import render_state
 
 Caller = Callable[[str, Mapping[str, Mapping[str, Any]]], Mapping[str, Any]]
 DEFAULT_BUDGET_BYTES = 2048
 MAX_RECORDS = 6
+
+
+def _canonical(body: Mapping[str, Any]) -> str:
+    return json.dumps(body, ensure_ascii=False, sort_keys=True,
+                      separators=(",", ":"))
 
 
 @dataclass(frozen=True)
@@ -27,6 +54,7 @@ class Entry:
     confidence: Optional[float]
     p_admit: Optional[float]
     governing: bool
+    conflicted: bool
     included: bool
 
     def to_dict(self) -> Dict[str, Any]:
@@ -39,6 +67,7 @@ class Entry:
             "p_admit": (round(self.p_admit, 4)
                         if self.p_admit is not None else None),
             "governing": self.governing,
+            "conflicted": self.conflicted,
             "included": self.included,
         }
 
@@ -51,13 +80,15 @@ class Judgment:
     policy: Dict[str, Any]
     input_hash: str
     entries: Sequence[Entry]
-    contradiction: float
+    conflicts: Sequence[Sequence[str]]
+    pair_checks: int
     governing: Optional[str]
     governing_confidence: Optional[float]
     used_bytes: int
     budget_bytes: int
     omitted: int
     latency_ms: int
+    requests: int
     usage: Dict[str, Any] = field(default_factory=dict)
     created_at: str = ""
     degraded: bool = False
@@ -74,7 +105,8 @@ class Judgment:
             "question_set_version": self.question_set_version,
             "policy": self.policy,
             "input_hash": self.input_hash,
-            "contradiction": round(self.contradiction, 4),
+            "conflicts": [list(pair) for pair in self.conflicts],
+            "pair_checks": self.pair_checks,
             "governing": self.governing,
             "governing_confidence": (
                 round(self.governing_confidence, 4)
@@ -83,6 +115,7 @@ class Judgment:
             "budget_bytes": self.budget_bytes,
             "omitted": self.omitted,
             "latency_ms": self.latency_ms,
+            "requests": self.requests,
             "usage": self.usage,
             "created_at": self.created_at,
             "degraded": self.degraded,
@@ -95,54 +128,26 @@ class Judgment:
             record_id=e["record_id"], text=e.get("text", ""),
             action=e["action"], confidence=e.get("confidence"),
             p_admit=e.get("p_admit"), governing=e.get("governing", False),
+            conflicted=e.get("conflicted", False),
             included=e.get("included", False),
         ) for e in body["entries"]]
         return cls(
             task=body["task"], model=body["model"],
             question_set_version=body["question_set_version"],
             policy=body["policy"], input_hash=body["input_hash"],
-            entries=entries, contradiction=body["contradiction"],
+            entries=entries, conflicts=body.get("conflicts", []),
+            pair_checks=body.get("pair_checks", 0),
             governing=body.get("governing"),
             governing_confidence=body.get("governing_confidence"),
             used_bytes=body["used_bytes"], budget_bytes=body["budget_bytes"],
             omitted=body["omitted"], latency_ms=body["latency_ms"],
-            usage=body.get("usage") or {}, created_at=body.get("created_at", ""),
+            requests=body.get("requests", 0), usage=body.get("usage") or {},
+            created_at=body.get("created_at", ""),
             degraded=body.get("degraded", False), cached=True,
         )
 
 
-def _build_questions(records: Sequence[Mapping[str, Any]]) -> Dict[str, Dict[str, Any]]:
-    spec = question_set()
-    admit = spec["questions"]["admit"]
-    contradiction = spec["questions"]["contradiction"]
-    governing = spec["questions"]["governing"]
-    questions: Dict[str, Dict[str, Any]] = {}
-    for record in records:
-        questions[f"admit::{record['record_id']}"] = {
-            "type": admit["type"], "instructions": admit["instructions"],
-            "criteria": dict(admit["criteria"]),
-        }
-    questions["contradiction"] = {"type": "noul",
-                                  "instructions": contradiction["instructions"]}
-    criteria = {r["record_id"]: str(r["text"])[:160] for r in records}
-    criteria["none"] = "No single claim governs this task"
-    questions["governing"] = {"type": "choice",
-                              "instructions": governing["instructions"],
-                              "criteria": criteria}
-    return questions
-
-
-def _num(value: Any, question_id: str) -> float:
-    if not isinstance(value, (int, float)):
-        raise jev.JevError(f"{question_id}: expected a number")
-    value = float(value)
-    if not 0.0 <= value <= 1.0:
-        raise jev.JevError(f"{question_id}: outside [0, 1]")
-    return value
-
-
 def _pack(entries: List[Entry], budget_bytes: int) -> tuple:
-    """Rank non-excluded entries by p(admit), fill until the budget is spent."""
     used = 0
     omitted = 0
     included: Dict[str, bool] = {e.record_id: False for e in entries}
@@ -164,8 +169,16 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
           on_error: str = "review",
           cache: Optional[Cache] = None,
           model: Optional[str] = None,
+          max_workers: int = 4,
           timeout: float = 30.0) -> Judgment:
-    """Judge a candidate record set against a task. One request, N+2 questions."""
+    """Judge a candidate record set against a task.
+
+    Fresh cost: N admit requests + C(a,2) relation requests + 1 governing
+    request, run concurrently. Per-record and per-pair inputs are cached, so a
+    repeated task is served without the network and a repeated pair is served
+    across every future task. Only clean judgments are cached; a degraded one
+    must be re-judged after the transport recovers.
+    """
     if not task or not task.strip():
         raise ValueError("task must be a non-empty string")
     if budget_bytes <= 0:
@@ -175,94 +188,181 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
     if not records:
         raise ValueError("at least one record is required")
     if len(records) > MAX_RECORDS:
-        raise ValueError(f"too many records for one request (max {MAX_RECORDS})")
+        raise ValueError(f"too many records for one decision (max {MAX_RECORDS})")
 
     spec = question_set()
-    questions = _build_questions(records)
-    state = render_state(task, records)
+    admit_spec = spec["questions"]["admit"]
+    governing_spec = spec["questions"]["governing"]
+    relation_spec = spec["questions"]["relation"]
+    relation_question = {"type": relation_spec["type"],
+                         "instructions": relation_spec["instructions"],
+                         "criteria": dict(relation_spec["criteria"])}
     resolved_model = model or jev.model_name()
-    key = input_hash(task, list(records), questions, model=resolved_model,
-                     question_set_version=spec["version"])
+    version = spec["version"]
 
+    top_key = input_hash(task, list(records), {"admit": admit_spec},
+                         model=resolved_model, question_set_version=version)
     if cache is not None:
-        hit = cache.get(key)
-        if hit is not None:
+        hit = cache.get(top_key)
+        if hit is not None and not hit.get("degraded"):
             return Judgment.from_dict(hit)
+
+    started = time.monotonic()
+    counter = {"requests": 0, "degraded": False}
+    lock = threading.Lock()
+
+    def ask(state: str, questions: Mapping[str, Mapping[str, Any]]) -> Mapping[str, Any]:
+        key = input_hash(state, [], questions, model=resolved_model,
+                         question_set_version=version)
+        if cache is not None:
+            hit = cache.get(key)
+            if hit is not None:
+                return hit
+        parsed = dict(caller(state, questions))
+        with lock:
+            counter["requests"] += 1
+        if cache is not None:
+            cache.put(key, parsed)
+        return parsed
 
     if caller is None:
         def caller(state: str, questions: Mapping[str, Mapping[str, Any]]) -> Mapping[str, Any]:
-            return jev.ask(state, questions, consent=True, timeout=timeout, model=model)
+            return jev.ask(state, questions, consent=True, timeout=timeout,
+                           model=model)
 
-    started = time.monotonic()
-    try:
-        parsed = caller(state, questions)
-    except jev.JevError:
-        if on_error == "raise":
-            raise
-        latency_ms = int((time.monotonic() - started) * 1000)
-        used, omitted, included = _pack(
-            [Entry(r["record_id"], str(r["text"]), REVIEW, None, None, False, False)
-             for r in records], budget_bytes)
-        return Judgment(
-            task=task, model="unavailable",
-            question_set_version=spec["version"], policy=policy.to_dict(),
-            input_hash=key,
-            entries=[Entry(r["record_id"], str(r["text"]), REVIEW, None, None,
-                           False, included[r["record_id"]]) for r in records],
-            contradiction=0.0, governing=None, governing_confidence=None,
-            used_bytes=used, budget_bytes=budget_bytes, omitted=omitted,
-            latency_ms=latency_ms, created_at=datetime.now(timezone.utc)
-            .strftime("%Y-%m-%dT%H:%M:%SZ"), degraded=True,
-        )
-    latency_ms = int((time.monotonic() - started) * 1000)
+    def reviewed(record_id: str, text: str) -> Entry:
+        return Entry(record_id, text, REVIEW, None, None, False, False, False)
 
-    contradiction = _num(jev.answer(parsed, "contradiction").get("noul"), "contradiction")
-    governing_answer = jev.answer(parsed, "governing")
-    governing = governing_answer.get("choice")
-    governing_confidence = governing_answer.get("confidence")
-    if governing == "none":
-        governing = None
-    governing_value = (float(governing_confidence)
-                       if isinstance(governing_confidence, (int, float)) else None)
-
-    entries: List[Entry] = []
-    for record in records:
+    # ---- stage 1: one admit choice per record, judged alone -----------------
+    def admit_job(record: Mapping[str, Any]) -> Entry:
         record_id = str(record["record_id"])
-        answer = jev.answer(parsed, f"admit::{record_id}")
+        text = str(record["text"])
+        state = f"TASK: {task.strip()}\n\nCLAIM:\n- {record_id}: {text}"
+        questions = {"admit": {"type": admit_spec["type"],
+                               "instructions": admit_spec["instructions"],
+                               "criteria": dict(admit_spec["criteria"])}}
+        try:
+            parsed = ask(state, questions)
+        except jev.JevError:
+            if on_error == "raise":
+                raise
+            with lock:
+                counter["degraded"] = True
+            return reviewed(record_id, text)
+        answer = jev.answer(parsed, "admit")
         choice = answer.get("choice")
         if choice not in (ADMIT, REVIEW, EXCLUDE):
             raise jev.JevError(f"admit::{record_id}: unknown choice {choice!r}")
         probabilities = answer.get("probabilities") or {}
         confidence = answer.get("confidence")
-        is_governing = (governing == record_id
-                        and governing_value is not None
-                        and governing_value >= policy.governing_at)
-        action = policy.action(choice, contradiction=contradiction,
-                               governing=is_governing)
-        entries.append(Entry(
-            record_id=record_id, text=str(record["text"]), action=action,
+        return Entry(
+            record_id=record_id, text=text, action=choice,
             confidence=(float(confidence)
                         if isinstance(confidence, (int, float)) else None),
             p_admit=(float(probabilities.get(ADMIT, 0.0))
                      if isinstance(probabilities.get(ADMIT), (int, float)) else None),
-            governing=is_governing, included=False,
-        ))
+            governing=False, conflicted=False, included=False,
+        )
+
+    with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(records)))) as pool:
+        entries: List[Entry] = list(pool.map(admit_job, records))
+
+    admitted = [e for e in entries if e.action != EXCLUDE]
+
+    # ---- stage 2: localize conflicts with the validated pair question -------
+    conflicts: List[List[str]] = []
+    conflicted_ids: Dict[str, bool] = {}
+    unknown_ids: Dict[str, bool] = {}
+    pair_checks = 0
+
+    def relation_job(pair: tuple) -> tuple:
+        a, b = pair
+        state = f"Statement A: {a.text}\nStatement B: {b.text}"
+        try:
+            parsed = ask(state, {"relation": relation_question})
+        except jev.JevError:
+            if on_error == "raise":
+                raise
+            with lock:
+                counter["degraded"] = True
+            return pair, None
+        answer = jev.answer(parsed, "relation")
+        probabilities = answer.get("probabilities") or {}
+        observed = (max(probabilities, key=probabilities.get)
+                    if probabilities else answer.get("choice"))
+        return pair, observed
+
+    if len(admitted) >= 2:
+        pairs = list(combinations(admitted, 2))
+        with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(pairs)))) as pool:
+            results = list(pool.map(relation_job, pairs))
+        pair_checks = len(pairs)
+        for (a, b), observed in results:
+            if observed is None:
+                unknown_ids[a.record_id] = True
+                unknown_ids[b.record_id] = True
+                continue
+            if observed == "contradiction":
+                conflicts.append([a.record_id, b.record_id])
+                conflicted_ids[a.record_id] = True
+                conflicted_ids[b.record_id] = True
+    entries = [Entry(
+        e.record_id, e.text,
+        REVIEW if (e.record_id in conflicted_ids or e.record_id in unknown_ids)
+        else e.action,
+        e.confidence, e.p_admit, e.governing,
+        e.record_id in conflicted_ids, e.included,
+    ) for e in entries]
+
+    # ---- stage 3: governing over the surviving set --------------------------
+    governing: Optional[str] = None
+    governing_value: Optional[float] = None
+    survivors = [e for e in entries if e.action != EXCLUDE]
+    if len(survivors) >= 2:
+        state = (f"TASK: {task.strip()}\n\nMEMORY CLAIMS:\n"
+                 + "\n".join(f"- {e.record_id}: {e.text}" for e in survivors))
+        questions = {"governing": {
+            "type": governing_spec["type"],
+            "instructions": governing_spec["instructions"],
+            "criteria": {**{e.record_id: e.text[:160] for e in survivors},
+                         "none": "No single claim governs this task"}}}
+        parsed = ask(state, questions)
+        answer = jev.answer(parsed, "governing")
+        governing = answer.get("choice")
+        governing_confidence = answer.get("confidence")
+        if governing == "none":
+            governing = None
+        governing_value = (float(governing_confidence)
+                           if isinstance(governing_confidence, (int, float)) else None)
+
+    entries = [Entry(
+        e.record_id, e.text,
+        ADMIT if (governing == e.record_id and governing_value is not None
+                  and governing_value >= policy.governing_at
+                  and e.action == REVIEW and not e.conflicted) else e.action,
+        e.confidence, e.p_admit,
+        governing == e.record_id and governing_value is not None
+        and governing_value >= policy.governing_at,
+        e.conflicted, e.included,
+    ) for e in entries]
 
     used, omitted, included = _pack(entries, budget_bytes)
     entries = [Entry(e.record_id, e.text, e.action, e.confidence, e.p_admit,
-                     e.governing, included[e.record_id]) for e in entries]
+                     e.governing, e.conflicted, included[e.record_id])
+               for e in entries]
 
+    latency_ms = int((time.monotonic() - started) * 1000)
     judgment = Judgment(
-        task=task, model=str(parsed.get("model", "?")),
-        question_set_version=spec["version"], policy=policy.to_dict(),
-        input_hash=key, entries=entries, contradiction=contradiction,
+        task=task, model=resolved_model, question_set_version=version,
+        policy=policy.to_dict(),
+        input_hash=top_key,
+        entries=entries, conflicts=conflicts, pair_checks=pair_checks,
         governing=governing, governing_confidence=governing_value,
         used_bytes=used, budget_bytes=budget_bytes, omitted=omitted,
-        latency_ms=latency_ms, usage=dict(parsed.get("usage") or {}),
+        latency_ms=latency_ms, requests=counter["requests"],
         created_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        degraded=counter["degraded"],
     )
-    # Only successful judgments enter the cache. A degraded decision must be
-    # re-judged once the transport recovers, never replayed.
-    if cache is not None:
-        cache.put(key, judgment.to_dict())
+    if cache is not None and not judgment.degraded:
+        cache.put(top_key, judgment.to_dict())
     return judgment
