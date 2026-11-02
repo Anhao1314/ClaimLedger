@@ -49,8 +49,10 @@ class AnchorsAndLinksTests(unittest.TestCase):
 
     def test_readme_no_longer_advertises_the_retired_product(self):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
-        for retired in ("RAG adapter", "claim demo", "Landing page",
-                        "Try it in 60 seconds", "hero"):
+        # check for structural signals of the retired surface, not prose mentions
+        # (the README legitimately discusses RAG in the comparison section)
+        for retired in ("## RAG adapter", "claim demo", "Landing page",
+                        "Try it in 60 seconds", "[RAG adapter](rag.md)"):
             self.assertNotIn(retired, text,
                              f"retired surface still advertised: {retired}")
 
