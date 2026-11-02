@@ -356,14 +356,26 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
             "instructions": governing_spec["instructions"],
             "criteria": {**{e.record_id: e.text[:160] for e in survivors},
                          "none": "No single claim governs this task"}}}
-        parsed = ask(state, questions)
-        answer = jev.answer(parsed, "governing")
-        governing = answer.get("choice")
-        governing_confidence = answer.get("confidence")
-        if governing == "none":
-            governing = None
-        governing_value = (float(governing_confidence)
-                           if isinstance(governing_confidence, (int, float)) else None)
+        try:
+            parsed = ask(state, questions)
+        except jev.JevError:
+            if on_error == "raise":
+                raise
+            # Governing is an enhancement, never a safety input: without it
+            # the survivors keep their stage-1/2 actions and the result is
+            # flagged degraded.
+            with lock:
+                counter["degraded"] = True
+            parsed = None
+        if parsed is not None:
+            answer = jev.answer(parsed, "governing")
+            governing = answer.get("choice")
+            governing_confidence = answer.get("confidence")
+            if governing == "none":
+                governing = None
+            governing_value = (float(governing_confidence)
+                               if isinstance(governing_confidence, (int, float))
+                               else None)
 
     entries = [Entry(
         e.record_id, e.text,
@@ -383,8 +395,11 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
                for e in entries]
 
     latency_ms = int((time.monotonic() - started) * 1000)
+    # If nothing at all was answered, "model" would be a lie: nothing ran.
+    model_field = (resolved_model if counter["requests"]
+                   else "unavailable" if counter["degraded"] else resolved_model)
     judgment = Judgment(
-        task=task, model=resolved_model, question_set_version=version,
+        task=task, model=model_field, question_set_version=version,
         policy=policy.to_dict(),
         input_hash=top_key,
         entries=entries, conflicts=conflicts, uncertain_pairs=uncertain_pairs,

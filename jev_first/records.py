@@ -38,6 +38,12 @@ class RecordStore:
             at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         record = make_record(text, source, at, scope=scope,
                              prev_hash=self.last_hash())
+        # Content-addressed identity means an exact repeat would corrupt the
+        # store on load (duplicate record_id). Refuse it here, at the write.
+        if any(r["record_id"] == record["record_id"] for r in self.load()):
+            raise ContractError(
+                f"duplicate record: {record['record_id']} already exists "
+                f"({text[:60]!r})")
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.path, "a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True,
