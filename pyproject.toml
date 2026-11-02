@@ -41,7 +41,7 @@ carrytrace = "chat_distiller.brand_cli:main"
 claim = "chat_distiller.brand_cli:main"
 
 [tool.setuptools.packages.find]
-include = ["chat_distiller*"]
+include = ["chat_distiller*", "jev_first*"]
 
 [tool.setuptools.package-data]
 "chat_distiller._internal" = ["taxonomy.template.md"]
