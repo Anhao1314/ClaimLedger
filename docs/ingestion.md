@@ -1,6 +1,6 @@
 # Ingestion and migration
 
-[English quick start](../README.md#quick-start) · [中文快速体验](../README.zh-CN.md#quick-start)
+[English quick start](../README.md#quick-start) · [中文快速体验](../README.md#quick-start)
 
 The homepage demo starts from **handwritten synthetic cards** to make the first run
 self-contained. Real ingestion includes a separate human/agent judgment step:
@@ -68,7 +68,7 @@ API credentials, private file paths, or generated real-user vaults to this publi
 Installation from source may download build tooling; the memory tools do not require a
 remote model service. A host agent's own data handling is outside this package.
 
-[Hook templates](../assets/hooks.example.json) show reminder events, not a validated
+[Hook templates](../references/hooks.example.json) show reminder events, not a validated
 integration with every host version. `PreCompact` leaves a pending marker;
 `SessionStart(compact)` reminds the agent to query. Neither event automatically distills
 memory or injects a recovery packet. [Host-agent workflow](../SKILL.md).

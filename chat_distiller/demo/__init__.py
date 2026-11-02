@@ -1,4 +1,5 @@
-"""Local demo app for ClaimLedger (stdlib HTTP server + static UI)."""
-from .server import DemoApp, DemoServer, build_server, main
+"""Legacy fixtures kept for the RAG benchmark: the synthetic scenario seeder.
 
-__all__ = ["DemoApp", "DemoServer", "build_server", "main"]
+The demo web UI (server, static assets) was removed in the Jev-first cleanup;
+only the fixture generator survives.
+"""

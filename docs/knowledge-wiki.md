@@ -12,7 +12,7 @@
 在仓库中创建并激活虚拟环境，运行 `python -m pip install .`。从旧版本更新时，应在更新仓库后重新安装。
 当前包的 `chat-distiller --version` 应显示 `0.10.0`；Knowledge Wiki 本身在 0.3.0 引入。尚未发布 PyPI，不能把同名索引包当作本项目已验证版本。
 
-已有 v2 vault 可以直接使用。首次体验先按 [README](../README.zh-CN.md#quick-start) 生成临时演示记忆，
+已有 v2 vault 可以直接使用。首次体验先按 [README](../README.md#quick-start) 生成临时演示记忆，
 不要把新身份覆盖到真实知识库。接着复用该教程里的 `DEMO_DIR`：
 
 ```bash

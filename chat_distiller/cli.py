@@ -32,9 +32,6 @@ def main(argv=None):
     if argv and argv[0] == "skill":
         from .skill_installer import main as skill_main
         return skill_main(argv[1:])
-    if argv and argv[0] == "demo":
-        from .demo.server import main as demo_main
-        return demo_main(argv[1:])
     if argv and argv[0] in LEGACY:
         implementation = importlib.import_module("._internal." + LEGACY[argv[0]], "chat_distiller")
         previous = sys.argv
@@ -78,7 +75,6 @@ def main(argv=None):
     commands.add_parser("redact", help="remove claim content while preserving identity")
     commands.add_parser("delete", help="permanently delete a claim or its chain")
     commands.add_parser("mcp", help="serve the claim store over MCP stdio")
-    commands.add_parser("demo", help="run the local browser demo (zero dependencies)")
     for name in LEGACY:
         commands.add_parser(name, help="delegate to compatible " + LEGACY[name] + " command")
     args = parser.parse_args(argv)

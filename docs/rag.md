@@ -290,6 +290,6 @@ matters is trust plus coverage, not coverage alone.
   whether evidence supports a conclusion. Only a human or host-confirmed
   `claim_record` changes the ledger.
 
-See [the demo guide](demo.md) for the lifecycle demo, including the browser
+The legacy lifecycle demo was removed in the Jev-first cleanup.
 **Context** view and its review-only **Preview proposal** panel, and [the
 architecture notes](architecture.md) for trust boundaries.
