@@ -38,13 +38,13 @@ def fake_core(admit, relations, governing=("none", 0.0), calls=None,
             if (a, b) in fail_pairs or (b, a) in fail_pairs:
                 raise jev.JevError("transport failure")
             label = relations.get((a, b)) or relations.get((b, a)) or "unrelated"
+            probabilities = {l: 0.05 for l in
+                             ("contradiction", "complementary", "unrelated")}
+            probabilities[label] = 0.9
             return {"model": "jev-test",
                     "answers": {"relation": {
                         "type": "choice", "choice": label, "confidence": 0.9,
-                        "probabilities": {label: 0.9,
-                                          "contradiction": 0.05,
-                                          "complementary": 0.05,
-                                          "unrelated": 0.05}}},
+                        "probabilities": probabilities}},
                     "usage": {}}
         if "admit" in questions:
             rid = state.split("CLAIM:\n- ", 1)[1].split(":", 1)[0]
@@ -201,6 +201,67 @@ class JudgeTests(unittest.TestCase):
         self.assertEqual(by_id[self.a].action, REVIEW)
         self.assertTrue(by_id[self.a].conflicted)
         self.assertTrue(by_id[self.a].governing)
+
+    def test_thin_margin_admit_forces_review(self):
+        """argmax says admit, but the top-two gap is inside the noise band
+        measured on the borderline pair (borderline-stability.json)."""
+        def caller(state, questions):
+            if "governing" in questions:
+                return {"model": "jev-test",
+                        "answers": {"governing": {"type": "choice",
+                                                  "choice": "none",
+                                                  "confidence": 0.9}}, "usage": {}}
+            if "relation" in questions:
+                return {"model": "jev-test",
+                        "answers": {"relation": {
+                            "type": "choice", "choice": "complementary",
+                            "confidence": 0.9,
+                            "probabilities": {"complementary": 0.9,
+                                              "contradiction": 0.05,
+                                              "unrelated": 0.05}}},
+                        "usage": {}}
+            rid = state.split("CLAIM:\n- ", 1)[1].split(":", 1)[0]
+            return {"model": "jev-test",
+                    "answers": {"admit": {"type": "choice", "choice": ADMIT,
+                                          "confidence": 0.5,
+                                          "probabilities": {"admit": 0.45,
+                                                            "review": 0.40,
+                                                            "exclude": 0.15}}},
+                    "usage": {}}
+        decision = judge("t", self.records, model="jev-test", caller=caller)
+        self.assertEqual({e.action for e in decision.entries}, {REVIEW})
+        self.assertTrue(all(e.low_margin for e in decision.entries))
+
+    def test_thin_margin_pair_is_uncertain_not_conflict(self):
+        def caller(state, questions):
+            if "relation" in questions:
+                return {"model": "jev-test",
+                        "answers": {"relation": {
+                            "type": "choice", "choice": "contradiction",
+                            "confidence": 0.55,
+                            "probabilities": {"contradiction": 0.45,
+                                              "complementary": 0.40,
+                                              "unrelated": 0.15}}},
+                        "usage": {}}
+            if "governing" in questions:
+                return {"model": "jev-test",
+                        "answers": {"governing": {"type": "choice",
+                                                  "choice": "none",
+                                                  "confidence": 0.9}}, "usage": {}}
+            rid = state.split("CLAIM:\n- ", 1)[1].split(":", 1)[0]
+            return {"model": "jev-test",
+                    "answers": {"admit": {"type": "choice", "choice": ADMIT,
+                                          "confidence": 0.9,
+                                          "probabilities": {"admit": 0.9,
+                                                            "review": 0.05,
+                                                            "exclude": 0.05}}},
+                    "usage": {}}
+        decision = judge("t", self.records, model="jev-test", caller=caller)
+        self.assertEqual(decision.conflicts, [])
+        self.assertEqual(len(decision.uncertain_pairs), 3)
+        self.assertEqual({e.action for e in decision.entries}, {REVIEW})
+        self.assertFalse(any(e.conflicted for e in decision.entries))
+        self.assertTrue(all(e.low_margin for e in decision.entries))
 
     def test_excluded_records_are_not_paired(self):
         calls = []

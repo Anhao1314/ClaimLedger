@@ -55,6 +55,7 @@ class Entry:
     p_admit: Optional[float]
     governing: bool
     conflicted: bool
+    low_margin: bool
     included: bool
 
     def to_dict(self) -> Dict[str, Any]:
@@ -68,6 +69,7 @@ class Entry:
                         if self.p_admit is not None else None),
             "governing": self.governing,
             "conflicted": self.conflicted,
+            "low_margin": self.low_margin,
             "included": self.included,
         }
 
@@ -81,6 +83,7 @@ class Judgment:
     input_hash: str
     entries: Sequence[Entry]
     conflicts: Sequence[Sequence[str]]
+    uncertain_pairs: Sequence[Sequence[str]]
     pair_checks: int
     governing: Optional[str]
     governing_confidence: Optional[float]
@@ -106,6 +109,7 @@ class Judgment:
             "policy": self.policy,
             "input_hash": self.input_hash,
             "conflicts": [list(pair) for pair in self.conflicts],
+            "uncertain_pairs": [list(pair) for pair in self.uncertain_pairs],
             "pair_checks": self.pair_checks,
             "governing": self.governing,
             "governing_confidence": (
@@ -129,6 +133,7 @@ class Judgment:
             action=e["action"], confidence=e.get("confidence"),
             p_admit=e.get("p_admit"), governing=e.get("governing", False),
             conflicted=e.get("conflicted", False),
+            low_margin=e.get("low_margin", False),
             included=e.get("included", False),
         ) for e in body["entries"]]
         return cls(
@@ -136,6 +141,7 @@ class Judgment:
             question_set_version=body["question_set_version"],
             policy=body["policy"], input_hash=body["input_hash"],
             entries=entries, conflicts=body.get("conflicts", []),
+            uncertain_pairs=body.get("uncertain_pairs", []),
             pair_checks=body.get("pair_checks", 0),
             governing=body.get("governing"),
             governing_confidence=body.get("governing_confidence"),
@@ -145,6 +151,15 @@ class Judgment:
             created_at=body.get("created_at", ""),
             degraded=body.get("degraded", False), cached=True,
         )
+
+
+def _margin(probabilities: Mapping[str, Any]) -> Optional[float]:
+    """Gap between the top-two options; None when we cannot compute it."""
+    values = sorted((float(v) for v in probabilities.values()
+                     if isinstance(v, (int, float))), reverse=True)
+    if len(values) < 2:
+        return None
+    return values[0] - values[1]
 
 
 def _pack(entries: List[Entry], budget_bytes: int) -> tuple:
@@ -231,7 +246,7 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
                            model=model)
 
     def reviewed(record_id: str, text: str) -> Entry:
-        return Entry(record_id, text, REVIEW, None, None, False, False, False)
+        return Entry(record_id, text, REVIEW, None, None, False, False, False, False)
 
     # ---- stage 1: one admit choice per record, judged alone -----------------
     def admit_job(record: Mapping[str, Any]) -> Entry:
@@ -255,13 +270,16 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
             raise jev.JevError(f"admit::{record_id}: unknown choice {choice!r}")
         probabilities = answer.get("probabilities") or {}
         confidence = answer.get("confidence")
+        margin = _margin(probabilities)
+        thin = margin is None or margin < policy.margin
         return Entry(
-            record_id=record_id, text=text, action=choice,
+            record_id=record_id, text=text,
+            action=policy.action(choice, thin_margin=thin),
             confidence=(float(confidence)
                         if isinstance(confidence, (int, float)) else None),
             p_admit=(float(probabilities.get(ADMIT, 0.0))
                      if isinstance(probabilities.get(ADMIT), (int, float)) else None),
-            governing=False, conflicted=False, included=False,
+            governing=False, conflicted=False, low_margin=thin, included=False,
         )
 
     with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(records)))) as pool:
@@ -271,7 +289,9 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
 
     # ---- stage 2: localize conflicts with the validated pair question -------
     conflicts: List[List[str]] = []
+    uncertain_pairs: List[List[str]] = []
     conflicted_ids: Dict[str, bool] = {}
+    uncertain_ids: Dict[str, bool] = {}
     unknown_ids: Dict[str, bool] = {}
     pair_checks = 0
 
@@ -285,33 +305,43 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
                 raise
             with lock:
                 counter["degraded"] = True
-            return pair, None
+            return pair, None, None
         answer = jev.answer(parsed, "relation")
         probabilities = answer.get("probabilities") or {}
         observed = (max(probabilities, key=probabilities.get)
                     if probabilities else answer.get("choice"))
-        return pair, observed
+        margin = _margin(probabilities)
+        return pair, observed, margin
 
     if len(admitted) >= 2:
         pairs = list(combinations(admitted, 2))
         with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(pairs)))) as pool:
             results = list(pool.map(relation_job, pairs))
         pair_checks = len(pairs)
-        for (a, b), observed in results:
+        for (a, b), observed, margin in results:
             if observed is None:
                 unknown_ids[a.record_id] = True
                 unknown_ids[b.record_id] = True
                 continue
-            if observed == "contradiction":
+            # A confirmed contradiction needs a margin, not just an argmax:
+            # borderline pairs are exactly where sampling flips (~17% on the
+            # 'must' pair, borderline-stability.json).
+            if observed == "contradiction" and margin is not None \
+                    and margin >= policy.margin:
                 conflicts.append([a.record_id, b.record_id])
                 conflicted_ids[a.record_id] = True
                 conflicted_ids[b.record_id] = True
+            elif margin is None or margin < policy.margin:
+                uncertain_ids[a.record_id] = True
+                uncertain_ids[b.record_id] = True
+                uncertain_pairs.append([a.record_id, b.record_id])
     entries = [Entry(
         e.record_id, e.text,
-        REVIEW if (e.record_id in conflicted_ids or e.record_id in unknown_ids)
-        else e.action,
+        REVIEW if (e.record_id in conflicted_ids or e.record_id in unknown_ids
+                   or e.record_id in uncertain_ids) else e.action,
         e.confidence, e.p_admit, e.governing,
-        e.record_id in conflicted_ids, e.included,
+        e.record_id in conflicted_ids,
+        e.low_margin or e.record_id in uncertain_ids, e.included,
     ) for e in entries]
 
     # ---- stage 3: governing over the surviving set --------------------------
@@ -343,12 +373,13 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
         e.confidence, e.p_admit,
         governing == e.record_id and governing_value is not None
         and governing_value >= policy.governing_at,
-        e.conflicted, e.included,
+        e.conflicted, e.low_margin, e.included,
     ) for e in entries]
 
     used, omitted, included = _pack(entries, budget_bytes)
     entries = [Entry(e.record_id, e.text, e.action, e.confidence, e.p_admit,
-                     e.governing, e.conflicted, included[e.record_id])
+                     e.governing, e.conflicted, e.low_margin,
+                     included[e.record_id])
                for e in entries]
 
     latency_ms = int((time.monotonic() - started) * 1000)
@@ -356,7 +387,8 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
         task=task, model=resolved_model, question_set_version=version,
         policy=policy.to_dict(),
         input_hash=top_key,
-        entries=entries, conflicts=conflicts, pair_checks=pair_checks,
+        entries=entries, conflicts=conflicts, uncertain_pairs=uncertain_pairs,
+        pair_checks=pair_checks,
         governing=governing, governing_confidence=governing_value,
         used_bytes=used, budget_bytes=budget_bytes, omitted=omitted,
         latency_ms=latency_ms, requests=counter["requests"],
