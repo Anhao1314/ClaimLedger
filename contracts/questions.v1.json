@@ -1,0 +1,73 @@
+{
+  "version": "v1",
+  "frozen_at": "2026-11-02",
+  "description": "The typed question set. This file is the product: changing it is a version bump that invalidates every cached judgment and makes historical judgments comparable by diff.",
+  "questions": {
+    "relation": {
+      "type": "choice",
+      "applies_to": "pair",
+      "instructions": "What is the relation between statement A and statement B",
+      "criteria": {
+        "contradiction": "Following both is impossible; one forbids what the other requires",
+        "complementary": "Both can be true at once; one may refine or repeat the other",
+        "unrelated": "They talk about different things and do not constrain each other"
+      },
+      "decision_rule": "argmax of the returned probability map",
+      "validation": {
+        "evidence": "experiments/jev_relation_001",
+        "n_pairs": 30,
+        "scored": 29,
+        "observed_agreement": "29/29 scored; contradiction recall 10/10; false suppression 0/20",
+        "status": "VALIDATED"
+      }
+    },
+    "admit": {
+      "type": "choice",
+      "applies_to": "record",
+      "instructions": "Given the TASK, should this claim be admitted, reviewed, or excluded",
+      "criteria": {
+        "admit": "The claim constrains how the TASK must be done and is still in force",
+        "review": "It is unclear whether the claim applies or still holds; a human must look",
+        "exclude": "The claim does not constrain the TASK"
+      },
+      "decision_rule": "argmax of the returned probability map; on provider failure the record is review, never exclude",
+      "validation": {
+        "status": "UNVALIDATED",
+        "note": "Replaces the retired score = p(applies) x p(holds): one question instead of two, zero thresholds, no independence assumption."
+      }
+    },
+    "contradiction": {
+      "type": "noul",
+      "applies_to": "set",
+      "instructions": "Two or more of the listed claims contradict each other for this TASK.",
+      "decision_rule": "descriptive; >= 0.70 forces review for every non-excluded record",
+      "validation": {
+        "status": "UNVALIDATED"
+      }
+    },
+    "governing": {
+      "type": "choice",
+      "applies_to": "set",
+      "instructions": "Which single claim should govern the TASK",
+      "criteria_template": "one option per candidate record (text truncated to 160 chars) plus 'none': No single claim governs this task",
+      "decision_rule": "confidence >= 0.80 promotes that record to admit; the contradiction field is still reported",
+      "validation": {
+        "status": "PARTIALLY_EXERCISED",
+        "note": "Exercised in scripts/jev_first_demo.py; no labelled measurement."
+      }
+    }
+  },
+  "retired": [
+    {
+      "name": "applies",
+      "was": "noul per record",
+      "why": "Folded into 'admit'; keeping both required an independence assumption and a hand-made product to combine them."
+    },
+    {
+      "name": "holds",
+      "was": "noul per record",
+      "why": "Same as 'applies'."
+    }
+  ],
+  "cost_rule": "One request per decision. The question count is the latency driver (10 questions measured 2.9-11.2 s), so candidate sets are capped at 6 records."
+}

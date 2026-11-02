@@ -1,0 +1,53 @@
+{
+  "version": "v1",
+  "frozen_at": "2026-11-02",
+  "description": "What a memory record is. Status is deliberately absent: whether a record still holds is a judgment (questions.v1), not a stored field. Storing it would make model swaps unmeasurable.",
+  "fields": {
+    "record_id": {
+      "type": "string",
+      "rule": "\"rec_\" + first 24 hex chars of sha256 over the canonical body {text, source, at, scope}",
+      "required": true
+    },
+    "text": {
+      "type": "string",
+      "required": true,
+      "min_length": 1,
+      "note": "The decision or constraint, standalone. Not a conversation excerpt."
+    },
+    "source": {
+      "type": "string",
+      "required": true,
+      "note": "Which agent, tool, or human wrote it. Free-form for v1; identity arrives only if the relay goal is ever revived."
+    },
+    "at": {
+      "type": "string",
+      "format": "ISO-8601 UTC",
+      "required": true
+    },
+    "scope": {
+      "type": "string or null",
+      "default": null,
+      "note": "Where the claim applies (service, repo, environment). Structural label only."
+    },
+    "prev_hash": {
+      "type": "string",
+      "rule": "sha256 hex of the previous record's canonical body; genesis is 64 zeros",
+      "required": true,
+      "note": "Local tamper-evidence. A chain held by one party is a log, not a proof; this is deliberate and cheap."
+    }
+  },
+  "canonicalization": {
+    "json": "json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(',', ':'))"
+  },
+  "absent_by_design": [
+    "status",
+    "supersedes",
+    "superseded_by",
+    "expires_at",
+    "depends_on",
+    "valid_from",
+    "valid_to"
+  ],
+  "absent_by_design_rationale": "Every field above was a stored judgment in the legacy runtime. Here they are re-derivable at any time by running questions.v1 against the record set, which is what makes cross-model comparison possible. Re-adding any of them is a v2 design change and must say why the judgment is no longer trusted.",
+  "migration_note": "The legacy ClaimStore stays readable and untouched. Migration is export-to-records, one record per current claim; statuses are not carried over because they will be re-judged."
+}

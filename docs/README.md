@@ -15,7 +15,7 @@ contracts live here and in `references/`, rather than being repeated on the home
 | Try the low-level engine without touching real memory | [Quick start](../README.md#quick-start) / [快速体验](../README.zh-CN.md#quick-start) |
 | Import conversations or upgrade existing data | [Ingestion and migration](ingestion.md) |
 | Integrate a Python agent or understand packet limits | [Memory Engine API](memory-engine.md) |
-| Understand authority and trust boundaries | [Architecture](architecture.md) · [Naming layers](architecture.md#naming-layers-deliberate-not-drift) |
+| Understand authority and trust boundaries | [Architecture](architecture.md) · [Naming layers](architecture.md#6-naming-layers-deliberate-not-drift) |
 | Compile versioned topic pages and recover layered context | [Knowledge Wiki](knowledge-wiki.md) · [Proposal contract](../references/knowledge-schema.md) |
 | Understand the research and controlled wiki experiments | [Design](wiki-design.md) · [Verification](wiki-verification.md) · [CompileBench](../benchmarks/wiki/results.md) |
 | Inspect test evidence and reproduce results | [Verification ledger](verification.md) · [Handoff recovery experiment](experiments/handoff-recovery-2026-10-08.md) |
