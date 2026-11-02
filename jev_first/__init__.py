@@ -20,11 +20,13 @@ from .log import read as read_log
 from .policy import ADMIT, EXCLUDE, REVIEW, Policy
 from .questions import render_state
 from .records import RecordStore
+from .select import select_candidates
 
 __all__ = [
     "ADMIT", "EXCLUDE", "REVIEW",
     "Cache", "ContractError", "Entry", "Judgment", "Policy", "RecordStore",
     "append_judgment", "judge", "make_record", "read_log",
-    "relation_question", "render_state", "validate_record",
+    "relation_question", "render_state", "select_candidates",
+    "validate_record",
     "verify_log", "verify_manifest",
 ]

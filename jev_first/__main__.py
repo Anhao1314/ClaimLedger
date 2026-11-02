@@ -55,7 +55,7 @@ def main(argv=None) -> int:
     p_record.add_argument("--scope")
     p_record.add_argument("--at")
 
-    p_judge = sub.add_parser("judge", help="judge the store against a task")
+    p_judge = sub.add_parser("judge", help="judge pre-selected records against a task")
     p_judge.add_argument("--store", required=True)
     p_judge.add_argument("--task", required=True)
     p_judge.add_argument("--budget", type=int, default=DEFAULT_BUDGET_BYTES)
@@ -64,6 +64,18 @@ def main(argv=None) -> int:
     p_judge.add_argument("--no-cache", action="store_true")
     p_judge.add_argument("--log", help="sealed judgment log path")
     p_judge.add_argument("--on-error", choices=("raise", "review"), default="review")
+
+    p_decide = sub.add_parser("decide", help="select candidates from the store, then judge")
+    p_decide.add_argument("--store", required=True)
+    p_decide.add_argument("--task", required=True)
+    p_decide.add_argument("--scope", help="restrict candidates to a scope")
+    p_decide.add_argument("--limit", type=int, default=6)
+    p_decide.add_argument("--budget", type=int, default=DEFAULT_BUDGET_BYTES)
+    p_decide.add_argument("--model")
+    p_decide.add_argument("--cache", help="judgment cache path")
+    p_decide.add_argument("--no-cache", action="store_true")
+    p_decide.add_argument("--log", help="sealed judgment log path")
+    p_decide.add_argument("--on-error", choices=("raise", "review"), default="review")
 
     p_verify = sub.add_parser("verify", help="verify the record hash chain")
     p_verify.add_argument("--store", required=True)
@@ -86,6 +98,27 @@ def main(argv=None) -> int:
             return 2
         cache = None if args.no_cache else Cache(args.cache or args.store + ".cache.jsonl")
         judgment = judge(args.task, records, budget_bytes=args.budget,
+                         model=args.model, on_error=args.on_error, cache=cache)
+        sealed = None
+        if args.log:
+            sealed = log.append_judgment(args.log, judgment.to_dict())
+        _print_decision(judgment, sealed)
+        return 0
+
+    if args.command == "decide":
+        from .select import select_candidates
+        records = RecordStore(args.store).load()
+        if not records:
+            print("store is empty", file=sys.stderr)
+            return 2
+        candidates, stats = select_candidates(records, args.task,
+                                              scope=args.scope, limit=args.limit)
+        print(f"selection: {stats}")
+        if not candidates:
+            print("no candidates in scope", file=sys.stderr)
+            return 2
+        cache = None if args.no_cache else Cache(args.cache or args.store + ".cache.jsonl")
+        judgment = judge(args.task, candidates, budget_bytes=args.budget,
                          model=args.model, on_error=args.on_error, cache=cache)
         sealed = None
         if args.log:
