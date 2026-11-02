@@ -1,0 +1,570 @@
+{
+  "schema": "jev_replay_v1",
+  "requested_model": "jev-preview",
+  "served_models": [
+    "jev-1.14.0"
+  ],
+  "baseline_models": [
+    "jev-1.14.0"
+  ],
+  "question_source": "contracts/questions.v1.json (relation)",
+  "n": 30,
+  "scored": 30,
+  "errors": 0,
+  "label_agreement": {
+    "comparable": 29,
+    "agree": 29,
+    "differ": 0,
+    "rate": 1.0
+  },
+  "contradiction_probability": {
+    "mean_abs_delta": 0.0024,
+    "max_abs_delta": 0.02
+  },
+  "latency_ms": {
+    "median": 1217,
+    "max": 6678
+  },
+  "rows": [
+    {
+      "id": "P01",
+      "label": "contradiction",
+      "a": "All storage must use PostgreSQL.",
+      "b": "This service must use SQLite; PostgreSQL is forbidden here.",
+      "observed": "contradiction",
+      "confidence": 0.97,
+      "probabilities": {
+        "contradiction": 0.98,
+        "complementary": 0.01,
+        "unrelated": 0.01
+      },
+      "prior_observed": "contradiction",
+      "prior_p_contradiction": 0.98,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1974
+    },
+    {
+      "id": "P02",
+      "label": "contradiction",
+      "a": "PostgreSQL is banned for this service.",
+      "b": "Use PostgreSQL for all storage.",
+      "observed": "contradiction",
+      "confidence": 1.0,
+      "probabilities": {
+        "contradiction": 1.0,
+        "complementary": 0.0,
+        "unrelated": 0.0
+      },
+      "prior_observed": "contradiction",
+      "prior_p_contradiction": 1.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1070
+    },
+    {
+      "id": "P03",
+      "label": "contradiction",
+      "a": "Deployments happen only on Tuesdays.",
+      "b": "Ship this change on Friday.",
+      "observed": "contradiction",
+      "confidence": 0.96,
+      "probabilities": {
+        "contradiction": 0.97,
+        "complementary": 0.01,
+        "unrelated": 0.02
+      },
+      "prior_observed": "contradiction",
+      "prior_p_contradiction": 0.95,
+      "p_delta_contradiction": 0.02,
+      "model": "jev-1.14.0",
+      "latency_ms": 2939
+    },
+    {
+      "id": "P04",
+      "label": "contradiction",
+      "a": "API v1 must remain unchanged.",
+      "b": "Remove the v1 endpoints.",
+      "observed": "contradiction",
+      "confidence": 1.0,
+      "probabilities": {
+        "contradiction": 1.0,
+        "complementary": 0.0,
+        "unrelated": 0.0
+      },
+      "prior_observed": "contradiction",
+      "prior_p_contradiction": 1.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1533
+    },
+    {
+      "id": "P05",
+      "label": "contradiction",
+      "a": "The robot must never exceed 0.5 m/s.",
+      "b": "Command 0.8 m/s on this route.",
+      "observed": "contradiction",
+      "confidence": 1.0,
+      "probabilities": {
+        "contradiction": 1.0,
+        "complementary": 0.0,
+        "unrelated": 0.0
+      },
+      "prior_observed": "contradiction",
+      "prior_p_contradiction": 1.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1418
+    },
+    {
+      "id": "P06",
+      "label": "contradiction",
+      "a": "Model weights must stay on-premise.",
+      "b": "Upload the weights to the vendor cloud bucket.",
+      "observed": "contradiction",
+      "confidence": 1.0,
+      "probabilities": {
+        "contradiction": 1.0,
+        "complementary": 0.0,
+        "unrelated": 0.0
+      },
+      "prior_observed": "contradiction",
+      "prior_p_contradiction": 1.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1921
+    },
+    {
+      "id": "P07",
+      "label": "contradiction",
+      "a": "All inference must use the pinned model jev-1.14.0.",
+      "b": "Always call jev-latest.",
+      "observed": "contradiction",
+      "confidence": 0.89,
+      "probabilities": {
+        "contradiction": 0.93,
+        "complementary": 0.04,
+        "unrelated": 0.03
+      },
+      "prior_observed": "contradiction",
+      "prior_p_contradiction": 0.94,
+      "p_delta_contradiction": -0.01,
+      "model": "jev-1.14.0",
+      "latency_ms": 964
+    },
+    {
+      "id": "P08",
+      "label": "contradiction",
+      "a": "Only the founder may approve a release.",
+      "b": "Any engineer can approve a release without review.",
+      "observed": "contradiction",
+      "confidence": 0.98,
+      "probabilities": {
+        "contradiction": 0.99,
+        "complementary": 0.01,
+        "unrelated": 0.0
+      },
+      "prior_observed": "contradiction",
+      "prior_p_contradiction": 1.0,
+      "p_delta_contradiction": -0.01,
+      "model": "jev-1.14.0",
+      "latency_ms": 1397
+    },
+    {
+      "id": "P09",
+      "label": "contradiction",
+      "a": "Retries must be at most 3.",
+      "b": "Retry until it succeeds, with no limit.",
+      "observed": "contradiction",
+      "confidence": 1.0,
+      "probabilities": {
+        "contradiction": 1.0,
+        "complementary": 0.0,
+        "unrelated": 0.0
+      },
+      "prior_observed": "contradiction",
+      "prior_p_contradiction": 1.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1241
+    },
+    {
+      "id": "P10",
+      "label": "contradiction",
+      "a": "Customer data must not leave the EU.",
+      "b": "Replicate all customer data to us-east-1.",
+      "observed": "contradiction",
+      "confidence": 1.0,
+      "probabilities": {
+        "contradiction": 1.0,
+        "complementary": 0.0,
+        "unrelated": 0.0
+      },
+      "prior_observed": "contradiction",
+      "prior_p_contradiction": 1.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1283
+    },
+    {
+      "id": "P11",
+      "label": "complementary",
+      "a": "All storage uses PostgreSQL.",
+      "b": "SQLite is deprecated for this service.",
+      "observed": "complementary",
+      "confidence": 0.66,
+      "probabilities": {
+        "contradiction": 0.12,
+        "complementary": 0.77,
+        "unrelated": 0.11
+      },
+      "prior_observed": "complementary",
+      "prior_p_contradiction": 0.14,
+      "p_delta_contradiction": -0.02,
+      "model": "jev-1.14.0",
+      "latency_ms": 1017
+    },
+    {
+      "id": "P12",
+      "label": "complementary",
+      "a": "Storage must run on PostgreSQL 16.",
+      "b": "Use PostgreSQL 16 for all storage.",
+      "observed": "complementary",
+      "confidence": 1.0,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 1.0,
+        "unrelated": 0.0
+      },
+      "prior_observed": "complementary",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1120
+    },
+    {
+      "id": "P13",
+      "label": "complementary",
+      "a": "Never exceed 0.5 m/s.",
+      "b": "Cap commanded speed at 0.5 m/s on this route.",
+      "observed": "complementary",
+      "confidence": 1.0,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 1.0,
+        "unrelated": 0.0
+      },
+      "prior_observed": "complementary",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1194
+    },
+    {
+      "id": "P14",
+      "label": "complementary",
+      "a": "API v1 must remain unchanged.",
+      "b": "Do not modify v1 endpoints in this release.",
+      "observed": "complementary",
+      "confidence": 1.0,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 1.0,
+        "unrelated": 0.0
+      },
+      "prior_observed": "complementary",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1061
+    },
+    {
+      "id": "P15",
+      "label": "complementary",
+      "a": "Only the founder approves releases.",
+      "b": "Release approvals require the founder.",
+      "observed": "complementary",
+      "confidence": 0.98,
+      "probabilities": {
+        "contradiction": 0.01,
+        "complementary": 0.99,
+        "unrelated": 0.0
+      },
+      "prior_observed": "ERROR",
+      "prior_p_contradiction": null,
+      "p_delta_contradiction": null,
+      "model": "jev-1.14.0",
+      "latency_ms": 1096
+    },
+    {
+      "id": "P16",
+      "label": "complementary",
+      "a": "Retries must be at most 3.",
+      "b": "Do not retry more than three times.",
+      "observed": "complementary",
+      "confidence": 1.0,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 1.0,
+        "unrelated": 0.0
+      },
+      "prior_observed": "complementary",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1133
+    },
+    {
+      "id": "P17",
+      "label": "complementary",
+      "a": "Customer data stays in the EU.",
+      "b": "EU data must not be replicated outside the EU.",
+      "observed": "complementary",
+      "confidence": 0.96,
+      "probabilities": {
+        "contradiction": 0.01,
+        "complementary": 0.97,
+        "unrelated": 0.02
+      },
+      "prior_observed": "complementary",
+      "prior_p_contradiction": 0.01,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1143
+    },
+    {
+      "id": "P18",
+      "label": "complementary",
+      "a": "Inference uses the pinned model.",
+      "b": "Pin the model version used for inference.",
+      "observed": "complementary",
+      "confidence": 0.98,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 0.99,
+        "unrelated": 0.01
+      },
+      "prior_observed": "complementary",
+      "prior_p_contradiction": 0.01,
+      "p_delta_contradiction": -0.01,
+      "model": "jev-1.14.0",
+      "latency_ms": 999
+    },
+    {
+      "id": "P19",
+      "label": "complementary",
+      "a": "Deployments happen only on Tuesdays.",
+      "b": "Tuesday is the deployment window.",
+      "observed": "complementary",
+      "confidence": 1.0,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 1.0,
+        "unrelated": 0.0
+      },
+      "prior_observed": "complementary",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 6001
+    },
+    {
+      "id": "P20",
+      "label": "complementary",
+      "a": "Store weights on-premise.",
+      "b": "On-premise storage is required for model weights.",
+      "observed": "complementary",
+      "confidence": 0.98,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 0.99,
+        "unrelated": 0.01
+      },
+      "prior_observed": "complementary",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1149
+    },
+    {
+      "id": "P21",
+      "label": "unrelated",
+      "a": "All storage uses PostgreSQL.",
+      "b": "The release train leaves Friday at 14:00 UTC.",
+      "observed": "unrelated",
+      "confidence": 1.0,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 0.0,
+        "unrelated": 1.0
+      },
+      "prior_observed": "unrelated",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 6678
+    },
+    {
+      "id": "P22",
+      "label": "unrelated",
+      "a": "Never exceed 0.5 m/s.",
+      "b": "The G1 robot has 23 degrees of freedom.",
+      "observed": "unrelated",
+      "confidence": 0.98,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 0.01,
+        "unrelated": 0.99
+      },
+      "prior_observed": "unrelated",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1484
+    },
+    {
+      "id": "P23",
+      "label": "unrelated",
+      "a": "Only the founder approves releases.",
+      "b": "The billing service uses Stripe.",
+      "observed": "unrelated",
+      "confidence": 0.98,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 0.01,
+        "unrelated": 0.99
+      },
+      "prior_observed": "unrelated",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1021
+    },
+    {
+      "id": "P24",
+      "label": "unrelated",
+      "a": "Customer data stays in the EU.",
+      "b": "Logs are retained for 30 days.",
+      "observed": "unrelated",
+      "confidence": 0.88,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 0.08,
+        "unrelated": 0.92
+      },
+      "prior_observed": "unrelated",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1438
+    },
+    {
+      "id": "P25",
+      "label": "unrelated",
+      "a": "Retries must be at most 3.",
+      "b": "The API returns JSON.",
+      "observed": "unrelated",
+      "confidence": 0.98,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 0.01,
+        "unrelated": 0.99
+      },
+      "prior_observed": "unrelated",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1091
+    },
+    {
+      "id": "P26",
+      "label": "unrelated",
+      "a": "API v1 must remain unchanged.",
+      "b": "The frontend uses React 19.",
+      "observed": "unrelated",
+      "confidence": 0.97,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 0.02,
+        "unrelated": 0.98
+      },
+      "prior_observed": "unrelated",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1326
+    },
+    {
+      "id": "P27",
+      "label": "unrelated",
+      "a": "Model weights stay on-premise.",
+      "b": "The training cluster has eight H100 GPUs.",
+      "observed": "unrelated",
+      "confidence": 0.5,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 0.33,
+        "unrelated": 0.67
+      },
+      "prior_observed": "unrelated",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1074
+    },
+    {
+      "id": "P28",
+      "label": "unrelated",
+      "a": "Deployments happen only on Tuesdays.",
+      "b": "The on-call rotation changes monthly.",
+      "observed": "unrelated",
+      "confidence": 0.97,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 0.02,
+        "unrelated": 0.98
+      },
+      "prior_observed": "unrelated",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1346
+    },
+    {
+      "id": "P29",
+      "label": "unrelated",
+      "a": "PostgreSQL is banned for analytics.",
+      "b": "The analytics dashboard has four charts.",
+      "observed": "unrelated",
+      "confidence": 0.91,
+      "probabilities": {
+        "contradiction": 0.02,
+        "complementary": 0.04,
+        "unrelated": 0.94
+      },
+      "prior_observed": "unrelated",
+      "prior_p_contradiction": 0.02,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1293
+    },
+    {
+      "id": "P30",
+      "label": "unrelated",
+      "a": "Inference uses the pinned model.",
+      "b": "Prompts are written in English.",
+      "observed": "unrelated",
+      "confidence": 0.91,
+      "probabilities": {
+        "contradiction": 0.0,
+        "complementary": 0.06,
+        "unrelated": 0.94
+      },
+      "prior_observed": "unrelated",
+      "prior_p_contradiction": 0.0,
+      "p_delta_contradiction": 0.0,
+      "model": "jev-1.14.0",
+      "latency_ms": 1066
+    }
+  ]
+}
