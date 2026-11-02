@@ -108,6 +108,36 @@ class DecideTests(unittest.TestCase):
         )
         self.assertEqual({e.action for e in decision.entries if e.score > 0.5}, {REVIEW})
 
+    def test_confident_governing_claim_is_admitted_under_contradiction(self):
+        decision = decide(
+            "write an adapter for analytics", CLAIMS,
+            caller=fake_caller({
+                "clm_a": (0.83, 0.18),
+                "clm_b": (0.89, 0.63),
+                "clm_c": (0.1, 0.9),
+            }, governing="clm_b", contradiction=0.92),
+        )
+        by_id = {e.claim_id: e for e in decision.entries}
+        self.assertTrue(by_id["clm_b"].governing)
+        self.assertEqual(by_id["clm_b"].action, ADMIT)
+        self.assertEqual(decision.contradiction, 0.92)
+
+    def test_low_confidence_governing_does_not_override(self):
+        def weak(state, questions):
+            answers = {"contradiction": {"type": "noul", "noul": 0.9},
+                       "governing": {"type": "choice", "choice": "clm_b", "confidence": 0.5},
+                       "applies::clm_a": {"type": "noul", "noul": 0.9},
+                       "holds::clm_a": {"type": "noul", "noul": 0.9},
+                       "applies::clm_b": {"type": "noul", "noul": 0.55},
+                       "holds::clm_b": {"type": "noul", "noul": 0.55},
+                       "applies::clm_c": {"type": "noul", "noul": 0.1},
+                       "holds::clm_c": {"type": "noul", "noul": 0.9}}
+            return {"model": "jev-test", "answers": answers}
+        decision = decide("t", CLAIMS, caller=weak)
+        by_id = {e.claim_id: e for e in decision.entries}
+        self.assertFalse(by_id["clm_b"].governing)
+        self.assertEqual(by_id["clm_b"].action, REVIEW)
+
     def test_budget_omits_and_reports(self):
         claims = [{"claim_id": f"clm_{i}", "text": "x" * 200} for i in range(5)]
         probs = {f"clm_{i}": (0.9, 0.9) for i in range(5)}

@@ -41,12 +41,13 @@ def main() -> int:
     print(f"contradict: {decision.contradiction:.2f}   governing: {decision.governing}"
           f" ({decision.governing_confidence})")
     print()
-    print(f"{'claim':14} {'p(applies)':>10} {'p(holds)':>9} {'score':>6}  {'action':7} {'in':3}")
-    print("-" * 60)
+    print(f"{'claim':14} {'p(applies)':>10} {'p(holds)':>9} {'score':>6}  {'action':7} {'in':3} {'gov':3}")
+    print("-" * 68)
     for entry in sorted(decision.entries, key=lambda e: e.score, reverse=True):
         print(f"{entry.claim_id:14} {entry.p_applies:>10.2f} {entry.p_holds:>9.2f} "
-              f"{entry.score:>6.2f}  {entry.action:7} {'yes' if entry.included else 'no':3}")
-    print("-" * 60)
+              f"{entry.score:>6.2f}  {entry.action:7} {'yes' if entry.included else 'no':3} "
+              f"{'yes' if entry.governing else '':3}")
+    print("-" * 68)
     print(f"bytes {decision.used_bytes}/{decision.budget_bytes}   omitted {decision.omitted}")
 
     with tempfile.TemporaryDirectory(prefix="jev-first-") as tmp:

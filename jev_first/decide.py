@@ -23,6 +23,7 @@ class Entry:
     score: float
     action: str
     included: bool
+    governing: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -32,6 +33,7 @@ class Entry:
             "score": round(self.score, 4),
             "action": self.action,
             "included": self.included,
+            "governing": self.governing,
         }
 
 
@@ -111,6 +113,10 @@ def decide(task: str, claims: Sequence[Mapping[str, Any]], *,
     governing_confidence = governing_answer.get("confidence")
     if governing == "none":
         governing = None
+    confidence_value = (
+        float(governing_confidence)
+        if isinstance(governing_confidence, (int, float)) else None
+    )
 
     raw: List[Entry] = []
     for claim in claims:
@@ -118,11 +124,17 @@ def decide(task: str, claims: Sequence[Mapping[str, Any]], *,
         applies = _prob(jev.answer(parsed, f"applies::{claim_id}"), "noul", claim_id)
         holds = _prob(jev.answer(parsed, f"holds::{claim_id}"), "noul", claim_id)
         score = applies * holds
+        is_governing = (
+            governing == claim_id
+            and confidence_value is not None
+            and confidence_value >= policy.governing_at
+        )
         raw.append(Entry(
             claim_id=claim_id, text=str(claim["text"]),
             p_applies=applies, p_holds=holds, score=score,
-            action=policy.action(score, contradiction=contradiction),
-            included=False,
+            action=policy.action(score, contradiction=contradiction,
+                                 governing=is_governing),
+            included=False, governing=is_governing,
         ))
 
     # Byte budget: rank by score, fill until the budget is spent. Excluded
@@ -143,16 +155,15 @@ def decide(task: str, claims: Sequence[Mapping[str, Any]], *,
         included[index] = True
 
     entries = [
-        Entry(e.claim_id, e.text, e.p_applies, e.p_holds, e.score, e.action, included[i])
+        Entry(e.claim_id, e.text, e.p_applies, e.p_holds, e.score, e.action,
+              included[i], e.governing)
         for i, e in enumerate(raw)
     ]
     return Decision(
         task=task, model=str(parsed.get("model", "?")),
         policy=policy.to_dict(), entries=entries,
         contradiction=contradiction, governing=governing,
-        governing_confidence=(
-            float(governing_confidence)
-            if isinstance(governing_confidence, (int, float)) else None),
+        governing_confidence=confidence_value,
         used_bytes=used, budget_bytes=budget_bytes, omitted=omitted,
         latency_ms=latency_ms, usage=dict(parsed.get("usage") or {}),
     )

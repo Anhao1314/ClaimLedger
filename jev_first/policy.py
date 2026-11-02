@@ -22,22 +22,32 @@ ACTIONS = (ADMIT, REVIEW, EXCLUDE)
 
 @dataclass(frozen=True)
 class Policy:
-    version: str = "v1"
+    version: str = "v1.1"
     admit_at: float = 0.60
     review_at: float = 0.30
     contradiction_review_at: float = 0.70
+    # Jev's single-claim "which claim governs this task" answer is its
+    # highest-value output. A confident governing claim is admitted even when
+    # the set is contradictory; the contradiction stays visible as its own
+    # field, so nothing is silently suppressed.
+    governing_at: float = 0.80
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.review_at <= self.admit_at <= 1.0:
             raise ValueError("require 0 <= review_at <= admit_at <= 1")
         if not 0.0 <= self.contradiction_review_at <= 1.0:
             raise ValueError("contradiction_review_at must be within [0, 1]")
+        if not 0.0 <= self.governing_at <= 1.0:
+            raise ValueError("governing_at must be within [0, 1]")
 
-    def action(self, score: float, *, contradiction: float = 0.0) -> str:
+    def action(self, score: float, *, contradiction: float = 0.0,
+               governing: bool = False) -> str:
         if not 0.0 <= score <= 1.0:
             raise ValueError("score must be within [0, 1]")
         if score < self.review_at:
             return EXCLUDE
+        if governing:
+            return ADMIT
         if contradiction >= self.contradiction_review_at:
             return REVIEW
         if score >= self.admit_at:
