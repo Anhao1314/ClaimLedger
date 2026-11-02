@@ -7,11 +7,25 @@
 
 # ClaimLedger · The decision ledger
 
+> **Status (2026-11) — an engineering artifact, not a research contribution.**
+>
+> This repository's founding question — do agents act on superseded conclusions, and does status filtering prevent it — was answered before this repository existed, with stronger evidence: *Revoked but Still Authoritative* (arXiv:2609.08258, Sep 2026) tested 5 memory systems × 9 models × 9 policy scenarios and found that **no system enforces revocation by default**. The governed-memory design space is covered by GPM (arXiv:2608.12476), MemTX (arXiv:2607.23929) and PLACE (arXiv:2610.25179).
+>
+> What remains here is a small, dependency-free implementation with one unusual property: **every rule that decides what counts as current is readable in one file.** Its value is auditability and honest limits, not novelty. [Why it was kept, and when to use it](docs/DECISION.md) · [the literature check that ended the research framing](docs/prior-art.md).
+
 **The decision ledger for AI agents.** Record each decision once; keep its status and source; never serve an expired conclusion as current — locally, with zero third-party dependencies, zero network calls and zero model keys.
 
 Previously **CarryTrace / chat-distiller**; compatible entry points and the existing data home (`~/.chat-distiller`, package `chat_distiller`) remain.
 
 > Retrieval hit ≠ current conclusion. A recorded conflict ≠ a resolved dispute. A quote that exists ≠ a conclusion that holds.
+
+| | |
+|---|---|
+| **Problem** | A long-running agent re-derives decisions from transcripts and acts on conclusions that were already superseded. |
+| **Approach** | A claim store where status is first-class (`current` / `superseded` / `disputed`), conflicts are refused at write time, and `--at` reconstructs what the ledger believed at any past instant. |
+| **Trade-off** | Deterministic code owns structure and integrity; it never judges truth. Semantic judgment stays with the agent and the human. |
+| **Known failure** | Conflict detection is lexical, so semantically opposite statements can pass as unrelated. On the conflict slice of our own benchmark, status-aware Recall@1 is 0.00 against a 0.75 baseline. |
+| **Research status** | Closed — the implementation is kept; the claim is not. |
 
 [![Tests](https://github.com/Anhao1314/ClaimLedger/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Anhao1314/ClaimLedger/actions/workflows/tests.yml)
 [![Evidence](https://github.com/Anhao1314/ClaimLedger/actions/workflows/evidence.yml/badge.svg?branch=main)](https://github.com/Anhao1314/ClaimLedger/actions/workflows/evidence.yml)
@@ -98,6 +112,8 @@ Fully local: one JSONL file, zero dependencies, no daemon; switch tools or model
 | Structured + status-aware | **0.7083** | 0.9167 | **0.7931** | 0.0000 |
 
 Status filtering pushes stale hits in retrieved results from **54% to 0** — the quantified form of "never serve an outdated conclusion as current". The trade-off is stated just as honestly: status-aware ranking reduces Recall@5 from 1.0000 to 0.9167 in this fixture. [Per-case results and intent slices](benchmarks/benchmark-results.md).
+
+**That aggregate hides a bimodal result, and the split is the honest reading.** On the five current-state queries, status-aware ranking raises Recall@1 from 0.20 to 1.00. On the four conflict/controversial queries it drops Recall@1 from 0.75 to 0.00, with MRR falling from 0.8125 to 0.1750. The mechanism that fixes "what is current" is the same mechanism that suppresses "what is contested". The [intent split](benchmarks/benchmark-results.md) reports both; the aggregate reports neither.
 
 **Structural safety checks** (CompileBench: four topics, twelve curated atomic cards, zero model calls — an engineering check, not semantic accuracy):
 

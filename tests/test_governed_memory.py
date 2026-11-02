@@ -66,12 +66,15 @@ class GovernedMemoryTests(unittest.TestCase):
                          ["clm_a000000000000001"])
 
     def test_scheduled_decision_is_not_current_until_valid_from(self):
+        # Relative to "now": a hard-coded future date turns this test red the
+        # day it arrives, which is exactly what happened on 2026-11-01.
+        start = datetime.now(timezone.utc) + timedelta(days=2)
         self.write_raw(self.raw_claim(
-            "clm_c000000000000003", "十一月起新域名生效",
-            created_at="2026-10-01T00:00:00Z", valid_from="2026-11-01T00:00:00Z"))
+            "clm_c000000000000003", "新域名尚未生效",
+            created_at="2026-10-01T00:00:00Z", valid_from=iso(start)))
         live = self.store.brief()
         self.assertEqual(live["counts"]["current"], 0)
-        after = self.store.brief(at="2026-11-02T00:00:00Z")
+        after = self.store.brief(at=iso(start + timedelta(days=1)))
         self.assertEqual(after["counts"]["current"], 1)
         self.assertEqual(status_at(self.store.claims(status="all")[0], moment("2026-10-15T00:00:00Z")),
                          None)

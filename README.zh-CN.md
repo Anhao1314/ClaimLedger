@@ -7,11 +7,25 @@
 
 # ClaimLedger · 台账
 
+> **状态（2026-11）——这是一个工程实现，不是研究贡献。**
+>
+> 本仓库最初的问题——agent 会不会照着已被推翻的结论行动、状态过滤能否阻止——在仓库存在之前就已被更强地回答了：*Revoked but Still Authoritative*（arXiv:2609.08258，2026-09）用 5 个记忆系统 × 9 个模型 × 9 个策略场景证明，**没有任何系统默认执行撤销**。治理式记忆的设计空间已由 GPM（arXiv:2608.12476）、MemTX（arXiv:2607.23929）与 PLACE（arXiv:2610.25179）覆盖。
+>
+> 这里保留的是一个零依赖的小型实现，它有一个不常见的性质：**决定"什么算现行"的每一条规则，都能在一个文件里读完。** 它的价值是可审计与诚实的边界，不是新颖性。[为什么保留它、什么条件下该用它](docs/DECISION.md) · [终结研究定位的那次文献核查](docs/prior-art.md)。
+
 **AI Agent 的决定台账。** 决策只记录一次，保留状态与出处，过期结论永不冒充现状——全部本地运行，零第三方依赖、零网络调用、零模型密钥。
 
 曾用名 **CarryTrace / chat-distiller**；兼容入口与既有数据目录（`~/.chat-distiller`，包名 `chat_distiller`）均保留。
 
 > 检索命中 ≠ 结论现行；冲突已记录 ≠ 争议已收场；引用存在 ≠ 结论正确。
+
+| | |
+|---|---|
+| **问题** | 长程 agent 从转录里重新推导决策，照着早已被推翻的结论行动。 |
+| **做法** | 把状态做成一等公民（`current` / `superseded` / `disputed`），写入时拒绝冲突，`--at` 重建任意时点的信念。 |
+| **取舍** | 确定性代码只负责结构与完整性，从不判断真值；语义判断留给 agent 和人。 |
+| **已知失败** | 冲突检测是词法的，语义相反的两句话可能被当作无关。在我们自己的基准的争议切片上，状态感知 Recall@1 是 0.00，基线是 0.75。 |
+| **研究状态** | 已关闭——保留实现，撤回主张。 |
 
 [![测试](https://github.com/Anhao1314/ClaimLedger/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Anhao1314/ClaimLedger/actions/workflows/tests.yml)
 [![验证证据](https://github.com/Anhao1314/ClaimLedger/actions/workflows/evidence.yml/badge.svg?branch=main)](https://github.com/Anhao1314/ClaimLedger/actions/workflows/evidence.yml)
@@ -98,6 +112,8 @@ record --depends-on …  硬依赖边；前提坍塌时，依赖者自动进入"
 | 结构化 + 状态感知 | **0.7083** | 0.9167 | **0.7931** | 0.0000 |
 
 状态过滤把检索结果里的过期命中从 **54% 压到 0**——这正是"不拿过期结论当现状"的量化形态。代价同样如实：状态排序在这组数据中使 Recall@5 从 1.0000 降至 0.9167。[逐例结果与意图切片](benchmarks/benchmark-results.md)。
+
+**聚合表掩盖了一个双峰结果，切片才是诚实的读法。** 五个 current-state 查询上，状态感知把 Recall@1 从 0.20 提到 1.00；四个 conflict/controversial 查询上，它把 Recall@1 从 0.75 降到 0.00，MRR 从 0.8125 降到 0.1750。修好"什么现行"的机制，正是压掉"什么有争议"的同一个机制。[意图切片](benchmarks/benchmark-results.md)两个都报，聚合表两个都没报。
 
 **结构安全检查**（CompileBench：四个主题、十二张人工编写的原子卡片、零模型调用。这是工程检查，不是语义准确率）：
 
