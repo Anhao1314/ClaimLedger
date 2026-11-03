@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 from jev_first import contracts
+from jev_first import proposals as proposal_log
 from jev_first.mcp_server import MemoryServer
 from jev_first.records import body_hash
 from jev_first.policy import ADMIT
@@ -42,51 +43,64 @@ class HandlerTests(unittest.TestCase):
         self.assertIsNone(self.server.handle(
             {"jsonrpc": "2.0", "method": "notifications/initialized"}))
 
-    def test_six_tools_listed(self):
+    def test_eight_tools_listed(self):
         response = self.server.handle(
             {"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         names = [t["name"] for t in response["result"]["tools"]]
-        self.assertEqual(names, ["memory_record", "memory_decide", "memory_brief",
+        self.assertEqual(names, ["memory_record", "memory_propose",
+                                 "memory_decide", "memory_brief",
                                  "memory_outcome", "memory_calibrate",
-                                 "memory_audit"])
+                                 "memory_audit", "memory_proposals"])
 
     def test_unknown_method_is_jsonrpc_error(self):
         response = self.server.handle(
             {"jsonrpc": "2.0", "id": 3, "method": "no/such"})
         self.assertEqual(response["error"]["code"], -32601)
 
-    def test_record_then_duplicate_is_error(self):
+    def test_record_is_a_proposal_not_a_write(self):
         ok = self.server.handle({"jsonrpc": "2.0", "id": 4, "method": "tools/call",
                                  "params": {"name": "memory_record",
                                             "arguments": {"text": "Use PostgreSQL.",
                                                           "source": "agent"}}})
-        self.assertFalse(ok["result"]["isError"])
-        dup = self.server.handle({"jsonrpc": "2.0", "id": 5, "method": "tools/call",
-                                  "params": {"name": "memory_record",
-                                             "arguments": {"text": "Use PostgreSQL.",
-                                                           "source": "agent"}}})
-        self.assertTrue(dup["result"]["isError"])
+        payload = json.loads(ok["result"]["content"][0]["text"])
+        self.assertFalse(ok["result"].get("isError", False))
+        self.assertEqual(payload["status"], "pending")
+        self.assertTrue(payload["proposal"]["proposal_id"].startswith("prp_"))
+        self.assertIn("deprecated", payload)
+        self.assertEqual(self.server.store.load(), [])
 
-    def test_paraphrased_record_returns_existing(self):
+    def test_paraphrased_proposal_returns_existing_pending(self):
         first = self.server.handle(
             {"jsonrpc": "2.0", "id": 51, "method": "tools/call",
-             "params": {"name": "memory_record", "arguments": {
+             "params": {"name": "memory_propose", "arguments": {
                  "text": "In the README, the delta=0.2 margin threshold must "
                          "consistently be described as a safety margin, not a "
                          "tuned optimum.", "source": "zcode"}}})
         first_payload = json.loads(first["result"]["content"][0]["text"])
         second = self.server.handle(
             {"jsonrpc": "2.0", "id": 52, "method": "tools/call",
-             "params": {"name": "memory_record", "arguments": {
+             "params": {"name": "memory_propose", "arguments": {
                  "text": "The margin threshold delta=0.2 is a safety margin, "
                          "not a tuned optimum; the ablation cannot distinguish "
                          "0.0 to 0.2.", "source": "doubao-work"}}})
         second_payload = json.loads(second["result"]["content"][0]["text"])
         self.assertFalse(second_payload["created"])
-        self.assertEqual(second_payload["duplicate"], "near")
-        self.assertEqual(second_payload["record"]["record_id"],
-                         first_payload["record"]["record_id"])
-        self.assertEqual(len(self.server.store.load()), 1)
+        self.assertEqual(second_payload["duplicate"], "pending")
+        self.assertEqual(second_payload["proposal"]["proposal_id"],
+                         first_payload["proposal"]["proposal_id"])
+        self.assertEqual(len(proposal_log.pending(self.server.proposals_path)), 1)
+
+    def test_propose_refuses_an_existing_record(self):
+        self.server.store.append("All storage must use PostgreSQL.", "agent")
+        response = self.server.handle(
+            {"jsonrpc": "2.0", "id": 53, "method": "tools/call",
+             "params": {"name": "memory_propose", "arguments": {
+                 "text": "All storage must use PostgreSQL for analytics.",
+                 "source": "doubao-work"}}})
+        payload = json.loads(response["result"]["content"][0]["text"])
+        self.assertFalse(payload["created"])
+        self.assertEqual(payload["duplicate"], "record")
+        self.assertEqual(proposal_log.pending(self.server.proposals_path), [])
 
     def test_decide_on_empty_store_is_error(self):
         response = self.server.handle({"jsonrpc": "2.0", "id": 6, "method": "tools/call",
@@ -241,27 +255,27 @@ class SubprocessTests(unittest.TestCase):
         self.assertEqual(self._read()["result"]["serverInfo"]["name"], "jev-memory")
         self._send({"jsonrpc": "2.0", "method": "notifications/initialized"})
         self._request("tools/list", {}, 2)
-        self.assertEqual(len(self._read()["result"]["tools"]), 6)
+        self.assertEqual(len(self._read()["result"]["tools"]), 8)
 
         self._request("tools/call",
-                      {"name": "memory_record",
-                       "arguments": {"text": "Use PostgreSQL.",
+                      {"name": "memory_propose",
+                       "arguments": {"text": "All storage must use PostgreSQL.",
                                      "source": "agent"}}, 3)
-        record = json.loads(self._read()["result"]["content"][0]["text"])["record"]
-        self.assertTrue(record["record_id"].startswith("rec_"))
+        proposed = json.loads(self._read()["result"]["content"][0]["text"])
+        self.assertEqual(proposed["status"], "pending")
+        self.assertTrue(proposed["proposal"]["proposal_id"].startswith("prp_"))
 
         self._request("tools/call",
-                      {"name": "memory_record",
-                       "arguments": {"text": "SQLite is deprecated for the service.",
-                                     "source": "agent"}}, 4)
-        self.assertFalse(self._read()["result"]["isError"])
+                      {"name": "memory_proposals", "arguments": {}}, 31)
+        self.assertEqual(
+            json.loads(self._read()["result"]["content"][0]["text"])["count"], 1)
 
-        self._request("tools/call",
-                      {"name": "memory_record",
-                       "arguments": {"text": "Use PostgreSQL.",
-                                     "source": "agent"}}, 4)
-        duplicate = self._read()["result"]
-        self.assertTrue(duplicate["isError"])
+        # Confirmation is a human surface (console/CLI), not an MCP tool: seed
+        # the confirmed records directly, as a human decision would.
+        from jev_first.records import RecordStore
+        store = RecordStore(Path(self.tmp.name) / "records.jsonl")
+        store.append("All storage must use PostgreSQL.", "agent")
+        store.append("SQLite is deprecated for the service.", "agent")
 
         self._request("tools/call",
                       {"name": "memory_decide",

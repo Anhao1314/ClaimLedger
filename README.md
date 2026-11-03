@@ -109,8 +109,8 @@ Three roles, one cycle:
 
 | Role | What they do | How |
 | --- | --- | --- |
-| **Your agent** (Claude / Cursor / ZCode) | Records decisions as they happen; queries constraints before starting work | MCP tools (`memory_record`, `memory_decide`, `memory_brief`) |
-| **You** (developer) | Reviews outcomes: was the agent's judgment right? | Console or CLI (`outcome`) |
+| **Your agent** (Claude / Cursor / ZCode) | Proposes decisions as they happen; queries constraints before starting work | MCP tools (`memory_propose`, `memory_decide`, `memory_brief`) — proposals wait for you |
+| **You** (developer) | Confirms or rejects agent proposals; reviews outcomes: was the agent's judgment right? | Console (Proposals panel) or CLI (`confirm` / `reject` / `outcome`) |
 | **The system** | Tracks how well its own judgments match reality — overall, per model, and per record author | Calibration view (`calibrate --store …`) |
 
 ### The core loop
@@ -255,6 +255,10 @@ v1 scores `admit` entries only, and says so where the user clicks:
 
 ![ClaimLedger calibration panel — upheld rate, Brier score, bucket, per-author breakdown](docs/img/console-calibration.png)
 
+Agent writes do not land on the canvas directly: they arrive in the topbar's
+**Proposals** panel with the proposer's identity, and become records only after
+you press Confirm. Reject leaves the record store untouched.
+
 ```bash
 python -m jev_first console --store records.jsonl
 # → http://127.0.0.1:8766
@@ -278,6 +282,8 @@ Writes are content-addressed and paraphrase-aware: exact repeats are refused, an
 near-identical decision from another agent returns the existing record with
 `created: false` instead of appending a duplicate. The check is deterministic (token
 containment + Jaccard, with a negation guard), so it needs no model call at write time.
+Console and CLI writes append directly — the human is the confirmer; agent writes via MCP
+land in the proposal log first.
 
 ## MCP server
 
@@ -286,12 +292,20 @@ export TYPESAFE_API_KEY=…   # without it the server answers in degraded mode
 python -m jev_first.mcp_server --dir ~/.jev-memory
 ```
 
-Six tools: `memory_record`, `memory_decide`, `memory_brief`, `memory_outcome`,
-`memory_calibrate`, `memory_audit`. `decide` and `brief` both seal the judgment to the
+Eight tools: `memory_propose` (plus `memory_record` as a deprecated alias),
+`memory_decide`, `memory_brief`, `memory_outcome`, `memory_calibrate`,
+`memory_audit`, `memory_proposals`. `decide` and `brief` both seal the judgment to the
 hash-chained log and return `judgment_hash`; pass that to `memory_outcome` so an agent's
 real use is auditable and calibratable. Tool failures come back as `isError` results; the
 server never crashes on a tool. Without a key, decide/brief answer degraded — every record
 review.
+
+Agent writes are **proposals, not records**. `memory_propose` returns
+`status: pending` and a `proposal_id`; the decision is not active memory until a
+human confirms it in the console's Proposals panel or with `jev_first confirm`.
+There is deliberately no confirm tool on the MCP server: an agent that could
+confirm its own write would have no gate at all. The proposal log is
+hash-chained and records both the proposal and the human decision.
 
 **The tools do nothing until the agent is told to call them.** Copy the block from
 [docs/agent-instructions.md](docs/agent-instructions.md) into your `CLAUDE.md` / `AGENTS.md`

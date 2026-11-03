@@ -9,8 +9,13 @@ or JEV_MEMORY_DIR):
     cache.jsonl      judgment cache (derived, deletable)
     outcomes.jsonl   human verdicts (hash-chained)
 
-Tools: memory_record, memory_decide, memory_brief, memory_outcome,
-memory_calibrate, memory_audit.
+Tools: memory_propose, memory_decide, memory_brief, memory_outcome,
+memory_calibrate, memory_audit, memory_proposals. memory_record is a
+deprecated alias for memory_propose.
+
+Agent writes are proposals, not records. There is no confirm tool here:
+confirmation belongs to the console/CLI, so an agent cannot approve its own
+write. The proposal log records both sides.
 
 Consent: memory_decide/brief call the judgment provider, which needs
 TYPESAFE_API_KEY in the environment. Launching this server with that key set
@@ -31,6 +36,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
+from . import proposals as proposal_log
 from .audit import for_record, summarize
 from .calibration import calibrate
 from .cache import Cache
@@ -60,15 +66,23 @@ def _tool_definitions() -> List[Dict[str, Any]]:
     return [
         {"name": "memory_record",
          "description": (
-             "Append ONE decision or constraint to project memory at the moment it is "
-             "settled. Text must stand alone. Exact duplicates are refused; a "
-             "paraphrase of an existing record returns that record with "
-             "created=false instead of appending. Records carry no status: "
-             "whether a record still holds is decided later by the judge."),
+             "Deprecated alias for memory_propose. Agent writes are proposals, not "
+             "records: a human confirms them in the console or CLI. This tool never "
+             "appends to the record store."),
          "inputSchema": {"type": "object", "properties": {
              "text": {"type": "string", "description": "one standalone statement"},
              "source": {"type": "string", "description": "who wrote it (agent, tool, human)"},
              "scope": {"type": "string", "description": "optional scope label"}},
+             "required": ["text", "source"]}},
+        {"name": "memory_propose",
+         "description": (
+             "Propose ONE decision for human confirmation. The proposal is pending, "
+             "not active memory, until a human confirms it outside this server. "
+             "Near-duplicates of existing records or pending proposals return the "
+             "existing object with created=false."),
+         "inputSchema": {"type": "object", "properties": {
+             "text": {"type": "string"}, "source": {"type": "string"},
+             "scope": {"type": "string"}},
              "required": ["text", "source"]}},
         {"name": "memory_decide",
          "description": (
@@ -115,6 +129,10 @@ def _tool_definitions() -> List[Dict[str, Any]]:
                          "record_id is given."),
          "inputSchema": {"type": "object", "properties": {
              "record_id": {"type": "string"}}}},
+        {"name": "memory_proposals",
+         "description": ("List pending proposals: agent writes waiting for a human "
+                         "to confirm or reject them."),
+         "inputSchema": {"type": "object", "properties": {}}},
     ]
 
 
@@ -125,23 +143,32 @@ class MemoryServer:
         self.log_path = self.directory / "judgments.jsonl"
         self.cache = Cache(self.directory / "cache.jsonl")
         self.outcomes_path = self.directory / "outcomes.jsonl"
+        self.proposals_path = self.directory / "proposals.jsonl"
 
     # ---- tool dispatch -----------------------------------------------------
 
     def call_tool(self, name: str, arguments: Mapping[str, Any]) -> Dict[str, Any]:
         handlers = {
             "memory_record": self._tool_record,
+            "memory_propose": self._tool_propose,
             "memory_decide": self._tool_decide,
             "memory_brief": self._tool_brief,
             "memory_outcome": self._tool_outcome,
             "memory_calibrate": self._tool_calibrate,
             "memory_audit": self._tool_audit,
+            "memory_proposals": self._tool_proposals,
         }
         if name not in handlers:
             raise MethodError(-32602, f"unknown tool: {name}")
         return handlers[name](dict(arguments or {}))
 
     def _tool_record(self, args: Mapping[str, Any]) -> Dict[str, Any]:
+        payload = self._tool_propose(args)
+        payload["deprecated"] = ("memory_record is an alias for memory_propose; "
+                                 "agent writes require human confirmation")
+        return payload
+
+    def _tool_propose(self, args: Mapping[str, Any]) -> Dict[str, Any]:
         text = str(args["text"])
         source = str(args["source"])
         scope = args.get("scope")
@@ -149,12 +176,26 @@ class MemoryServer:
         existing = find_near_duplicate(records, text, scope=scope)
         if existing:
             record, similarity = existing
-            return {"record": record, "created": False, "duplicate": "near",
-                    "similarity": similarity, "total_records": len(records),
-                    "note": "a near-identical decision already exists; not appended"}
-        record = self.store.append(text, source, scope=scope)
-        return {"record": record, "created": True,
-                "total_records": len(records) + 1}
+            return {"created": False, "duplicate": "record",
+                    "record": record, "similarity": similarity,
+                    "note": "a near-identical record already exists; nothing proposed"}
+        pending = proposal_log.pending(self.proposals_path)
+        candidates = [{"record_id": p["proposal_id"], "text": p["text"],
+                       "scope": p.get("scope")} for p in pending]
+        near = find_near_duplicate(candidates, text, scope=scope)
+        if near:
+            match = next(p for p in pending
+                         if p["proposal_id"] == near[0]["record_id"])
+            return {"created": False, "duplicate": "pending",
+                    "proposal": match, "similarity": near[1]}
+        proposal = proposal_log.propose(
+            self.proposals_path, text=text, source=source, scope=scope)
+        return {"created": True, "status": "pending", "proposal": proposal,
+                "note": "awaiting human confirmation; not active memory"}
+
+    def _tool_proposals(self, args: Mapping[str, Any]) -> Dict[str, Any]:
+        rows = proposal_log.pending(self.proposals_path)
+        return {"count": len(rows), "pending": rows}
 
     def _decide(self, args: Mapping[str, Any]) -> tuple:
         task = str(args["task"]).strip()

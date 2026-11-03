@@ -20,6 +20,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import agents as agent_registry
 from . import log as jlog
+from . import proposals as proposal_log
 from .audit import for_record
 from .brief import render_brief
 from .judge import Judgment
@@ -42,6 +43,7 @@ class Console:
         self.log_path = directory / "judgments.jsonl"
         self.outcomes_path = directory / "outcomes.jsonl"
         self.agents_path = directory / "agents.jsonl"
+        self.proposals_path = directory / "proposals.jsonl"
         self.last: Optional[Dict[str, Any]] = None
 
     # ---- endpoints ---------------------------------------------------------
@@ -100,6 +102,40 @@ class Console:
 
     def api_records(self) -> List[Dict[str, Any]]:
         return self.store.load()
+
+    def api_proposals(self) -> List[Dict[str, Any]]:
+        return proposal_log.pending(self.proposals_path)
+
+    def api_confirm(self, body: Mapping[str, Any]) -> Dict[str, Any]:
+        """Human decision on an agent proposal: confirm appends the record."""
+        pid = str(body.get("proposal_id", ""))
+        decision = str(body.get("decision", "confirm"))
+        by = str(body.get("by", "console-human"))
+        proposal = proposal_log.get(self.proposals_path, pid)
+        if proposal is None:
+            return {"error": f"unknown proposal: {pid}"}
+        if proposal_log.decision_for(self.proposals_path, pid) is not None:
+            return {"error": f"proposal already decided: {pid}"}
+        if decision in ("reject", "rejected"):
+            event = proposal_log.decide(self.proposals_path, pid,
+                                        decision="rejected", by=by)
+            return {"decision": event, "record": None, "created": False}
+        if decision not in ("confirm", "confirmed"):
+            return {"error": "decision must be confirm or reject"}
+        existing = find_near_duplicate(self.store.load(), str(proposal["text"]),
+                                       scope=proposal.get("scope"))
+        if existing:
+            record = existing[0]
+            created = False
+        else:
+            record = self.store.append(str(proposal["text"]),
+                                       str(proposal["source"]),
+                                       scope=proposal.get("scope"))
+            created = True
+        event = proposal_log.decide(self.proposals_path, pid,
+                                    decision="confirmed", by=by,
+                                    record_id=record["record_id"])
+        return {"decision": event, "record": record, "created": created}
 
     def api_history(self, limit: int = 40) -> List[Dict[str, Any]]:
         """Recent sealed judgments, newest first, with their recorded outcomes."""
@@ -204,6 +240,8 @@ class Console:
         outcomes = verify_outcomes(self.outcomes_path)
         summary = {
             "records": records, "judgments": judgments, "outcomes": outcomes,
+            "pending_proposals": len(proposal_log.pending(self.proposals_path)),
+            "proposal_events": proposal_log.verify(self.proposals_path),
             "degraded": sum(1 for r in jlog.read(self.log_path) if r.get("degraded")),
             "confirmed_conflicts": sum(len(r.get("conflicts", []))
                                        for r in jlog.read(self.log_path)),
@@ -247,6 +285,8 @@ def make_handler(console: Console):
                 self._send(console.api_history(limit))
             elif route.path == "/api/agents":
                 self._send(console.api_agents())
+            elif route.path == "/api/proposals":
+                self._send(console.api_proposals())
             elif route.path == "/api/record-history":
                 record_id = parse_qs(route.query).get("record_id", [""])[0]
                 self._send(console.api_record_history(record_id))
@@ -274,6 +314,8 @@ def make_handler(console: Console):
                 self._send(console.api_record(body))
             elif route.path == "/api/agents":
                 self._send(console.api_register_agent(body))
+            elif route.path == "/api/confirm":
+                self._send(console.api_confirm(body))
             elif route.path == "/api/seed-examples":
                 self._send(console.api_seed_examples())
             elif route.path == "/api/outcome":

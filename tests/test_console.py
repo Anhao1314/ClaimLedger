@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from jev_first import contracts
+from jev_first import proposals as proposal_log
 from jev_first.web import Console
 from tests.test_jev_first import make_records
 
@@ -143,6 +144,68 @@ class ConsoleTests(unittest.TestCase):
         self.assertEqual(second["record"]["record_id"],
                          first["record"]["record_id"])
         self.assertEqual(len(self.console.store.load()), 1)
+
+    def test_confirm_proposal_creates_the_record(self):
+        proposal = proposal_log.propose(
+            self.console.proposals_path, text="Cap retries at 3.",
+            source="doubao-work")
+        self.assertEqual(len(self.console.api_proposals()), 1)
+        result = self.console.api_confirm({
+            "proposal_id": proposal["proposal_id"], "decision": "confirm",
+            "by": "human"})
+        self.assertTrue(result["created"])
+        self.assertEqual(result["record"]["source"], "doubao-work")
+        self.assertEqual(result["decision"]["decision"], "confirmed")
+        self.assertEqual(len(self.console.store.load()), 1)
+        self.assertEqual(self.console.api_proposals(), [])
+        self.assertEqual(proposal_log.verify(self.console.proposals_path), 2)
+
+    def test_reject_proposal_leaves_store_untouched(self):
+        proposal = proposal_log.propose(
+            self.console.proposals_path, text="Freeze deploys on Friday.",
+            source="doubao-work")
+        result = self.console.api_confirm({
+            "proposal_id": proposal["proposal_id"], "decision": "reject",
+            "by": "human"})
+        self.assertFalse(result["created"])
+        self.assertIsNone(result["record"])
+        self.assertEqual(self.console.store.load(), [])
+        self.assertEqual(proposal_log.statuses(self.console.proposals_path),
+                         {proposal["proposal_id"]: "rejected"})
+
+    def test_a_proposal_is_decided_once(self):
+        proposal = proposal_log.propose(
+            self.console.proposals_path, text="Cap retries at 3.",
+            source="doubao-work")
+        self.console.api_confirm({"proposal_id": proposal["proposal_id"],
+                                  "decision": "confirm", "by": "human"})
+        again = self.console.api_confirm({
+            "proposal_id": proposal["proposal_id"], "decision": "confirm",
+            "by": "human"})
+        self.assertIn("already decided", again["error"])
+
+    def test_confirm_reuses_an_existing_near_duplicate(self):
+        existing = self.console.store.append(
+            "In the README, the delta=0.2 margin threshold must consistently "
+            "be described as a safety margin, not a tuned optimum.", "zcode")
+        proposal = proposal_log.propose(
+            self.console.proposals_path,
+            text="The margin threshold delta=0.2 is a safety margin, not a "
+                 "tuned optimum; the ablation cannot distinguish 0.0 to 0.2.",
+            source="doubao-work")
+        result = self.console.api_confirm({
+            "proposal_id": proposal["proposal_id"], "decision": "confirm",
+            "by": "human"})
+        self.assertFalse(result["created"])
+        self.assertEqual(result["record"]["record_id"], existing["record_id"])
+        self.assertEqual(len(self.console.store.load()), 1)
+
+    def test_audit_counts_pending_proposals(self):
+        proposal_log.propose(self.console.proposals_path,
+                             text="Cap retries at 3.", source="agent")
+        audit = self.console.api_audit()
+        self.assertEqual(audit["pending_proposals"], 1)
+        self.assertEqual(audit["proposal_events"], 1)
 
 
 if __name__ == "__main__":

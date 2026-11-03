@@ -287,6 +287,7 @@ PAGE = r"""<!doctype html>
     <div class="topbar">
       <div class="title" id="top-title">New task</div>
       <div class="right">
+        <button class="tool" id="btn-proposals" onclick="openProposals()" disabled>Proposals</button>
         <button class="tool" id="btn-record" onclick="openRecordForm()">+ Record</button>
         <button class="tool" id="btn-copy" onclick="copyBrief()" disabled title="Copy brief (c)">Copy brief</button>
         <button class="tool" onclick="openCalibration()">Calibration</button>
@@ -313,6 +314,7 @@ PAGE = r"""<!doctype html>
 <script>
 const state = { records: 0, judgments: 0, outcomes: 0,
                 history: [], agents: [], current: null,
+                pending: 0, proposals: [],
                 currentAgent: localStorage.getItem("agent") || null,
                 settingsOpen: false };
 
@@ -567,6 +569,46 @@ function showPanel(html, center) {
 function overlayClick(e) { if (e.target.id === "overlay") closeOverlays(); }
 function closeOverlays() { $("overlay").className = "overlay hidden"; }
 
+async function openProposals() {
+  const rows = await api("/api/proposals");
+  state.proposals = rows;
+  let html = `<button class="close" onclick="closeOverlays()">✕</button>
+    <h3>Pending proposals</h3>
+    <div class="p-sub">Agent writes wait here until a human confirms or rejects.</div>`;
+  if (!rows.length) {
+    html += '<div class="empty-hint">Nothing waiting. Agents propose; you decide.</div>';
+  } else {
+    html += rows.map(p => {
+      const time = (p.at || "").slice(5, 16).replace("T", " ");
+      return `<div class="rec" style="cursor:default">
+        <div class="body"><div class="text">${esc(p.text)}</div>
+        <div class="flags"><span class="p">${esc(p.proposal_id)} · ${esc(p.source)} · ${time}</span></div></div>
+        <div class="out">
+          <button onclick="decideProposal('${p.proposal_id}','confirm')">Confirm</button>
+          <button onclick="decideProposal('${p.proposal_id}','reject')">Reject</button>
+        </div></div>`;
+    }).join("");
+  }
+  showPanel(html, false);
+}
+
+async function decideProposal(id, decision) {
+  try {
+    const res = await api("/api/confirm", {proposal_id: id, decision: decision,
+                                           by: "console-human"});
+    if (decision === "reject") {
+      $("meta-right").textContent = "rejected " + id;
+    } else if (res.created) {
+      $("meta-right").textContent = "confirmed → " + res.record.record_id;
+    } else {
+      $("meta-right").textContent = "already recorded as " + res.record.record_id;
+    }
+    await refreshSide();
+    await openProposals();
+    if (!state.current) renderFirstRun();
+  } catch (e) { $("meta-right").textContent = "confirm: " + e.message; }
+}
+
 async function openCalibration() {
   const r = await api("/api/calibrate");
   let html = `<button class="close" onclick="closeOverlays()">✕</button>
@@ -704,6 +746,10 @@ function toggleSettings() {
 async function refreshSide() {
   const c = await api("/api/audit");
   state.records = c.records; state.judgments = c.judgments; state.outcomes = c.outcomes;
+  state.pending = c.pending_proposals || 0;
+  const btn = $("btn-proposals");
+  btn.textContent = state.pending ? `Proposals (${state.pending})` : "Proposals";
+  btn.disabled = state.pending === 0;
   $("chains").innerHTML =
     `<span><span class="dot"></span>${c.records} records</span>` +
     `<span><span class="dot"></span>${c.judgments} judgments</span>` +

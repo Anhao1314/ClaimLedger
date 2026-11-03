@@ -14,6 +14,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from . import log
+from . import proposals as proposal_log
 from .cache import Cache
 from .judge import DEFAULT_BUDGET_BYTES, judge
 from .outcomes import append_outcome
@@ -57,6 +58,29 @@ def main(argv=None) -> int:
     p_record.add_argument("--source", required=True)
     p_record.add_argument("--scope")
     p_record.add_argument("--at")
+
+    p_propose = sub.add_parser("propose", help="propose a record for human confirmation")
+    p_propose.add_argument("--store", required=True)
+    p_propose.add_argument("--text", required=True)
+    p_propose.add_argument("--source", required=True)
+    p_propose.add_argument("--scope")
+    p_propose.add_argument("--at")
+    p_propose.add_argument("--proposals", help="proposals.jsonl path")
+
+    p_proposals = sub.add_parser("proposals", help="list pending proposals")
+    p_proposals.add_argument("--store", required=True)
+    p_proposals.add_argument("--proposals", help="proposals.jsonl path")
+
+    p_confirm = sub.add_parser("confirm", help="confirm a proposal into a record")
+    p_confirm.add_argument("--store", required=True)
+    p_confirm.add_argument("--proposal-id", required=True)
+    p_confirm.add_argument("--by", default="cli-human")
+    p_confirm.add_argument("--proposals", help="proposals.jsonl path")
+
+    p_reject = sub.add_parser("reject", help="reject a proposal")
+    p_reject.add_argument("--proposals", required=True)
+    p_reject.add_argument("--proposal-id", required=True)
+    p_reject.add_argument("--by", default="cli-human")
 
     p_judge = sub.add_parser("judge", help="judge pre-selected records against a task")
     p_judge.add_argument("--store", required=True)
@@ -145,6 +169,85 @@ def main(argv=None) -> int:
         record = store.append(args.text, args.source,
                               at=args.at, scope=args.scope)
         print(json.dumps(record, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "propose":
+        p_path = args.proposals or str(Path(args.store).parent / "proposals.jsonl")
+        records = RecordStore(args.store).load()
+        existing = find_near_duplicate(records, args.text, scope=args.scope)
+        if existing:
+            print(json.dumps({"created": False, "duplicate": "record",
+                              "record": existing[0],
+                              "similarity": existing[1]},
+                             ensure_ascii=False, indent=2))
+            return 0
+        pending = proposal_log.pending(p_path)
+        candidates = [{"record_id": p["proposal_id"], "text": p["text"],
+                       "scope": p.get("scope")} for p in pending]
+        near = find_near_duplicate(candidates, args.text, scope=args.scope)
+        if near:
+            match = next(p for p in pending
+                         if p["proposal_id"] == near[0]["record_id"])
+            print(json.dumps({"created": False, "duplicate": "pending",
+                              "proposal": match, "similarity": near[1]},
+                             ensure_ascii=False, indent=2))
+            return 0
+        try:
+            proposal = proposal_log.propose(
+                p_path, text=args.text, source=args.source,
+                scope=args.scope, at=args.at)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        print(json.dumps({"created": True, "status": "pending",
+                          "proposal": proposal}, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "proposals":
+        p_path = args.proposals or str(Path(args.store).parent / "proposals.jsonl")
+        print(json.dumps(proposal_log.pending(p_path),
+                         ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "confirm":
+        p_path = args.proposals or str(Path(args.store).parent / "proposals.jsonl")
+        proposal = proposal_log.get(p_path, args.proposal_id)
+        if proposal is None:
+            print(f"unknown proposal: {args.proposal_id}", file=sys.stderr)
+            return 2
+        if proposal_log.decision_for(p_path, args.proposal_id) is not None:
+            print(f"proposal already decided: {args.proposal_id}", file=sys.stderr)
+            return 2
+        store = RecordStore(args.store)
+        existing = find_near_duplicate(store.load(), str(proposal["text"]),
+                                       scope=proposal.get("scope"))
+        if existing:
+            record, created = existing[0], False
+        else:
+            record = store.append(str(proposal["text"]),
+                                  str(proposal["source"]),
+                                  scope=proposal.get("scope"))
+            created = True
+        try:
+            event = proposal_log.decide(
+                p_path, args.proposal_id, decision="confirmed", by=args.by,
+                record_id=record["record_id"])
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        print(json.dumps({"decision": event, "record": record,
+                          "created": created}, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "reject":
+        try:
+            event = proposal_log.decide(
+                args.proposals, args.proposal_id, decision="rejected",
+                by=args.by)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        print(json.dumps(event, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "judge":

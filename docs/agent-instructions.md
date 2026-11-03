@@ -31,12 +31,15 @@ BEFORE starting any non-trivial task:
    as review and ask me before acting.
 
 AFTER a significant decision is settled (tech choice, architecture, constraint,
-reversal), call `memory_record` with the decision as ONE standalone sentence that
-makes sense without this conversation.
+reversal), call `memory_propose` with the decision as ONE standalone sentence that
+makes sense without this conversation. It returns `status: pending` plus a
+`proposal_id`; the decision is **not active memory** until I confirm it in the
+console or CLI. Tell me the proposal_id and wait for confirmation.
 
 Never:
 - record secrets, credentials, or transient chatter
 - record a guess as if it were a decision
+- treat a pending proposal as an active constraint
 - silently resolve a conflict the brief reports
 ```
 
