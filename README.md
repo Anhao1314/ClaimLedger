@@ -274,6 +274,11 @@ Six tools: `memory_record`, `memory_decide`, `memory_brief`, `memory_outcome`,
 `memory_calibrate`, `memory_audit`. Tool failures come back as `isError` results; the server
 never crashes on a tool. Without a key, decide/brief answer degraded — every record review.
 
+**The tools do nothing until the agent is told to call them.** Copy the block from
+[docs/agent-instructions.md](docs/agent-instructions.md) into your `CLAUDE.md` / `AGENTS.md`
+and register the server; without it the layer is invisible to the agent.
+[Two-week protocol](docs/agent-instructions.md#two-week-protocol) is included.
+
 ## Results
 
 ### 1. Adversarial benchmark — the judgment layer vs lexical overlap
