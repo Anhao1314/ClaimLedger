@@ -114,6 +114,14 @@ def main(argv=None) -> int:
     p_audit.add_argument("--log", required=True)
     p_audit.add_argument("--record-id", help="only judgments touching this record")
 
+    p_agent_reg = sub.add_parser("agent-register", help="register an agent or human identity")
+    p_agent_reg.add_argument("--dir", default="~/.jev-memory")
+    p_agent_reg.add_argument("--name", required=True)
+    p_agent_reg.add_argument("--kind", choices=("agent", "human"), default="agent")
+
+    p_agent_list = sub.add_parser("agent-list", help="list registered identities")
+    p_agent_list.add_argument("--dir", default="~/.jev-memory")
+
     p_console = sub.add_parser("console", help="local single-user memory console (web)")
     p_console.add_argument("--store", required=True)
     p_console.add_argument("--dir", default="~/.jev-memory",
@@ -238,6 +246,22 @@ def main(argv=None) -> int:
         else:
             print(json.dumps(summarize(args.log, reader=log.read),
                              ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "agent-register":
+        from . import agents as agent_registry
+        path = Path(args.dir).expanduser() / "agents.jsonl"
+        entry = agent_registry.append_agent(path, name=args.name, kind=args.kind)
+        print(json.dumps(entry, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "agent-list":
+        from . import agents as agent_registry
+        path = Path(args.dir).expanduser() / "agents.jsonl"
+        rows = agent_registry.read(path)
+        for row in rows:
+            print(f"{row['agent_id']}  {row['name']:<24} {row['kind']:<6} {row['created_at']}")
+        print(f"{len(rows)} identities, chain verified: {agent_registry.verify(path) == len(rows)}")
         return 0
 
     if args.command == "console":

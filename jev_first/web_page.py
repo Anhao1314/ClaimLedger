@@ -39,6 +39,27 @@ PAGE = r"""<!doctype html>
              background: var(--card); color: var(--text); border-radius: 9px;
              font: 500 13px var(--sans); cursor: pointer; text-align: left; }
   .new-btn:hover { border-color: var(--text); }
+  .agents { padding: 0 8px 6px; }
+  .agent { display: flex; align-items: center; gap: 6px; padding: 6px 9px;
+           border-radius: 8px; cursor: pointer; font-size: 12px; }
+  .agent:hover { background: rgba(0,0,0,.04); }
+  [data-theme="dark"] .agent:hover { background: rgba(255,255,255,.05); }
+  .agent.sel { background: var(--accent-soft); }
+  .agent .kind { font: 9.5px var(--mono); color: var(--faint); }
+  .agent .unreg { font: 9.5px var(--mono); color: var(--warn-text); }
+  .agent .count { margin-left: auto; font: 10px var(--mono); color: var(--faint); }
+  .agent-reg { display: flex; gap: 4px; padding: 0 8px 10px; }
+  .agent-reg input { flex: 1; min-width: 0; font: 11px var(--sans);
+                     border: 1px solid var(--border); border-radius: 6px;
+                     padding: 4px 6px; background: var(--card); color: var(--text);
+                     outline: none; }
+  .agent-reg input:focus { border-color: var(--accent); }
+  .agent-reg select { font: 10.5px var(--sans); border: 1px solid var(--border);
+                      border-radius: 6px; background: var(--card); color: var(--text); }
+  .agent-reg button { font: 500 10.5px var(--sans); padding: 4px 7px;
+                      border-radius: 6px; border: 1px solid var(--border);
+                      background: var(--card); color: var(--muted); cursor: pointer; }
+  .agent-reg button:hover { border-color: var(--accent); color: var(--accent); }
   .side-label { padding: 4px 16px 6px; font: 600 10px var(--sans);
                 text-transform: uppercase; letter-spacing: .6px; color: var(--faint); }
   .history { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
@@ -175,6 +196,13 @@ PAGE = r"""<!doctype html>
       ClaimLedger
     </div>
     <button class="new-btn" onclick="newTask()">+ New task</button>
+    <div class="side-label">Agents</div>
+    <div class="agents" id="agents"></div>
+    <div class="agent-reg">
+      <input id="agent-name" placeholder="name">
+      <select id="agent-kind"><option value="agent">agent</option><option value="human">human</option></select>
+      <button onclick="registerAgent()" title="register identity">+</button>
+    </div>
     <div class="side-label">History</div>
     <div class="history" id="history"></div>
     <div class="side-foot">
@@ -218,6 +246,8 @@ PAGE = r"""<!doctype html>
 
 <script>
 let current = null;        // the judgment being shown
+let agents = [];           // registered identities
+let currentAgent = localStorage.getItem("agent") || null;
 let historyCache = [];     // sidebar items, newest first
 const $ = id => document.getElementById(id);
 const esc = s => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
@@ -262,6 +292,50 @@ function newTask() {
   $("meta-right").textContent = "";
   document.querySelectorAll(".hist").forEach(el => el.classList.remove("active"));
   $("task").focus();
+}
+
+async function loadAgents() {
+  agents = await api("/api/agents");
+  if (!currentAgent && agents.length) {
+    currentAgent = agents[0].name;
+    localStorage.setItem("agent", currentAgent);
+  }
+  const el = $("agents");
+  if (!agents.length) {
+    el.innerHTML = '<div style="padding:6px 9px;font-size:11px;color:var(--faint)">no identities yet</div>';
+    return;
+  }
+  el.innerHTML = agents.map(a => {
+    const sel = currentAgent === a.name ? " sel" : "";
+    const marker = a.registered
+      ? `<span class="kind">${esc(a.kind)}</span>`
+      : '<span class="unreg">unregistered</span>';
+    const safe = String(a.name).replace(/'/g, "");
+    return `<div class="agent${sel}" onclick="selectAgent('${safe}')">` +
+      `<span>${esc(a.name)}</span>${marker}` +
+      `<span class="count">${a.records}</span></div>`;
+  }).join("");
+}
+
+function selectAgent(name) {
+  currentAgent = name;
+  localStorage.setItem("agent", name);
+  loadAgents();
+}
+
+async function registerAgent() {
+  const name = $("agent-name").value.trim();
+  if (!name) return;
+  try {
+    await api("/api/agents", {name: name, kind: $("agent-kind").value});
+    $("agent-name").value = "";
+    currentAgent = name;
+    localStorage.setItem("agent", name);
+    await loadAgents();
+    refreshSide();
+  } catch (e) {
+    $("meta-right").textContent = "register: " + e.message;
+  }
 }
 
 async function loadHistory() {
@@ -377,7 +451,7 @@ function render(j) {
 async function postOutcome(recordId, verdict) {
   if (!current) return;
   await api("/api/outcome", {record_id: recordId, verdict: verdict,
-                             judgment_hash: current.judgment_hash, by: "console-human"});
+                             judgment_hash: current.judgment_hash, by: currentAgent || "console-human"});
   current.outcomes = current.outcomes || {};
   current.outcomes[recordId] = verdict;
   render(current);
@@ -388,7 +462,7 @@ async function postOutcome(recordId, verdict) {
 async function addRecord() {
   const text = $("new-text").value.trim();
   if (!text) return;
-  await api("/api/record", {text: text, source: "console"});
+  await api("/api/record", {text: text, source: currentAgent || "console"});
   $("new-text").value = "";
   refreshSide();
 }
@@ -406,6 +480,7 @@ async function refreshSide() {
     : `calibration: no scored outcomes yet (${r.n_outcomes} recorded, ${r.unsupported} on review)`;
 }
 
+loadAgents();
 loadHistory();
 refreshSide();
 </script></body></html>"""

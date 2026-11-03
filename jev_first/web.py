@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 from urllib.parse import parse_qs, urlparse
 
+from . import agents as agent_registry
 from . import log as jlog
 from .brief import render_brief
 from .cache import Cache
@@ -37,6 +38,7 @@ class Console:
         self.cache = Cache(directory / "cache.jsonl")
         self.log_path = directory / "judgments.jsonl"
         self.outcomes_path = directory / "outcomes.jsonl"
+        self.agents_path = directory / "agents.jsonl"
         self.last: Optional[Dict[str, Any]] = None
 
     # ---- endpoints ---------------------------------------------------------
@@ -108,6 +110,33 @@ class Console:
             })
         return out
 
+    def api_agents(self) -> List[Dict[str, Any]]:
+        """Registered identities with record counts; unregistered sources still
+        appear, flagged, so attribution stays honest."""
+        registered = agent_registry.read(self.agents_path)
+        counts: Dict[str, int] = {}
+        for record in self.store.load():
+            source = str(record.get("source", ""))
+            counts[source] = counts.get(source, 0) + 1
+        out: List[Dict[str, Any]] = []
+        for row in registered:
+            out.append({**row, "records": counts.get(row["name"], 0),
+                        "registered": True})
+        known = {row["name"].lower() for row in registered}
+        for source, count in sorted(counts.items()):
+            if source.lower() not in known:
+                out.append({"agent_id": None, "name": source, "kind": "unknown",
+                            "created_at": None, "records": count,
+                            "registered": False})
+        return out
+
+    def api_register_agent(self, body: Mapping[str, Any]) -> Dict[str, Any]:
+        entry = agent_registry.append_agent(
+            self.agents_path, name=str(body.get("name", "")).strip(),
+            kind=str(body.get("kind", "agent")))
+        return {"agent": entry,
+                "chain_length": agent_registry.verify(self.agents_path)}
+
     def api_outcome(self, body: Mapping[str, Any]) -> Dict[str, Any]:
         judgment_hash = body.get("judgment_hash") or (
             self.last["judgment_hash"] if self.last else None)
@@ -170,6 +199,8 @@ def make_handler(console: Console):
             elif route.path == "/api/history":
                 limit = int(parse_qs(route.query).get("limit", ["40"])[0])
                 self._send(console.api_history(limit))
+            elif route.path == "/api/agents":
+                self._send(console.api_agents())
             elif route.path == "/api/decide":
                 self._send(console.api_decide(
                     {k: v[0] for k, v in parse_qs(route.query).items()}))
@@ -192,6 +223,8 @@ def make_handler(console: Console):
                 return
             if route.path == "/api/record":
                 self._send(console.api_record(body))
+            elif route.path == "/api/agents":
+                self._send(console.api_register_agent(body))
             elif route.path == "/api/outcome":
                 self._send(console.api_outcome(body))
             else:
