@@ -1,0 +1,111 @@
+{
+  "schema": "judge_bench_001_corrected_v1",
+  "note": "Recomputed from committed rows. Genuine label flips exclude runs that failed to parse; the original summary counted those as flips.",
+  "judges": {
+    "jev": {
+      "calls": 300,
+      "parsed": 298,
+      "parse_failure_rate": 0.0067,
+      "accuracy_mean": 0.9329,
+      "accuracy_range": [
+        0.9322,
+        0.9333
+      ],
+      "genuine_label_flips": {
+        "count": 0,
+        "rate": 0.0
+      },
+      "error_only_pairs": {
+        "count": 2,
+        "rate": 0.0333
+      },
+      "brier": 0.0461,
+      "top_probability_p50": 0.98,
+      "latency_p50_ms": 945
+    },
+    "deepseek-flash": {
+      "calls": 300,
+      "parsed": 258,
+      "parse_failure_rate": 0.14,
+      "accuracy_mean": 0.9269,
+      "accuracy_range": [
+        0.9074,
+        0.9592
+      ],
+      "genuine_label_flips": {
+        "count": 7,
+        "rate": 0.1167
+      },
+      "error_only_pairs": {
+        "count": 12,
+        "rate": 0.2
+      },
+      "brier": 0.0252,
+      "top_probability_p50": 0.98,
+      "latency_p50_ms": 2124
+    },
+    "deepseek-flash-best": {
+      "calls": 60,
+      "parsed": 49,
+      "parse_failure_rate": 0.1833,
+      "accuracy_mean": 0.9592,
+      "accuracy_range": [
+        0.9592,
+        0.9592
+      ],
+      "genuine_label_flips": {
+        "count": 0,
+        "rate": 0.0
+      },
+      "error_only_pairs": {
+        "count": 0,
+        "rate": 0.0
+      },
+      "brier": 0.042,
+      "top_probability_p50": 0.98,
+      "latency_p50_ms": 2102
+    },
+    "deepseek-v4-pro": {
+      "calls": 180,
+      "parsed": 108,
+      "parse_failure_rate": 0.4,
+      "accuracy_mean": 0.9734,
+      "accuracy_range": [
+        0.9487,
+        1.0
+      ],
+      "genuine_label_flips": {
+        "count": 2,
+        "rate": 0.0333
+      },
+      "error_only_pairs": {
+        "count": 20,
+        "rate": 0.3333
+      },
+      "brier": 0.0,
+      "top_probability_p50": 1.0,
+      "latency_p50_ms": 3916
+    },
+    "deepseek-v4-pro-best": {
+      "calls": 60,
+      "parsed": 35,
+      "parse_failure_rate": 0.4167,
+      "accuracy_mean": 0.9429,
+      "accuracy_range": [
+        0.9429,
+        0.9429
+      ],
+      "genuine_label_flips": {
+        "count": 0,
+        "rate": 0.0
+      },
+      "error_only_pairs": {
+        "count": 0,
+        "rate": 0.0
+      },
+      "brier": 0.0,
+      "top_probability_p50": 1.0,
+      "latency_p50_ms": 3841
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "schema": "judge_bench_001_protocol_v1",
+  "frozen_at": "2026-11-03",
+  "status": "FROZEN_BEFORE_SCORED_CALLS",
+  "question": "Is the judge model a commodity or a structural choice? Compare Jev against general-purpose LLM judges on five axes, not just accuracy.",
+  "fixture": {
+    "source": "experiments/relation_002/pairs.jsonl",
+    "n_pairs": 60,
+    "gold": "frozen labels in the fixture",
+    "question": "contracts/questions.v1.json relation criteria, verbatim for every judge"
+  },
+  "judges": {
+    "jev": {"model": "jev-latest", "runs": 5, "temperature": "provider default"},
+    "deepseek-flash": {"model": "deepseek-flash", "runs": 5, "temperature": 1.0, "plus_best_case_run": true},
+    "deepseek-v4-pro": {"model": "deepseek-v4-pro", "runs": 3, "temperature": 1.0, "plus_best_case_run": true}
+  },
+  "axes": {
+    "accuracy": "mean label agreement with gold across runs",
+    "stability": "fraction of pairs whose label differs across runs (unstable pair rate); lower is better",
+    "calibration": "binary Brier score on p(contradiction) vs gold, mean across runs; lower is better",
+    "schema_reliability": "fraction of responses that parse into a valid labelled probability distribution",
+    "latency": "median wall time per call"
+  },
+  "gates": {
+    "judge_is_commodity": "deepseek (either model) has mean accuracy >= jev AND unstable-pair rate <= jev AND parse-failure rate <= jev",
+    "jev_structural_advantage": "jev has strictly lower unstable-pair rate OR strictly lower parse-failure rate OR strictly lower Brier with comparable accuracy",
+    "decision": "commodity -> swap the judge, keep the pipeline (this is itself proof that the architecture is model-independent). structural advantage -> record which axes and by how much."
+  },
+  "prohibited_after_freeze": [
+    "changing the fixture, gold labels, or the question",
+    "changing runs or temperatures",
+    "dropping the v4-pro arm after seeing flash results",
+    "re-running until a preferred outcome"
+  ],
+  "limitations": [
+    "Single fixture (60 pairs), single labeller.",
+    "DeepSeek probabilities are self-reported, not trained-calibrated; the Brier comparison is generous to them only if their confidence is honest.",
+    "Latency depends on network location; the absolute numbers are less meaningful than the ratio.",
+    "Cost is reported as token counts; only Jev pricing is verified."
+  ]
+}

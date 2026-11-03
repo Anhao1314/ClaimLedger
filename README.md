@@ -313,6 +313,31 @@ Same frozen contract, two model families: **29/29 label agreement** between Jev 
 DeepSeek-V4.1-Flash on the comparable pairs, 30/30 vs the frozen labels for DeepSeek.
 Sensitivity-triple consistency: Jev 1.0, DeepSeek 0.8.
 
+### 4. Is the judge a commodity? — five axes, not one
+
+Accuracy alone cannot justify a judge choice. The same 60 pairs through three judges, same
+question, repeated runs:
+
+| Judge | Accuracy | Genuine flips | Parse failures | Brier | p50 latency |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| **Jev 1.14.0** | 0.933 | **0/60** | **0.67%** | 0.046 | **945 ms** |
+| deepseek-flash (t=1.0) | 0.927 | 7/60 | 14.0% | **0.025** | 2,124 ms |
+| deepseek-v4-pro (t=1.0) | 0.973* | 2/60 | 40.0% | 0.0† | 3,916 ms |
+
+\* v4-pro's accuracy is computed only over the 60% of calls that produced a parseable
+distribution. † Its 0.0 Brier is degenerate output (top probability ≥ 0.99 on 100% of parsed
+responses), not calibration.
+
+**The honest read:** accuracy is roughly a tie between Jev and a general LLM judge; **Jev does
+not win the calibration axis** (flash's Brier is lower, though it is more overconfident and
+bails on the 14% hardest calls). What Jev does win decisively is **stability** (zero genuine
+label changes in 300 calls vs 11.7% of pairs flipping for flash) and **schema reliability**
+(99.3% valid typed output vs 86% and 60%). Those are the two properties a governance layer
+cannot work without.
+
+The architecture claim survives either way: three different judges ran through the same
+question set, and every difference is measurable at the output. [Full analysis](experiments/judge_bench_001/results.md).
+
 | Experiment | Result | Artifact |
 | --- | --- | --- |
 | Relation judgment (30 frozen pairs) | contradiction recall 10/10, false suppression 0/20 — **PASS** | [jev_relation_001](experiments/jev_relation_001/README.md) |
@@ -320,6 +345,7 @@ Sensitivity-triple consistency: Jev 1.0, DeepSeek 0.8.
 | Borderline stability (5×5) | ambiguous pairs flip, unambiguous never → **margin rule** | [borderline-stability](experiments/jev_relation_001/borderline-stability.json) |
 | Adversarial benchmark (60 pairs, 3 methods) | Jev 0.933 vs lexical 0.483 — **discriminating gate PASS** | [relation_002](experiments/relation_002/results.json) |
 | Constraint delivery (premise_001 v1.1) | memory-layer delivery **non-inferior** to prompt delivery | [premise_001](experiments/premise_001/results.json) |
+| Judge comparison (3 judges × 5 axes) | accuracy tie, **stability 0 vs 7 flips**, schema 99.3% vs 86% | [judge_bench_001](experiments/judge_bench_001/results.md) |
 
 Known limitation, recorded honestly: the candidate selector is lexical, so a record with zero
 token overlap is not selected. Semantic recall is deferred to a topic field (contract v2).
