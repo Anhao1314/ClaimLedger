@@ -9,13 +9,14 @@ or JEV_MEMORY_DIR):
     cache.jsonl      judgment cache (derived, deletable)
     outcomes.jsonl   human verdicts (hash-chained)
 
-Tools: memory_propose, memory_decide, memory_brief, memory_outcome,
-memory_calibrate, memory_audit, memory_proposals. memory_record is a
-deprecated alias for memory_propose.
+Tools: memory_propose, memory_decide, memory_brief, memory_calibrate,
+memory_audit, memory_proposals. memory_record is a deprecated alias for
+memory_propose.
 
-Agent writes are proposals, not records. There is no confirm tool here:
-confirmation belongs to the console/CLI, so an agent cannot approve its own
-write. The proposal log records both sides.
+Agent writes are proposals, not records. There is no confirm tool here, and
+no outcome tool either: confirmation and outcome review belong to the
+console/CLI, so an agent cannot approve its own write or feed its own verdict
+into calibration. The proposal log records both sides.
 
 Consent: memory_decide/brief call the judgment provider, which needs
 TYPESAFE_API_KEY in the environment. Launching this server with that key set
@@ -43,7 +44,7 @@ from .cache import Cache
 from .contracts import ContractError
 from .judge import DEFAULT_BUDGET_BYTES, judge
 from .log import append_judgment, read as read_log, verify as verify_log
-from .outcomes import append_outcome, read as read_outcomes, verify as verify_outcomes
+from .outcomes import read as read_outcomes
 from .records import RecordStore, find_near_duplicate
 from .select import select_candidates
 
@@ -88,9 +89,9 @@ def _tool_definitions() -> List[Dict[str, Any]]:
          "description": (
              "Select candidate records for a task and judge them: one admit choice per "
              "record, pairwise conflict localization, governing. Seals the judgment "
-             "and returns its hash; pass that hash to memory_outcome. Requires "
-             "TYPESAFE_API_KEY; without it the result is degraded and every "
-             "record is review."),
+             "and returns its hash; a human records the outcome against that "
+             "hash in the console or CLI. Requires TYPESAFE_API_KEY; without "
+             "it the result is degraded and every record is review."),
          "inputSchema": {"type": "object", "properties": {
              "task": {"type": "string"},
              "scope": {"type": "string"},
@@ -106,19 +107,6 @@ def _tool_definitions() -> List[Dict[str, Any]]:
              "task": {"type": "string"}, "scope": {"type": "string"},
              "limit": {"type": "integer"}, "budget_bytes": {"type": "integer"}},
              "required": ["task"]}},
-        {"name": "memory_outcome",
-         "description": ("Record how a sealed judgment turned out for one record: upheld, "
-                         "overturned, or unclear. Human input only — outcomes are the only "
-                         "input the calibration view trusts."),
-         "inputSchema": {"type": "object", "properties": {
-             "record_id": {"type": "string"},
-             "verdict": {"type": "string",
-                         "enum": ["upheld", "overturned", "unclear"]},
-             "by": {"type": "string"},
-             "note": {"type": "string"},
-             "judgment_hash": {"type": "string",
-                               "description": "omit to attach to the newest judgment touching this record"}},
-             "required": ["record_id", "verdict", "by"]}},
         {"name": "memory_calibrate",
          "description": ("Score the judge against recorded outcomes: per-bucket upheld "
                          "rates and Brier score for admitted records."),
@@ -153,7 +141,6 @@ class MemoryServer:
             "memory_propose": self._tool_propose,
             "memory_decide": self._tool_decide,
             "memory_brief": self._tool_brief,
-            "memory_outcome": self._tool_outcome,
             "memory_calibrate": self._tool_calibrate,
             "memory_audit": self._tool_audit,
             "memory_proposals": self._tool_proposals,
@@ -250,23 +237,6 @@ class MemoryServer:
                 "degraded": judgment.degraded,
                 "judgment_hash": sealed["judgment_hash"],
                 "input_hash": judgment.input_hash}
-
-    def _tool_outcome(self, args: Mapping[str, Any]) -> Dict[str, Any]:
-        record_id = str(args["record_id"])
-        judgment_hash = args.get("judgment_hash")
-        if not judgment_hash:
-            matches = [row for row in read_log(self.log_path)
-                       if any(e.get("record_id") == record_id
-                              for e in row.get("entries", []))]
-            if not matches:
-                raise MethodError(
-                    -32602, f"no sealed judgment touches {record_id}")
-            judgment_hash = matches[-1]["judgment_hash"]
-        outcome = append_outcome(
-            self.outcomes_path, judgment_hash=str(judgment_hash),
-            record_id=record_id, verdict=str(args["verdict"]),
-            by=str(args["by"]), note=str(args.get("note", "")))
-        return {"outcome": outcome, "chain_length": verify_outcomes(self.outcomes_path)}
 
     def _tool_calibrate(self, args: Mapping[str, Any]) -> Dict[str, Any]:
         return calibrate(read_log(self.log_path), read_outcomes(self.outcomes_path),

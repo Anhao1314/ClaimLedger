@@ -40,6 +40,8 @@ Never:
 - record secrets, credentials, or transient chatter
 - record a guess as if it were a decision
 - treat a pending proposal as an active constraint
+- try to record an outcome — there is no MCP tool for it; tell me and I will
+  record the verdict in the console
 - silently resolve a conflict the brief reports
 ```
 

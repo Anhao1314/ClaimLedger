@@ -43,14 +43,14 @@ class HandlerTests(unittest.TestCase):
         self.assertIsNone(self.server.handle(
             {"jsonrpc": "2.0", "method": "notifications/initialized"}))
 
-    def test_eight_tools_listed(self):
+    def test_seven_tools_listed(self):
         response = self.server.handle(
             {"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         names = [t["name"] for t in response["result"]["tools"]]
         self.assertEqual(names, ["memory_record", "memory_propose",
                                  "memory_decide", "memory_brief",
-                                 "memory_outcome", "memory_calibrate",
-                                 "memory_audit", "memory_proposals"])
+                                 "memory_calibrate", "memory_audit",
+                                 "memory_proposals"])
 
     def test_unknown_method_is_jsonrpc_error(self):
         response = self.server.handle(
@@ -157,13 +157,13 @@ class HandlerTests(unittest.TestCase):
              "params": {"name": "memory_audit", "arguments": {}}})
         self.assertEqual(
             json.loads(audit["result"]["content"][0]["text"])["n_judgments"], 1)
-        outcome = self.server.handle(
-            {"jsonrpc": "2.0", "id": 83, "method": "tools/call",
-             "params": {"name": "memory_outcome",
-                        "arguments": {"record_id": records[0]["record_id"],
-                                      "verdict": "upheld", "by": "human",
-                                      "judgment_hash": payload["judgment_hash"]}}})
-        self.assertFalse(outcome["result"].get("isError", False))
+        # A human surface records the outcome against the returned hash; the
+        # MCP server has no tool for it.
+        from jev_first.outcomes import append_outcome
+        outcome = append_outcome(
+            self.server.outcomes_path, judgment_hash=payload["judgment_hash"],
+            record_id=records[0]["record_id"], verdict="upheld", by="human")
+        self.assertEqual(outcome["verdict"], "upheld")
 
     def test_decide_also_seals(self):
         for text in ("Use PostgreSQL.", "SQLite is deprecated."):
@@ -179,23 +179,31 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(
             json.loads(audit["result"]["content"][0]["text"])["n_judgments"], 1)
 
-    def test_outcome_then_calibrate(self):
+    def test_outcome_is_not_an_mcp_tool(self):
+        """Calibration's ground truth must come from a human surface."""
+        response = self.server.handle(
+            {"jsonrpc": "2.0", "id": 9, "method": "tools/call",
+             "params": {"name": "memory_outcome",
+                        "arguments": {"record_id": "rec_x", "verdict": "upheld",
+                                      "by": "agent"}}})
+        self.assertTrue(response["result"]["isError"])
+        self.assertIn("unknown tool", response["result"]["content"][0]["text"])
+
+    def test_calibrate_reads_human_recorded_outcomes(self):
         # Seed the log with a sealed judgment by hand: the server reads the log,
         # it does not care who wrote it.
         records = make_records(["Use PostgreSQL.", "SQLite is deprecated."])
         from jev_first import judge, log as jlog
+        from jev_first.outcomes import append_outcome
         from tests.test_jev_first import fake_core
         judgment = judge("t", records, model="jev-test",
                          caller=fake_core({r["record_id"]: (ADMIT, 0.9)
                                            for r in records}, {}))
-        jlog.append_judgment(self.server.log_path, judgment.to_dict())
-        rid = records[0]["record_id"]
-        response = self.server.handle(
-            {"jsonrpc": "2.0", "id": 9, "method": "tools/call",
-             "params": {"name": "memory_outcome",
-                        "arguments": {"record_id": rid, "verdict": "upheld",
-                                      "by": "human"}}})
-        self.assertFalse(response["result"].get("isError", False))
+        sealed = jlog.append_judgment(self.server.log_path, judgment.to_dict())
+        append_outcome(self.server.outcomes_path,
+                       judgment_hash=sealed["judgment_hash"],
+                       record_id=records[0]["record_id"], verdict="upheld",
+                       by="human")
         report = self.server.handle(
             {"jsonrpc": "2.0", "id": 10, "method": "tools/call",
              "params": {"name": "memory_calibrate", "arguments": {}}})
@@ -255,7 +263,7 @@ class SubprocessTests(unittest.TestCase):
         self.assertEqual(self._read()["result"]["serverInfo"]["name"], "jev-memory")
         self._send({"jsonrpc": "2.0", "method": "notifications/initialized"})
         self._request("tools/list", {}, 2)
-        self.assertEqual(len(self._read()["result"]["tools"]), 8)
+        self.assertEqual(len(self._read()["result"]["tools"]), 7)
 
         self._request("tools/call",
                       {"name": "memory_propose",

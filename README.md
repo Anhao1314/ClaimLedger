@@ -292,11 +292,11 @@ export TYPESAFE_API_KEY=…   # without it the server answers in degraded mode
 python -m jev_first.mcp_server --dir ~/.jev-memory
 ```
 
-Eight tools: `memory_propose` (plus `memory_record` as a deprecated alias),
-`memory_decide`, `memory_brief`, `memory_outcome`, `memory_calibrate`,
-`memory_audit`, `memory_proposals`. `decide` and `brief` both seal the judgment to the
-hash-chained log and return `judgment_hash`; pass that to `memory_outcome` so an agent's
-real use is auditable and calibratable. Tool failures come back as `isError` results; the
+Seven tools: `memory_propose` (plus `memory_record` as a deprecated alias),
+`memory_decide`, `memory_brief`, `memory_calibrate`, `memory_audit`,
+`memory_proposals`. `decide` and `brief` both seal the judgment to the
+hash-chained log and return `judgment_hash`; a human records the outcome against
+that hash in the console or CLI. Tool failures come back as `isError` results; the
 server never crashes on a tool. Without a key, decide/brief answer degraded — every record
 review.
 
@@ -306,6 +306,10 @@ human confirms it in the console's Proposals panel or with `jev_first confirm`.
 There is deliberately no confirm tool on the MCP server: an agent that could
 confirm its own write would have no gate at all. The proposal log is
 hash-chained and records both the proposal and the human decision.
+
+**Outcome is human-only too.** There is no `memory_outcome` on the MCP server:
+calibration's ground truth is the one input an agent must not be able to write.
+Verdicts are recorded from the console or `jev_first outcome`.
 
 **The tools do nothing until the agent is told to call them.** Copy the block from
 [docs/agent-instructions.md](docs/agent-instructions.md) into your `CLAUDE.md` / `AGENTS.md`
@@ -449,6 +453,8 @@ part the checks could not kill: an auditable judgment layer with an honest bound
 | [docs/jev.md](docs/jev.md) | the Jev adapter: contract, measured latency, privacy boundary |
 | [docs/agent-instructions.md](docs/agent-instructions.md) | the host-file block that makes the agent call the tools; two-week protocol |
 | [docs/console-design.md](docs/console-design.md) | user-first console design: five jobs, eight blockers, acceptance criteria |
+| [docs/usage-protocol.md](docs/usage-protocol.md) | 14-day real-use protocol: daily loop, success criteria, exit report |
+| [docs/external-eval-protocol.md](docs/external-eval-protocol.md) | external blind evaluation: 240 pairs, separated roles, pre-registered decision rule |
 | [docs/brand.md](docs/brand.md) | logo geometry → component mapping; usage rules |
 | [docs/design-v2.zh-CN.md](docs/design-v2.zh-CN.md) | legacy design record (pre-inversion) |
 
