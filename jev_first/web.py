@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
@@ -26,7 +27,7 @@ from .cache import Cache
 from .calibration import calibrate
 from .judge import DEFAULT_BUDGET_BYTES, judge
 from .outcomes import append_outcome, read as read_outcomes, verify as verify_outcomes
-from .records import RecordStore
+from .records import RecordStore, find_near_duplicate
 from .select import select_candidates
 
 from .web_page import PAGE
@@ -61,6 +62,7 @@ class Console:
         budget = int(params.get("budget", DEFAULT_BUDGET_BYTES))
         judgment = judge(task, candidates, budget_bytes=budget,
                          on_error="review", cache=self.cache)
+        judgment = replace(judgment, selection=stats)
         brief = render_brief(judgment)
         sealed = jlog.append_judgment(self.log_path, judgment.to_dict())
         outcomes = {o["record_id"]: o["verdict"]
@@ -83,9 +85,18 @@ class Console:
         }
 
     def api_record(self, body: Mapping[str, Any]) -> Dict[str, Any]:
-        record = self.store.append(str(body["text"]), str(body.get("source", "console")),
-                                   scope=body.get("scope"))
-        return {"record": record, "total_records": len(self.store.load())}
+        text = str(body["text"])
+        source = str(body.get("source", "console"))
+        scope = body.get("scope")
+        records = self.store.load()
+        existing = find_near_duplicate(records, text, scope=scope)
+        if existing:
+            record, similarity = existing
+            return {"record": record, "created": False, "duplicate": "near",
+                    "similarity": similarity, "total_records": len(records)}
+        record = self.store.append(text, source, scope=scope)
+        return {"record": record, "created": True,
+                "total_records": len(records) + 1}
 
     def api_records(self) -> List[Dict[str, Any]]:
         return self.store.load()
@@ -113,6 +124,7 @@ class Console:
                 "degraded": row.get("degraded", False),
                 "entries": row.get("entries", []),
                 "outcomes": by_hash.get(row.get("judgment_hash"), {}),
+                "selection": row.get("selection") or {},
                 "brief_text": brief_text,
             })
         return out

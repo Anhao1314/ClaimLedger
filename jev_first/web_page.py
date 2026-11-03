@@ -414,17 +414,29 @@ function render(j) {
   const conflicts = j.conflicts || [];
   const outcomes = j.outcomes || {};
   const scoreable = (j.entries || []).filter(e => e.action === "admit").length;
+  const fallback = !!(j.selection && j.selection.fallback_to_recency);
   let html = "";
 
   html += '<div class="card"><div class="card-head">Brief' +
     '<button onclick="copyBrief()">Copy</button></div><div class="card-body">';
-  html += admitted.length
-    ? '<div class="section active"><div class="section-title">✓ Active constraints</div><ul>' +
-      admitted.map(e => `<li>${esc(e.text)}${e.governing ? ' <span class="pill green">governing</span>' : ""}${e.low_margin ? ' <span class="pill amber">thin margin</span>' : ""}</li>`).join("") + "</ul></div>"
-    : '<div class="section active"><div class="section-title">✓ Active constraints</div>' +
+  if (admitted.length) {
+    html += '<div class="section active"><div class="section-title">✓ Active constraints</div><ul>' +
+      admitted.map(e => `<li>${esc(e.text)}${e.governing ? ' <span class="pill green">governing</span>' : ""}${e.low_margin ? ' <span class="pill amber">thin margin</span>' : ""}</li>`).join("") + "</ul></div>";
+    if (fallback) {
+      html += '<div class="section degraded"><div class="section-title">No lexical match</div>' +
+        '<div style="font-size:12.5px">The judge admitted these records semantically; confirm before relying.</div></div>';
+    }
+  } else if (fallback) {
+    html += '<div class="section degraded"><div class="section-title">No relevant records</div>' +
+      '<div style="font-size:12.5px">Nothing in memory matched this task lexically. The records below were selected by recency, not relevance.</div></div>';
+  } else {
+    html += '<div class="section active"><div class="section-title">✓ Active constraints</div>' +
       '<div style="font-size:12.5px;color:var(--muted)">none admitted for this task.</div></div>';
+  }
   if (review.length) {
-    html += '<div class="section review"><div class="section-title">⚠ Needs human review</div><ul>' +
+    const title = fallback ? "Candidates considered (recency fallback — not admitted)"
+                           : "⚠ Needs human review";
+    html += `<div class="section review"><div class="section-title">${title}</div><ul>` +
       review.map(e => `<li>${esc(e.text)} <span class="pill amber">${e.conflicted ? "conflict" : e.low_margin ? "thin margin" : "review"}</span></li>`).join("") + "</ul></div>";
   }
   if (conflicts.length) {
@@ -636,10 +648,14 @@ async function submitRecord() {
   const text = $("rec-text").value.trim();
   if (!text) return;
   try {
-    await api("/api/record", {text: text, source: $("rec-agent").value});
+    const res = await api("/api/record", {text: text, source: $("rec-agent").value});
     closeOverlays();
     await refreshSide();
     renderFirstRun();
+    if (res.duplicate) {
+      $("meta-right").textContent = "already recorded as " + res.record.record_id +
+        " · similarity " + res.similarity;
+    }
   } catch (e) { $("meta-right").textContent = "record: " + e.message; }
 }
 

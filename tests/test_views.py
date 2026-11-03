@@ -2,6 +2,7 @@
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from chat_distiller import jev
@@ -90,6 +91,28 @@ class BriefTests(unittest.TestCase):
         judgment = self._judgment(records, caller=caller)
         brief = render_brief(judgment)
         self.assertIn("[thin margin", brief["text"])
+
+    def test_recency_fallback_with_no_admits_says_no_relevant_records(self):
+        records = make_records(["Use PostgreSQL."])
+        judgment = self._judgment(records, caller=fake_core(
+            {records[0]["record_id"]: (REVIEW, 0.5)}, {}))
+        judgment = replace(judgment, selection={"fallback_to_recency": True})
+        brief = render_brief(judgment)
+        self.assertIn("NO RELEVANT RECORDS", brief["text"])
+        self.assertIn("CANDIDATES CONSIDERED (recency fallback", brief["text"])
+        self.assertNotIn("NEEDS HUMAN REVIEW", brief["text"])
+        self.assertNotIn("ACTIVE CONSTRAINTS: none admitted", brief["text"])
+        self.assertTrue(brief["fallback_to_recency"])
+
+    def test_recency_fallback_with_an_admit_warns_to_confirm(self):
+        records = make_records(["Use PostgreSQL."])
+        judgment = self._judgment(records, caller=fake_core(
+            {records[0]["record_id"]: (ADMIT, 0.9)}, {}))
+        judgment = replace(judgment, selection={"fallback_to_recency": True})
+        brief = render_brief(judgment)
+        self.assertIn("- Use PostgreSQL.", brief["text"])
+        self.assertIn("no lexical match", brief["text"])
+        self.assertTrue(brief["fallback_to_recency"])
 
 
 class OutcomeTests(unittest.TestCase):

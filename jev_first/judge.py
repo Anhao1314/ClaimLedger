@@ -96,6 +96,7 @@ class Judgment:
     created_at: str = ""
     degraded: bool = False
     cached: bool = False
+    selection: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def admitted(self) -> List[Entry]:
@@ -123,6 +124,7 @@ class Judgment:
             "usage": self.usage,
             "created_at": self.created_at,
             "degraded": self.degraded,
+            "selection": self.selection,
             "entries": [e.to_dict() for e in self.entries],
         }
 
@@ -150,6 +152,7 @@ class Judgment:
             requests=body.get("requests", 0), usage=body.get("usage") or {},
             created_at=body.get("created_at", ""),
             degraded=body.get("degraded", False), cached=True,
+            selection=body.get("selection") or {},
         )
 
 

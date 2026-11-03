@@ -6,6 +6,10 @@ the unresolved conflicts, the thin margins. Same judgment in, same brief out.
 Only records whose action is `admit` appear as active constraints. A record
 under review — conflicted, thin margin, or the model's own hedge — must never
 read as something the agent may rely on.
+
+When selection fell back to recency because nothing matched lexically, the
+brief says so: an agent should see "no relevant records", not a weak candidate
+dressed up as a human-review item.
 """
 from __future__ import annotations
 
@@ -20,6 +24,8 @@ def render_brief(judgment: Any) -> Dict[str, Any]:
     lines: List[str] = [f"TASK: {judgment.task}", ""]
     warnings: List[str] = []
 
+    fallback = bool(getattr(judgment, "selection", {}).get("fallback_to_recency"))
+
     admitted = sorted((e for e in judgment.entries
                        if e.action == ADMIT and e.included),
                       key=lambda e: (e.p_admit or 0.0), reverse=True)
@@ -28,6 +34,11 @@ def render_brief(judgment: Any) -> Dict[str, Any]:
                     key=lambda e: (e.p_admit or 0.0), reverse=True)
     conflicts = judgment.conflicts or []
     texts = {e.record_id: e.text for e in judgment.entries}
+
+    if fallback and not admitted:
+        lines.append("NO RELEVANT RECORDS: nothing in memory matches this task "
+                     "lexically. The candidates below were selected by recency, "
+                     "not relevance, and none were admitted.")
 
     if admitted:
         lines.append("ACTIVE CONSTRAINTS (must follow):")
@@ -38,12 +49,19 @@ def render_brief(judgment: Any) -> Dict[str, Any]:
             elif entry.low_margin:
                 marker = " [thin margin — confirm before relying]"
             lines.append(f"- {entry.text}{marker}")
-    else:
+        if fallback:
+            lines.append("")
+            lines.append("NOTE: no lexical match — the judge admitted the record(s) "
+                         "above semantically; confirm before relying.")
+    elif not fallback:
         lines.append("ACTIVE CONSTRAINTS: none admitted for this task.")
 
     if review:
         lines.append("")
-        lines.append("NEEDS HUMAN REVIEW (not admitted — do not rely yet):")
+        if fallback:
+            lines.append("CANDIDATES CONSIDERED (recency fallback — not admitted):")
+        else:
+            lines.append("NEEDS HUMAN REVIEW (not admitted — do not rely yet):")
         for entry in review:
             if entry.conflicted:
                 reason = "conflicts with another record"
@@ -76,4 +94,5 @@ def render_brief(judgment: Any) -> Dict[str, Any]:
         "warnings": warnings,
         "conflicts": [list(pair) for pair in (conflicts or [])],
         "input_hash": judgment.input_hash,
+        "fallback_to_recency": fallback,
     }

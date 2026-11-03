@@ -10,7 +10,7 @@ from jev_first import Policy, contracts, judge, log
 from jev_first.cache import Cache
 from jev_first.judge import Judgment
 from jev_first.policy import ADMIT, EXCLUDE, REVIEW
-from jev_first.records import RecordStore, body_hash
+from jev_first.records import RecordStore, body_hash, find_near_duplicate
 
 TEXTS = {
     "clm_a": "All storage must use PostgreSQL.",
@@ -121,6 +121,68 @@ class RecordStoreTests(unittest.TestCase):
         self.store.path.write_text("\n".join(rows) + "\n", encoding="utf-8")
         with self.assertRaises(contracts.ContractError):
             self.store.load()
+
+
+class NearDuplicateTests(unittest.TestCase):
+    """Two agents describe the same decision differently; the write edge should
+    return the existing record, not grow a paraphrase pile."""
+
+    A = ("In the README, the delta=0.2 margin threshold must consistently be "
+         "described as a safety margin, not a tuned optimum.")
+    B = ("The margin threshold delta=0.2 is a safety margin, not a tuned "
+         "optimum; the ablation cannot distinguish 0.0 to 0.2.")
+
+    def test_paraphrase_returns_existing_record(self):
+        records = [{"record_id": "rec_a", "text": self.A, "scope": None}]
+        found = find_near_duplicate(records, self.B)
+        self.assertIsNotNone(found)
+        record, similarity = found
+        self.assertEqual(record["record_id"], "rec_a")
+        self.assertGreaterEqual(similarity, 0.65)
+
+    def test_paraphrase_with_negation_swap_is_found(self):
+        """Regression: 'not' vs 'never' and a past-tense verb must not hide
+        the same decision."""
+        records = [{"record_id": "rec_a", "text": self.A, "scope": None}]
+        found = find_near_duplicate(
+            records,
+            "Always describe the delta=0.2 margin threshold as a safety "
+            "margin, never as a tuned optimum.")
+        self.assertIsNotNone(found)
+        self.assertEqual(found[0]["record_id"], "rec_a")
+
+    def test_mixed_language_record_matches_english_paraphrase(self):
+        records = [{"record_id": "rec_a", "text": self.A, "scope": None}]
+        found = find_near_duplicate(
+            records,
+            "README 中 delta=0.2 的 margin 阈值必须始终表述为 safety margin，"
+            "而不是 tuned optimum。")
+        self.assertIsNotNone(found)
+        self.assertEqual(found[0]["record_id"], "rec_a")
+
+    def test_negation_is_not_merged(self):
+        records = [{"record_id": "rec_a",
+                    "text": "All new services must emit structured logs.",
+                    "scope": None}]
+        self.assertIsNone(find_near_duplicate(
+            records, "All new services must not emit structured logs."))
+
+    def test_distinct_decisions_are_not_merged(self):
+        records = [{"record_id": "rec_a",
+                    "text": "All new services must emit structured logs.",
+                    "scope": None}]
+        self.assertIsNone(find_near_duplicate(
+            records, "All new services must use PostgreSQL."))
+
+    def test_short_texts_are_skipped(self):
+        records = [{"record_id": "rec_a", "text": "Use PostgreSQL.",
+                    "scope": None}]
+        self.assertIsNone(find_near_duplicate(records, "Use PostgreSQL only."))
+
+    def test_scope_must_match(self):
+        records = [{"record_id": "rec_a", "text": self.A, "scope": "analytics"}]
+        self.assertIsNone(find_near_duplicate(records, self.B, scope="billing"))
+        self.assertIsNotNone(find_near_duplicate(records, self.B, scope="analytics"))
 
 
 class JudgeTests(unittest.TestCase):

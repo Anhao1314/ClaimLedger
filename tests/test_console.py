@@ -25,7 +25,7 @@ class ConsoleTests(unittest.TestCase):
         self.assertTrue(result["degraded"])
         self.assertEqual(result["model"], "unavailable")
         self.assertTrue(all(e["action"] == "review" for e in result["entries"]))
-        self.assertIn("ACTIVE CONSTRAINTS: none admitted", result["brief_text"])
+        self.assertIn("NO RELEVANT RECORDS", result["brief_text"])
         # every decide seals onto the log
         self.assertEqual(len(list(self.base.glob("judgments.jsonl"))), 1)
 
@@ -67,6 +67,9 @@ class ConsoleTests(unittest.TestCase):
         self.assertEqual(history[0]["judgment_hash"], decided["judgment_hash"])
         self.assertEqual(history[0]["outcomes"][rid], "upheld")
         self.assertEqual(len(history[0]["entries"]), 2)
+        # selection metadata survives sealing, so history renders the same
+        # no-relevance state the agent originally saw
+        self.assertTrue(history[0]["selection"]["fallback_to_recency"])
         # newest first
         with mock.patch.dict(os.environ, {"TYPESAFE_API_KEY": ""}):
             self.console.api_decide({"task": "another task"})
@@ -96,7 +99,7 @@ class ConsoleTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"TYPESAFE_API_KEY": ""}):
             self.console.api_decide({"task": "write an adapter"})
         history = self.console.api_history(limit=5)
-        self.assertIn("ACTIVE CONSTRAINTS", history[0]["brief_text"])
+        self.assertIn("TASK: write an adapter", history[0]["brief_text"])
 
     def test_record_history_follows_one_record_across_judgments(self):
         self.console.store.append("Use PostgreSQL.", "agent")
@@ -124,6 +127,22 @@ class ConsoleTests(unittest.TestCase):
         again = self.console.api_seed_examples()
         self.assertIn("error", again)
         self.assertEqual(len(self.console.store.load()), 5)
+
+    def test_paraphrased_record_returns_existing(self):
+        first = self.console.api_record({
+            "text": "In the README, the delta=0.2 margin threshold must "
+                    "consistently be described as a safety margin, not a tuned "
+                    "optimum.", "source": "zcode"})
+        second = self.console.api_record({
+            "text": "The margin threshold delta=0.2 is a safety margin, not a "
+                    "tuned optimum; the ablation cannot distinguish 0.0 to 0.2.",
+            "source": "doubao-work"})
+        self.assertTrue(first["created"])
+        self.assertFalse(second["created"])
+        self.assertEqual(second["duplicate"], "near")
+        self.assertEqual(second["record"]["record_id"],
+                         first["record"]["record_id"])
+        self.assertEqual(len(self.console.store.load()), 1)
 
 
 if __name__ == "__main__":

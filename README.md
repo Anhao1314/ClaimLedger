@@ -270,7 +270,14 @@ python -m jev_first verify --store records.jsonl
 
 Zero third-party dependencies, Python 3.9+. Records carry no status field: validity is a
 judgment, not a datum. The brief separates what the agent may rely on (`admit`) from what
-needs a human (`review` — conflicted, thin margin, or hedged).
+needs a human (`review` — conflicted, thin margin, or hedged). When lexical recall finds no
+match, the brief says `NO RELEVANT RECORDS` instead of presenting recency-selected noise as
+a constraint.
+
+Writes are content-addressed and paraphrase-aware: exact repeats are refused, and a
+near-identical decision from another agent returns the existing record with
+`created: false` instead of appending a duplicate. The check is deterministic (token
+containment + Jaccard, with a negation guard), so it needs no model call at write time.
 
 ## MCP server
 

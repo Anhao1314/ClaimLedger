@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from . import log
@@ -17,7 +18,7 @@ from .cache import Cache
 from .judge import DEFAULT_BUDGET_BYTES, judge
 from .outcomes import append_outcome
 from .outcomes import read as read_outcomes
-from .records import RecordStore
+from .records import RecordStore, find_near_duplicate
 
 
 def _print_decision(judgment, sealed=None) -> None:
@@ -132,8 +133,17 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "record":
-        record = RecordStore(args.store).append(args.text, args.source,
-                                                at=args.at, scope=args.scope)
+        store = RecordStore(args.store)
+        records = store.load()
+        existing = find_near_duplicate(records, args.text, scope=args.scope)
+        if existing:
+            record, similarity = existing
+            print(json.dumps({"record": record, "created": False,
+                              "duplicate": "near", "similarity": similarity},
+                             ensure_ascii=False, indent=2))
+            return 0
+        record = store.append(args.text, args.source,
+                              at=args.at, scope=args.scope)
         print(json.dumps(record, ensure_ascii=False, indent=2))
         return 0
 
@@ -166,6 +176,7 @@ def main(argv=None) -> int:
         cache = None if args.no_cache else Cache(args.cache or args.store + ".cache.jsonl")
         judgment = judge(args.task, candidates, budget_bytes=args.budget,
                          model=args.model, on_error=args.on_error, cache=cache)
+        judgment = replace(judgment, selection=stats)
         sealed = None
         if args.log:
             sealed = log.append_judgment(args.log, judgment.to_dict())
@@ -191,6 +202,7 @@ def main(argv=None) -> int:
         cache = None if args.no_cache else Cache(args.cache or args.store + ".cache.jsonl")
         judgment = judge(args.task, candidates, budget_bytes=args.budget,
                          on_error="review", cache=cache)
+        judgment = replace(judgment, selection=stats)
         brief = render_brief(judgment)
         print(brief["text"])
         print(f"\n[brief: {brief['bytes']} bytes · {brief['admitted']} admitted · "

@@ -67,6 +67,27 @@ class HandlerTests(unittest.TestCase):
                                                            "source": "agent"}}})
         self.assertTrue(dup["result"]["isError"])
 
+    def test_paraphrased_record_returns_existing(self):
+        first = self.server.handle(
+            {"jsonrpc": "2.0", "id": 51, "method": "tools/call",
+             "params": {"name": "memory_record", "arguments": {
+                 "text": "In the README, the delta=0.2 margin threshold must "
+                         "consistently be described as a safety margin, not a "
+                         "tuned optimum.", "source": "zcode"}}})
+        first_payload = json.loads(first["result"]["content"][0]["text"])
+        second = self.server.handle(
+            {"jsonrpc": "2.0", "id": 52, "method": "tools/call",
+             "params": {"name": "memory_record", "arguments": {
+                 "text": "The margin threshold delta=0.2 is a safety margin, "
+                         "not a tuned optimum; the ablation cannot distinguish "
+                         "0.0 to 0.2.", "source": "doubao-work"}}})
+        second_payload = json.loads(second["result"]["content"][0]["text"])
+        self.assertFalse(second_payload["created"])
+        self.assertEqual(second_payload["duplicate"], "near")
+        self.assertEqual(second_payload["record"]["record_id"],
+                         first_payload["record"]["record_id"])
+        self.assertEqual(len(self.server.store.load()), 1)
+
     def test_decide_on_empty_store_is_error(self):
         response = self.server.handle({"jsonrpc": "2.0", "id": 6, "method": "tools/call",
                                        "params": {"name": "memory_decide",

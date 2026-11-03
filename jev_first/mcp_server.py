@@ -27,6 +27,7 @@ import argparse
 import json
 import os
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
@@ -37,7 +38,7 @@ from .contracts import ContractError
 from .judge import DEFAULT_BUDGET_BYTES, judge
 from .log import append_judgment, read as read_log, verify as verify_log
 from .outcomes import append_outcome, read as read_outcomes, verify as verify_outcomes
-from .records import RecordStore
+from .records import RecordStore, find_near_duplicate
 from .select import select_candidates
 
 SUPPORTED_VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18")
@@ -60,8 +61,10 @@ def _tool_definitions() -> List[Dict[str, Any]]:
         {"name": "memory_record",
          "description": (
              "Append ONE decision or constraint to project memory at the moment it is "
-             "settled. Text must stand alone. Exact duplicates are refused. Records carry "
-             "no status: whether a record still holds is decided later by the judge."),
+             "settled. Text must stand alone. Exact duplicates are refused; a "
+             "paraphrase of an existing record returns that record with "
+             "created=false instead of appending. Records carry no status: "
+             "whether a record still holds is decided later by the judge."),
          "inputSchema": {"type": "object", "properties": {
              "text": {"type": "string", "description": "one standalone statement"},
              "source": {"type": "string", "description": "who wrote it (agent, tool, human)"},
@@ -139,9 +142,19 @@ class MemoryServer:
         return handlers[name](dict(arguments or {}))
 
     def _tool_record(self, args: Mapping[str, Any]) -> Dict[str, Any]:
-        record = self.store.append(str(args["text"]), str(args["source"]),
-                                   scope=args.get("scope"))
-        return {"record": record, "total_records": len(self.store.load())}
+        text = str(args["text"])
+        source = str(args["source"])
+        scope = args.get("scope")
+        records = self.store.load()
+        existing = find_near_duplicate(records, text, scope=scope)
+        if existing:
+            record, similarity = existing
+            return {"record": record, "created": False, "duplicate": "near",
+                    "similarity": similarity, "total_records": len(records),
+                    "note": "a near-identical decision already exists; not appended"}
+        record = self.store.append(text, source, scope=scope)
+        return {"record": record, "created": True,
+                "total_records": len(records) + 1}
 
     def _decide(self, args: Mapping[str, Any]) -> tuple:
         task = str(args["task"]).strip()
@@ -159,7 +172,7 @@ class MemoryServer:
             raise MethodError(-32602, "no candidates in scope for this task")
         judgment = judge(task, candidates, budget_bytes=budget,
                          on_error="review", cache=self.cache)
-        return judgment, stats
+        return replace(judgment, selection=stats), stats
 
     def _tool_decide(self, args: Mapping[str, Any]) -> Dict[str, Any]:
         from .brief import render_brief
