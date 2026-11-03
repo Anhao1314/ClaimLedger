@@ -414,6 +414,8 @@ part the checks could not kill: an auditable judgment layer with an honest bound
 | [docs/DECISION.md](docs/DECISION.md) | the withdrawn claim, recorded |
 | [docs/prior-art.md](docs/prior-art.md) | the literature check |
 | [docs/jev.md](docs/jev.md) | the Jev adapter: contract, measured latency, privacy boundary |
+| [docs/agent-instructions.md](docs/agent-instructions.md) | the host-file block that makes the agent call the tools; two-week protocol |
+| [docs/brand.md](docs/brand.md) | logo geometry → component mapping; usage rules |
 | [docs/design-v2.zh-CN.md](docs/design-v2.zh-CN.md) | legacy design record (pre-inversion) |
 
 ## Boundaries
