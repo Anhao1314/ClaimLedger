@@ -26,8 +26,21 @@ def _bucket(p: float) -> str:
 
 def calibrate(judgments: Sequence[Mapping[str, Any]],
               outcomes: Sequence[Mapping[str, Any]], *,
-              action: str = "admit") -> Dict[str, Any]:
+              action: str = "admit",
+              records: Sequence[Mapping[str, Any]] | None = None) -> Dict[str, Any]:
+    """Join sealed judgments with outcomes.
+
+    ``records`` is optional. When given, each scored pair is attributed to the
+    record's author (``source``) and a ``by_author`` breakdown is added. This is
+    source reliability, not reviewer reliability: the outcome IS the ground
+    truth, so there is no higher truth to score the reviewer against.
+    """
     by_hash = {j.get("judgment_hash"): j for j in judgments}
+    author_by_record: Dict[str, str] = {}
+    if records is not None:
+        for record in records:
+            author_by_record[str(record.get("record_id"))] = str(
+                record.get("source", "unknown"))
     pairs: List[Dict[str, Any]] = []
     orphans = 0
     unsupported = 0
@@ -58,6 +71,7 @@ def calibrate(judgments: Sequence[Mapping[str, Any]],
             "model": judgment.get("model", "?"),
             "judgment_hash": outcome.get("judgment_hash"),
             "record_id": record_id,
+            "author": author_by_record.get(str(record_id), "unknown"),
         })
 
     scored = [p for p in pairs]
@@ -83,6 +97,17 @@ def calibrate(judgments: Sequence[Mapping[str, Any]],
                             if mine else None),
         }
 
+    by_author: Dict[str, Dict[str, Any]] = {}
+    if records is not None:
+        for author in sorted({p["author"] for p in scored}):
+            mine = [p for p in scored if p["author"] == author]
+            by_author[author] = {
+                "n": len(mine),
+                "upheld_rate": round(sum(p["was_right"] for p in mine) / len(mine), 4),
+                "brier": round(statistics.mean(
+                    (p["p_admit"] - p["was_right"]) ** 2 for p in mine), 4),
+            }
+
     return {
         "action": action,
         "n_outcomes": len(outcomes),
@@ -94,5 +119,6 @@ def calibrate(judgments: Sequence[Mapping[str, Any]],
         "brier": brier,
         "buckets": buckets,
         "by_model": by_model,
+        "by_author": by_author,
         "pairs": scored,
     }

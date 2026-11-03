@@ -475,9 +475,17 @@ async function refreshSide() {
     `<span><span class="dot"></span>${c.outcomes} outcomes</span>` +
     (c.degraded ? `<span style="color:var(--warn-text)">⚠ ${c.degraded}</span>` : "");
   const r = await api("/api/calibrate");
-  $("cal-mini").innerHTML = r.n_scored
-    ? `calibration: <b>${r.n_scored}</b> scored · upheld <b>${r.overall_upheld_rate}</b> · Brier <b>${r.brier}</b>`
-    : `calibration: no scored outcomes yet (${r.n_outcomes} recorded, ${r.unsupported} on review)`;
+  if (r.n_scored) {
+    const authors = Object.entries(r.by_author || {})
+      .map(([a, d]) => `${esc(a)} ${d.n}·${d.upheld_rate}`)
+      .slice(0, 3).join(" · ");
+    $("cal-mini").innerHTML =
+      `calibration: <b>${r.n_scored}</b> scored · upheld <b>${r.overall_upheld_rate}</b> · Brier <b>${r.brier}</b>` +
+      (authors ? `<div style="margin-top:3px">by author: ${authors}</div>` : "");
+  } else {
+    $("cal-mini").innerHTML =
+      `calibration: no scored outcomes yet (${r.n_outcomes} recorded, ${r.unsupported} on review)`;
+  }
 }
 
 loadAgents();

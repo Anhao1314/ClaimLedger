@@ -161,6 +161,44 @@ class CalibrationTests(unittest.TestCase):
         self.assertEqual(report["unsupported"], 1)
         self.assertEqual(report["n_scored"], 0)
 
+    def test_by_author_groups_admitted_outcomes(self):
+        records = [
+            {"record_id": "rec_a", "source": "researcher-01"},
+            {"record_id": "rec_b", "source": "researcher-01"},
+            {"record_id": "rec_c", "source": "eason"},
+        ]
+        judgments = [
+            judgment_body("h1", [entry("rec_a", "a", ADMIT, p_admit=0.9)]),
+            judgment_body("h2", [entry("rec_b", "b", ADMIT, p_admit=0.8)]),
+            judgment_body("h3", [entry("rec_c", "c", ADMIT, p_admit=0.9)]),
+        ]
+        outcomes = [
+            {"judgment_hash": "h1", "record_id": "rec_a", "verdict": "upheld"},
+            {"judgment_hash": "h2", "record_id": "rec_b", "verdict": "overturned"},
+            {"judgment_hash": "h3", "record_id": "rec_c", "verdict": "upheld"},
+        ]
+        report = calibrate(judgments, outcomes, records=records)
+        authors = report["by_author"]
+        self.assertEqual(authors["researcher-01"]["n"], 2)
+        self.assertEqual(authors["researcher-01"]["upheld_rate"], 0.5)
+        self.assertEqual(authors["eason"]["n"], 1)
+        self.assertEqual(authors["eason"]["upheld_rate"], 1.0)
+
+    def test_by_author_absent_without_records(self):
+        judgments = [judgment_body("h1", [entry("rec_a", "a", ADMIT, 0.9)])]
+        outcomes = [{"judgment_hash": "h1", "record_id": "rec_a",
+                     "verdict": "upheld"}]
+        report = calibrate(judgments, outcomes)
+        self.assertEqual(report["by_author"], {})
+
+    def test_unknown_author_bucket(self):
+        records = [{"record_id": "rec_other", "source": "someone-else"}]
+        judgments = [judgment_body("h1", [entry("rec_a", "a", ADMIT, 0.9)])]
+        outcomes = [{"judgment_hash": "h1", "record_id": "rec_a",
+                     "verdict": "upheld"}]
+        report = calibrate(judgments, outcomes, records=records)
+        self.assertEqual(report["by_author"]["unknown"]["n"], 1)
+
     def test_unclear_excluded_from_scoring(self):
         judgments = [judgment_body("h1", [entry("rec_a", "a", ADMIT, 0.9)])]
         outcomes = [{"judgment_hash": "h1", "record_id": "rec_a",

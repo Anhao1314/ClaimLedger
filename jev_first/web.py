@@ -150,7 +150,8 @@ class Console:
 
     def api_calibrate(self) -> Dict[str, Any]:
         return calibrate(jlog.read(self.log_path),
-                         read_outcomes(self.outcomes_path), action="admit")
+                         read_outcomes(self.outcomes_path), action="admit",
+                         records=self.store.load())
 
     def api_audit(self) -> Dict[str, Any]:
         records = len(self.store.load())

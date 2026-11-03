@@ -111,7 +111,7 @@ Three roles, one cycle:
 | --- | --- | --- |
 | **Your agent** (Claude / Cursor / ZCode) | Records decisions as they happen; queries constraints before starting work | MCP tools (`memory_record`, `memory_decide`, `memory_brief`) |
 | **You** (developer) | Reviews outcomes: was the agent's judgment right? | Console or CLI (`outcome`) |
-| **The system** | Tracks how well its own judgments match reality | Calibration view (`calibrate`) |
+| **The system** | Tracks how well its own judgments match reality — overall, per model, and per record author | Calibration view (`calibrate --store …`) |
 
 ### The core loop
 
@@ -424,7 +424,9 @@ part the checks could not kill: an auditable judgment layer with an honest bound
 - The Jev adapter is the only network path; it requires explicit consent and sends the judged
   text to a third party. Records never leave the machine otherwise.
 - Calibration v1 scores `admit` entries only; `review`/`exclude` outcomes are recorded but not
-  yet scored.
+  yet scored. When the record store is supplied (`calibrate --store`), the report also breaks
+  down by record author — **source reliability, not reviewer reliability**: the outcome is the
+  ground truth, so there is no higher truth to score the reviewer against.
 - The candidate selector is lexical; a record with zero token overlap is not selected.
 - No web UI (the console is a local view, not a product surface), no daemon, no cross-machine sync.
 - **For projects with fewer than ~20 stable constraints, a `CLAUDE.md` file is simpler and

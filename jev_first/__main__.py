@@ -108,6 +108,7 @@ def main(argv=None) -> int:
     p_calibrate = sub.add_parser("calibrate", help="score the judge against outcomes")
     p_calibrate.add_argument("--log", required=True)
     p_calibrate.add_argument("--outcomes", required=True)
+    p_calibrate.add_argument("--store", help="records.jsonl; enables the per-author breakdown")
     p_calibrate.add_argument("--action", default="admit")
 
     p_audit = sub.add_parser("audit", help="summarize the judgment history")
@@ -221,8 +222,9 @@ def main(argv=None) -> int:
 
     if args.command == "calibrate":
         from .calibration import calibrate
+        records = RecordStore(args.store).load() if args.store else None
         report = calibrate(log.read(args.log), read_outcomes(args.outcomes),
-                           action=args.action)
+                           action=args.action, records=records)
         print(f"action '{report['action']}': {report['n_scored']} scored of "
               f"{report['n_outcomes']} outcomes "
               f"(orphans {report['orphans']}, unsupported {report['unsupported']})")
@@ -236,6 +238,10 @@ def main(argv=None) -> int:
                 print(f"{bucket:14} {data['n']:>4} {rate:>7}")
         for model, data in report["by_model"].items():
             print(f"model {model}: n={data['n']} upheld {data['upheld_rate']}")
+        if report.get("by_author"):
+            print(f"\n{'author':24} {'n':>4} {'upheld':>7} {'Brier':>7}")
+            for author, data in report["by_author"].items():
+                print(f"{author:24} {data['n']:>4} {data['upheld_rate']:>7} {data['brier']:>7}")
         return 0
 
     if args.command == "audit":
