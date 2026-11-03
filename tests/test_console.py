@@ -53,6 +53,26 @@ class ConsoleTests(unittest.TestCase):
         # the entry is in review (degraded run) — v1 calibration scores admit only
         self.assertEqual(report["orphans"], 0)
 
+    def test_history_returns_sealed_judgments_with_outcomes(self):
+        for text in ("Use PostgreSQL.", "SQLite is deprecated."):
+            self.console.store.append(text, "agent")
+        with mock.patch.dict(os.environ, {"TYPESAFE_API_KEY": ""}):
+            decided = self.console.api_decide({"task": "write an adapter"})
+        rid = decided["entries"][0]["record_id"]
+        self.console.api_outcome({"record_id": rid, "verdict": "upheld",
+                                  "judgment_hash": decided["judgment_hash"],
+                                  "by": "human"})
+        history = self.console.api_history(limit=5)
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["judgment_hash"], decided["judgment_hash"])
+        self.assertEqual(history[0]["outcomes"][rid], "upheld")
+        self.assertEqual(len(history[0]["entries"]), 2)
+        # newest first
+        with mock.patch.dict(os.environ, {"TYPESAFE_API_KEY": ""}):
+            self.console.api_decide({"task": "another task"})
+        history = self.console.api_history(limit=5)
+        self.assertEqual(history[0]["task"], "another task")
+
     def test_chains_verify_after_use(self):
         from jev_first import log as jlog
         from jev_first.outcomes import verify as verify_outcomes
