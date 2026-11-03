@@ -215,7 +215,8 @@ class MemoryServer:
     def _tool_audit(self, args: Mapping[str, Any]) -> Dict[str, Any]:
         if args.get("record_id"):
             return {"record_id": str(args["record_id"]),
-                    "judgments": for_record(self.log_path, str(args["record_id"]))}
+                    "judgments": for_record(self.log_path, str(args["record_id"]),
+                                            reader=read_log)}
         return summarize(self.log_path, reader=read_log)
 
     # ---- JSON-RPC ----------------------------------------------------------

@@ -44,6 +44,7 @@ def for_record(path: str, record_id: str, *, reader) -> List[Dict[str, Any]]:
             entry = next(e for e in row["entries"]
                          if e.get("record_id") == record_id)
             out.append({
+                "record_id": record_id,
                 "judgment_hash": row.get("judgment_hash"),
                 "task": row.get("task"),
                 "created_at": row.get("created_at"),

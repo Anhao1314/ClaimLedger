@@ -19,7 +19,9 @@ from urllib.parse import parse_qs, urlparse
 
 from . import agents as agent_registry
 from . import log as jlog
+from .audit import for_record
 from .brief import render_brief
+from .judge import Judgment
 from .cache import Cache
 from .calibration import calibrate
 from .judge import DEFAULT_BUDGET_BYTES, judge
@@ -98,6 +100,10 @@ class Console:
                 outcome.get("record_id")] = outcome.get("verdict")
         out = []
         for row in reversed(rows):
+            try:
+                brief_text = render_brief(Judgment.from_dict(row))["text"]
+            except (KeyError, TypeError, ValueError):
+                brief_text = ""
             out.append({
                 "judgment_hash": row.get("judgment_hash"),
                 "task": row.get("task", ""),
@@ -107,6 +113,7 @@ class Console:
                 "degraded": row.get("degraded", False),
                 "entries": row.get("entries", []),
                 "outcomes": by_hash.get(row.get("judgment_hash"), {}),
+                "brief_text": brief_text,
             })
         return out
 
@@ -136,6 +143,32 @@ class Console:
             kind=str(body.get("kind", "agent")))
         return {"agent": entry,
                 "chain_length": agent_registry.verify(self.agents_path)}
+
+    def api_record_history(self, record_id: str) -> List[Dict[str, Any]]:
+        return for_record(self.log_path, record_id, reader=jlog.read)
+
+    def api_seed_examples(self) -> Dict[str, Any]:
+        """Seed five non-conflicting decisions — only into an empty store.
+
+        The point is the first run: a fresh store cannot produce an `admit`
+        verdict, which makes the first interaction feel broken.
+        """
+        if self.store.load():
+            return {"error": "store already has records; seeding is for an empty store"}
+        examples = [
+            "All storage must use PostgreSQL.",
+            "Retries must be capped at 3.",
+            "Deployments happen only on Tuesdays.",
+            "Logs are retained for 30 days.",
+            "API v1 must remain unchanged.",
+        ]
+        added = [self.store.append(text, "examples") for text in examples]
+        try:
+            agent_registry.append_agent(self.agents_path, name="examples", kind="agent")
+        except ValueError:
+            pass
+        return {"seeded": len(added),
+                "records": [record["record_id"] for record in added]}
 
     def api_outcome(self, body: Mapping[str, Any]) -> Dict[str, Any]:
         judgment_hash = body.get("judgment_hash") or (
@@ -202,6 +235,9 @@ def make_handler(console: Console):
                 self._send(console.api_history(limit))
             elif route.path == "/api/agents":
                 self._send(console.api_agents())
+            elif route.path == "/api/record-history":
+                record_id = parse_qs(route.query).get("record_id", [""])[0]
+                self._send(console.api_record_history(record_id))
             elif route.path == "/api/decide":
                 self._send(console.api_decide(
                     {k: v[0] for k, v in parse_qs(route.query).items()}))
@@ -226,6 +262,8 @@ def make_handler(console: Console):
                 self._send(console.api_record(body))
             elif route.path == "/api/agents":
                 self._send(console.api_register_agent(body))
+            elif route.path == "/api/seed-examples":
+                self._send(console.api_seed_examples())
             elif route.path == "/api/outcome":
                 self._send(console.api_outcome(body))
             else:

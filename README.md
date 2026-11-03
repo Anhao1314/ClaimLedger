@@ -242,9 +242,18 @@ held for human review — nothing was silently admitted or silently dropped.
 
 ### Console
 
-The same flow, in a local web console (dark mode, with outcome collection):
+The same flow, in a local web console (dark mode). One input does tasks; the
+brief, the per-record verdicts, and the conflict localization are on one canvas.
+Clicking a record opens its judgment history, and every outcome click says
+whether it moves calibration (`scoreable: 1 of 4` here).
 
-![ClaimLedger console — dark mode, with conflict localization and outcome buttons](docs/img/console.png)
+![ClaimLedger console — active constraint, conflict localization, and outcome buttons](docs/img/console.png)
+
+The calibration slide-over joins upheld / overturned outcomes to the admitted
+records that predicted them — overall, per probability bucket, and per author.
+v1 scores `admit` entries only, and says so where the user clicks:
+
+![ClaimLedger calibration panel — upheld rate, Brier score, bucket, per-author breakdown](docs/img/console-calibration.png)
 
 ```bash
 python -m jev_first console --store records.jsonl
@@ -415,6 +424,7 @@ part the checks could not kill: an auditable judgment layer with an honest bound
 | [docs/prior-art.md](docs/prior-art.md) | the literature check |
 | [docs/jev.md](docs/jev.md) | the Jev adapter: contract, measured latency, privacy boundary |
 | [docs/agent-instructions.md](docs/agent-instructions.md) | the host-file block that makes the agent call the tools; two-week protocol |
+| [docs/console-design.md](docs/console-design.md) | user-first console design: five jobs, eight blockers, acceptance criteria |
 | [docs/brand.md](docs/brand.md) | logo geometry → component mapping; usage rules |
 | [docs/design-v2.zh-CN.md](docs/design-v2.zh-CN.md) | legacy design record (pre-inversion) |
 

@@ -247,7 +247,7 @@ def main(argv=None) -> int:
     if args.command == "audit":
         from .audit import for_record, summarize
         if args.record_id:
-            for item in for_record(args.log, args.record_id):
+            for item in for_record(args.log, args.record_id, reader=log.read):
                 print(json.dumps(item, ensure_ascii=False))
         else:
             print(json.dumps(summarize(args.log, reader=log.read),

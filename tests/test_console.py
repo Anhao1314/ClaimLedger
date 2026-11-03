@@ -89,6 +89,42 @@ class ConsoleTests(unittest.TestCase):
         with self.assertRaises(contracts.ContractError):
             self.console.api_record({"text": "Use PostgreSQL.", "source": "agent"})
 
+    def test_history_carries_renderable_brief_text(self):
+        """The console copies the brief from history, so it must be rebuilt
+        server-side; the sealed entry alone is not the brief."""
+        self.console.store.append("Use PostgreSQL.", "agent")
+        with mock.patch.dict(os.environ, {"TYPESAFE_API_KEY": ""}):
+            self.console.api_decide({"task": "write an adapter"})
+        history = self.console.api_history(limit=5)
+        self.assertIn("ACTIVE CONSTRAINTS", history[0]["brief_text"])
+
+    def test_record_history_follows_one_record_across_judgments(self):
+        self.console.store.append("Use PostgreSQL.", "agent")
+        self.console.store.append("SQLite is deprecated.", "agent")
+        with mock.patch.dict(os.environ, {"TYPESAFE_API_KEY": ""}):
+            first = self.console.api_decide({"task": "write an adapter"})
+            second = self.console.api_decide({"task": "pick a database"})
+        rid = first["entries"][0]["record_id"]
+        rows = self.console.api_record_history(rid)
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(all(row["record_id"] == rid for row in rows))
+        self.assertTrue(all("action" in row and "p_admit" in row for row in rows))
+        self.assertEqual(self.console.api_record_history("rec_" + "0" * 24), [])
+        self.assertNotEqual(first["judgment_hash"], second["judgment_hash"])
+
+    def test_seed_examples_only_into_an_empty_store(self):
+        seeded = self.console.api_seed_examples()
+        self.assertEqual(seeded["seeded"], 5)
+        self.assertEqual(len(self.console.store.load()), 5)
+        self.assertEqual(len(seeded["records"]), 5)
+        # the seeding identity is registered so attribution is not "unknown"
+        names = {row["name"] for row in self.console.api_agents()}
+        self.assertIn("examples", names)
+        # a second seed is refused, and the store is untouched
+        again = self.console.api_seed_examples()
+        self.assertIn("error", again)
+        self.assertEqual(len(self.console.store.load()), 5)
+
 
 if __name__ == "__main__":
     unittest.main()
