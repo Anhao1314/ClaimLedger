@@ -104,6 +104,46 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(payload["bytes"],
                          len(payload["brief"].encode("utf-8")))
 
+    def test_brief_seals_so_the_call_is_auditable_and_scoreable(self):
+        """The MCP path is the main integration: a brief an agent acted on must
+        exist in the log, or calibration can never see it."""
+        records = make_records(["Use PostgreSQL.", "SQLite is deprecated."])
+        for record in records:
+            self.server.store.append(record["text"], "agent")
+        with mock.patch.dict(os.environ, {"TYPESAFE_API_KEY": ""}):
+            response = self.server.handle(
+                {"jsonrpc": "2.0", "id": 81, "method": "tools/call",
+                 "params": {"name": "memory_brief",
+                            "arguments": {"task": "write an adapter"}}})
+        payload = json.loads(response["result"]["content"][0]["text"])
+        self.assertIn("judgment_hash", payload)
+        audit = self.server.handle(
+            {"jsonrpc": "2.0", "id": 82, "method": "tools/call",
+             "params": {"name": "memory_audit", "arguments": {}}})
+        self.assertEqual(
+            json.loads(audit["result"]["content"][0]["text"])["n_judgments"], 1)
+        outcome = self.server.handle(
+            {"jsonrpc": "2.0", "id": 83, "method": "tools/call",
+             "params": {"name": "memory_outcome",
+                        "arguments": {"record_id": records[0]["record_id"],
+                                      "verdict": "upheld", "by": "human",
+                                      "judgment_hash": payload["judgment_hash"]}}})
+        self.assertFalse(outcome["result"].get("isError", False))
+
+    def test_decide_also_seals(self):
+        for text in ("Use PostgreSQL.", "SQLite is deprecated."):
+            self.server.store.append(text, "agent")
+        with mock.patch.dict(os.environ, {"TYPESAFE_API_KEY": ""}):
+            self.server.handle(
+                {"jsonrpc": "2.0", "id": 84, "method": "tools/call",
+                 "params": {"name": "memory_decide",
+                            "arguments": {"task": "write an adapter"}}})
+        audit = self.server.handle(
+            {"jsonrpc": "2.0", "id": 85, "method": "tools/call",
+             "params": {"name": "memory_audit", "arguments": {}}})
+        self.assertEqual(
+            json.loads(audit["result"]["content"][0]["text"])["n_judgments"], 1)
+
     def test_outcome_then_calibrate(self):
         # Seed the log with a sealed judgment by hand: the server reads the log,
         # it does not care who wrote it.

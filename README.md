@@ -280,8 +280,11 @@ python -m jev_first.mcp_server --dir ~/.jev-memory
 ```
 
 Six tools: `memory_record`, `memory_decide`, `memory_brief`, `memory_outcome`,
-`memory_calibrate`, `memory_audit`. Tool failures come back as `isError` results; the server
-never crashes on a tool. Without a key, decide/brief answer degraded — every record review.
+`memory_calibrate`, `memory_audit`. `decide` and `brief` both seal the judgment to the
+hash-chained log and return `judgment_hash`; pass that to `memory_outcome` so an agent's
+real use is auditable and calibratable. Tool failures come back as `isError` results; the
+server never crashes on a tool. Without a key, decide/brief answer degraded — every record
+review.
 
 **The tools do nothing until the agent is told to call them.** Copy the block from
 [docs/agent-instructions.md](docs/agent-instructions.md) into your `CLAUDE.md` / `AGENTS.md`

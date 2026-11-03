@@ -70,9 +70,10 @@ def _tool_definitions() -> List[Dict[str, Any]]:
         {"name": "memory_decide",
          "description": (
              "Select candidate records for a task and judge them: one admit choice per "
-             "record, pairwise conflict localization, governing. Returns the agent-facing "
-             "brief plus the full decision. Requires TYPESAFE_API_KEY; without it the "
-             "result is degraded and every record is review."),
+             "record, pairwise conflict localization, governing. Seals the judgment "
+             "and returns its hash; pass that hash to memory_outcome. Requires "
+             "TYPESAFE_API_KEY; without it the result is degraded and every "
+             "record is review."),
          "inputSchema": {"type": "object", "properties": {
              "task": {"type": "string"},
              "scope": {"type": "string"},
@@ -82,7 +83,8 @@ def _tool_definitions() -> List[Dict[str, Any]]:
         {"name": "memory_brief",
          "description": ("The agent-facing text projection only: admitted constraints, "
                          "needs-review records, unresolved conflicts. Same decision as "
-                         "memory_decide, served from cache when possible."),
+                         "memory_decide, sealed to the log with a returned hash; served "
+                         "from cache when possible."),
          "inputSchema": {"type": "object", "properties": {
              "task": {"type": "string"}, "scope": {"type": "string"},
              "limit": {"type": "integer"}, "budget_bytes": {"type": "integer"}},
@@ -162,6 +164,7 @@ class MemoryServer:
     def _tool_decide(self, args: Mapping[str, Any]) -> Dict[str, Any]:
         from .brief import render_brief
         judgment, stats = self._decide(args)
+        sealed = append_judgment(self.log_path, judgment.to_dict())
         brief = render_brief(judgment)
         payload = {
             "brief": brief["text"],
@@ -170,6 +173,7 @@ class MemoryServer:
             "conflicts": brief["conflicts"],
             "degraded": judgment.degraded,
             "model": judgment.model,
+            "judgment_hash": sealed["judgment_hash"],
             "actions": {e.record_id: {"action": e.action, "p_admit": e.p_admit,
                                       "governing": e.governing,
                                       "conflicted": e.conflicted,
@@ -185,10 +189,12 @@ class MemoryServer:
     def _tool_brief(self, args: Mapping[str, Any]) -> Dict[str, Any]:
         from .brief import render_brief
         judgment, stats = self._decide(args)
+        sealed = append_judgment(self.log_path, judgment.to_dict())
         brief = render_brief(judgment)
         return {"brief": brief["text"], "bytes": brief["bytes"],
                 "admitted": brief["admitted"], "warnings": brief["warnings"],
                 "degraded": judgment.degraded,
+                "judgment_hash": sealed["judgment_hash"],
                 "input_hash": judgment.input_hash}
 
     def _tool_outcome(self, args: Mapping[str, Any]) -> Dict[str, Any]:
