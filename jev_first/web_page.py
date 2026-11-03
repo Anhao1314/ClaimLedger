@@ -489,7 +489,7 @@ async function postOutcome(recordId, verdict) {
   if (!state.current) return;
   await api("/api/outcome", {record_id: recordId, verdict: verdict,
                              judgment_hash: state.current.judgment_hash,
-                             by: state.currentAgent || "console-human"});
+                             by: "console-human"});
   state.current.outcomes = state.current.outcomes || {};
   state.current.outcomes[recordId] = verdict;
   render(state.current);
