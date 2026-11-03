@@ -1,0 +1,4 @@
+TASK: Implement fetch_with_retry with retries capped
+
+ACTIVE CONSTRAINTS (must follow):
+- Retries must be capped at 3.

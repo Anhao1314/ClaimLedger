@@ -1,0 +1,4 @@
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- PostgreSQL is banned for the analytics service.
+- 控制台的 proposals 面板必须显示提案人身份。
+- Secrets must never be logged.

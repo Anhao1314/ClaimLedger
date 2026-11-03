@@ -1,0 +1,9 @@
+{
+  "id": "02_retry_cap",
+  "title": "Retry helper",
+  "target": "retry.py",
+  "blocked": false,
+  "relevant": [
+    "Retries must be capped at 3."
+  ]
+}

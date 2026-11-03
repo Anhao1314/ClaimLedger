@@ -1,0 +1,8 @@
+TASK: Implement storage database connect using the project's backend
+
+ACTIVE CONSTRAINTS (must follow):
+- All storage in every service must use PostgreSQL as the database backend. [governing]
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- Integration tests run against a disposable database. [thin margin]
+- Database migrations run before the service starts. [thin margin]

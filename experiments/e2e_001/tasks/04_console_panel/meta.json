@@ -1,0 +1,10 @@
+{
+  "id": "04_console_panel",
+  "title": "Console proposals panel",
+  "target": null,
+  "blocked": true,
+  "relevant": [
+    "The console must not add any new panels.",
+    "The console must add a proposals panel."
+  ]
+}

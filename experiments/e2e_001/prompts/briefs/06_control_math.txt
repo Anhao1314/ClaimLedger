@@ -1,0 +1,6 @@
+TASK: Implement add
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- The console must not add any new panels. [thin margin]

@@ -1,0 +1,13 @@
+TASK: Implement the storage layer for the new analytics service
+
+ACTIVE CONSTRAINTS (must follow):
+- PII is redacted before storage.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- Database migrations run before the service starts. [thin margin]
+- License headers are required on new files. [thin margin]
+- PostgreSQL is banned for the analytics service. [conflicts with another record]
+- All storage in every service must use PostgreSQL as the database backend. [conflicts with another record]
+
+UNRESOLVED CONFLICTS (resolve with a human before acting):
+- PostgreSQL is banned for the analytics service.  ⟂  All storage in every service must use PostgreSQL as the database backend.

@@ -1,0 +1,13 @@
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- All storage in every service must use PostgreSQL as the database backend.
+- The API must support cursor pagination.
+- Release notes are written before the tag.
+- Errors must include a stable machine-readable code.
+- Background jobs use exponential backoff.
+- The CLI must exit non-zero on validation failure.
+- License headers are required on new files.
+- Dependencies are pinned to exact versions.
+- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.
+- The docs site is built from the main branch.
+- The mobile client caches the last 20 items.
+- Every endpoint must include a request id.

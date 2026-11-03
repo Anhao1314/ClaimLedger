@@ -1,0 +1,10 @@
+{
+  "id": "03_analytics_storage",
+  "title": "Analytics storage",
+  "target": null,
+  "blocked": true,
+  "relevant": [
+    "All storage in every service must use PostgreSQL as the database backend.",
+    "PostgreSQL is banned for the analytics service."
+  ]
+}
