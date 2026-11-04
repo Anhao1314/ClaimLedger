@@ -1,0 +1,3 @@
+- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.
+- Frontend assets must be minified before release.
+- Attribution is not authentication: the agent registry carries no keys or signatures.

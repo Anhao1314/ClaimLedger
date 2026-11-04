@@ -1,0 +1,4 @@
+TASK: Classify claim strength by sample size
+
+ACTIVE CONSTRAINTS (must follow):
+- Claims about the system must be weakened when the sample size is below 100.

@@ -1,0 +1,4 @@
+TASK: Add v2 handler while keeping API v1 unchanged
+
+ACTIVE CONSTRAINTS (must follow):
+- API v1 must remain unchanged.

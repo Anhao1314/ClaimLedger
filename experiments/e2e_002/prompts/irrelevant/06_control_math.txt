@@ -1,0 +1,2 @@
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- PostgreSQL is banned for the analytics service.

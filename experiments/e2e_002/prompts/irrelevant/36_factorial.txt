@@ -1,0 +1,3 @@
+- PostgreSQL is banned for the analytics service.
+- API v1 must be removed in Q4.
+- Health checks must not depend on the database.

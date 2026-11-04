@@ -1,0 +1,4 @@
+TASK: Add structured logging to the new service
+
+ACTIVE CONSTRAINTS (must follow):
+- All new services must emit structured logs.

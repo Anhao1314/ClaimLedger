@@ -1,0 +1,4 @@
+TASK: Implement add
+
+ACTIVE CONSTRAINTS (must follow):
+- The console must not add any new panels.

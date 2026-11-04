@@ -1,0 +1,15 @@
+- User-facing strings must be externalized.
+- Frontend assets must be minified before release.
+- Webhooks are signed with HMAC.
+- Model-swap drift remains unmeasured until a second-generation model is available.
+- Retries must be capped at 3.
+- 控制台的 proposals 面板必须显示提案人身份。
+- Every pull request must update the changelog.
+- Secrets must never be logged.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- All HTTP handlers must return JSON.
+- Background jobs use exponential backoff.
+- API v1 must remain unchanged.
+- Dependencies are pinned to exact versions.
+- The default locale is en-US.
+- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.

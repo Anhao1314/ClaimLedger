@@ -1,0 +1,4 @@
+TASK: Describe the delta=0.2 margin threshold for the README
+
+ACTIVE CONSTRAINTS (must follow):
+- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2.

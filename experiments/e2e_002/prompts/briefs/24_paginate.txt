@@ -1,0 +1,6 @@
+TASK: Paginate
+
+ACTIVE CONSTRAINTS (must follow):
+- Dependencies must float to the latest minor version.
+
+NOTE: no lexical match — the judge admitted the record(s) above semantically; confirm before relying.

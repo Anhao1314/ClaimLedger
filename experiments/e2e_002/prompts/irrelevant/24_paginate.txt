@@ -1,0 +1,5 @@
+- Errors must include a stable machine-readable code.
+- The admin UI is internal-only.
+- Configuration is read from environment variables only.
+- Background jobs use exponential backoff.
+- Dependencies must float to the latest minor version.

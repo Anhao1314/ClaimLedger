@@ -1,0 +1,11 @@
+- The API must support cursor pagination.
+- The admin UI is internal-only.
+- User-facing strings must be externalized.
+- Configuration is read from environment variables only.
+- The default locale is en-US.
+- All new services must emit structured logs.
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- New services must not emit structured logs.
+- Retries must be capped at 3.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- All HTTP handlers must return JSON.

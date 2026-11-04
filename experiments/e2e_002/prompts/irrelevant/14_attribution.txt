@@ -1,0 +1,6 @@
+- Feature flags default to on.
+- API v1 must be removed in Q4.
+- The console must add a proposals panel.
+- Rate limits apply per API key.
+- The build must be reproducible from a clean checkout.
+- PII is redacted before storage.

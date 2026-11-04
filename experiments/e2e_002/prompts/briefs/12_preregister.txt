@@ -1,0 +1,7 @@
+TASK: Return whether thresholds may be tuned after seeing results
+
+ACTIVE CONSTRAINTS (must follow):
+- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results. [governing]
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2. [thin margin]

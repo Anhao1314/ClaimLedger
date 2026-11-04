@@ -1,0 +1,3 @@
+- PostgreSQL is banned for the analytics service.
+- The console must not add any new panels.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.

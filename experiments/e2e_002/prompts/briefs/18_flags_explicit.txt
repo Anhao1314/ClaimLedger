@@ -1,0 +1,11 @@
+TASK: Add a feature flag and choose its default
+
+ACTIVE CONSTRAINTS (must follow):
+- Do not add console features until one external user has used the system for two weeks.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- Feature flags default to off. [conflicts with another record]
+- Feature flags default to on. [conflicts with another record]
+
+UNRESOLVED CONFLICTS (resolve with a human before acting):
+- Feature flags default to on.  ⟂  Feature flags default to off.

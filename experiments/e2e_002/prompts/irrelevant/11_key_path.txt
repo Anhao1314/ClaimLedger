@@ -1,0 +1,4 @@
+- Secrets must never be logged.
+- The service must start within two seconds.
+- Health checks must not depend on the database.
+- Attribution is not authentication: the agent registry carries no keys or signatures.

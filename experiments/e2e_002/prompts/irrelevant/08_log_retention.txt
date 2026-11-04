@@ -1,0 +1,4 @@
+- Background jobs use exponential backoff.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- Dependencies are pinned to exact versions.
+- PostgreSQL is banned for the analytics service.

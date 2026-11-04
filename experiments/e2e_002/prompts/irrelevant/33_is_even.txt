@@ -1,0 +1,7 @@
+- Secrets must never be logged.
+- New services must not emit structured logs.
+- The build must be reproducible from a clean checkout.
+- Telemetry is opt-in.
+- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.
+- Database migrations run before the service starts.
+- Deployments happen only on Tuesdays.

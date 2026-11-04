@@ -1,0 +1,9 @@
+- Feature flags default to off.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- The console must not add any new panels.
+- Model-swap drift remains unmeasured until a second-generation model is available.
+- Database migrations run before the service starts.
+- Feature flags default to on.
+- Rate limits apply per API key.
+- Retries must be capped at 3.
+- Every pull request must update the changelog.

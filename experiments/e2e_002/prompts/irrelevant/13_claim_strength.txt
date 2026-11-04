@@ -1,0 +1,3 @@
+- Retries must be capped at 3.
+- Do not add console features until one external user has used the system for two weeks.
+- Dependencies must float to the latest minor version.

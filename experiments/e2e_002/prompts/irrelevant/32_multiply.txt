@@ -1,0 +1,5 @@
+- Database migrations run before the service starts.
+- The API must support cursor pagination.
+- Telemetry is opt-in.
+- 控制台的 proposals 面板必须显示提案人身份。
+- Rate limits apply per API key.

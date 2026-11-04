@@ -1,0 +1,9 @@
+- Secrets must never be logged.
+- The console must add a proposals panel.
+- Release notes are written before the tag.
+- 控制台的 proposals 面板必须显示提案人身份。
+- The CLI must exit non-zero on validation failure.
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- The search index is rebuilt nightly.
+- Frontend assets must be minified before release.
+- The build must be reproducible from a clean checkout.

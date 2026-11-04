@@ -1,0 +1,8 @@
+- Telemetry is opt-in.
+- Dependencies are pinned to exact versions.
+- Retries must be capped at 3.
+- Dependencies must float to the latest minor version.
+- The CLI must exit non-zero on validation failure.
+- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2.
+- The queue is drained before shutdown.
+- API v1 must remain unchanged.

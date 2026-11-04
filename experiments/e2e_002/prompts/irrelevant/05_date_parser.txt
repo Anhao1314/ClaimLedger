@@ -1,0 +1,3 @@
+- API v1 must be removed in Q4.
+- All storage in every service must use PostgreSQL as the database backend.
+- Database migrations run before the service starts.

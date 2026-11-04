@@ -1,0 +1,4 @@
+- Model-swap drift remains unmeasured until a second-generation model is available.
+- Do not add console features until one external user has used the system for two weeks.
+- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.
+- Unit tests must not touch the network.

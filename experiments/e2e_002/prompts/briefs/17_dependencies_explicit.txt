@@ -1,0 +1,10 @@
+TASK: Float dependencies to the latest minor version
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- Dependencies must float to the latest minor version. [conflicts with another record]
+- Dependencies are pinned to exact versions. [conflicts with another record]
+
+UNRESOLVED CONFLICTS (resolve with a human before acting):
+- Dependencies must float to the latest minor version.  ⟂  Dependencies are pinned to exact versions.

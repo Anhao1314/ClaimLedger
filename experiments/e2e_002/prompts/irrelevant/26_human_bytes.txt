@@ -1,0 +1,2 @@
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- Do not add console features until one external user has used the system for two weeks.

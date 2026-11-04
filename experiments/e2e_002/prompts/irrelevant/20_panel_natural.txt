@@ -1,0 +1,13 @@
+- Frontend assets must be minified before release.
+- Integration tests run against a disposable database.
+- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- Health checks must not depend on the database.
+- PostgreSQL is banned for the analytics service.
+- The service must start within two seconds.
+- PII is redacted before storage.
+- Unit tests must not touch the network.
+- The API must support cursor pagination.
+- Flaky tests are quarantined, not retried indefinitely.
+- 控制台的 proposals 面板必须显示提案人身份。
+- Errors must include a stable machine-readable code.

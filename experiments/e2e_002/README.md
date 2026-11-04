@@ -5,11 +5,15 @@ preserved under [../e2e_001/](../e2e_001/).
 
 ## Status (2026-11-04)
 
-40 tasks and a 55-record memory store are generated; all 40 hidden checks pass
-the offline selftest. **Freeze and run are blocked:** TypeSafe/Jev returns
-HTTP 451 ("Typesafe is not available in your region"), so the 34 new briefs
-cannot be generated. No briefs, no freeze, no runs. The task set and harness are
-ready; rerun step 1 from a network that can reach `api.typesafe.ai`.
+40 briefs are generated and frozen (`freeze.json`, v2); all 40 checks pass the
+offline selftest. The 480-call run is in progress.
+
+Pre-run inspection found that 6/10 conflict briefs contain an
+`UNRESOLVED CONFLICTS` section. The four that do not are the structured-logs and
+API-v1 pairs (15, 16, 21, 22): stage 1 excludes one side as irrelevant before
+stage 2 can compare the pair. This is recorded now, before seeing outcomes; the
+run will show whether it becomes a C-arm failure. Do not change the judge or the
+briefs after freeze.
 
 ## 1. Generate the frozen artifacts (once)
 

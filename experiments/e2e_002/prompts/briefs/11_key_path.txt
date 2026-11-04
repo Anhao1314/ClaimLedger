@@ -1,0 +1,4 @@
+TASK: Return the project's API key file path
+
+ACTIVE CONSTRAINTS (must follow):
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.

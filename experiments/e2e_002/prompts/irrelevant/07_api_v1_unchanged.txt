@@ -1,0 +1,3 @@
+- Telemetry is opt-in.
+- The console must not introduce new backend concepts; this round is presentation only.
+- The API must support cursor pagination.

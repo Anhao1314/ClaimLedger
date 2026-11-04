@@ -1,0 +1,3 @@
+- Frontend assets must be minified before release.
+- The console must not add any new panels.
+- Health checks must not depend on the database.

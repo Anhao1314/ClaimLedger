@@ -1,0 +1,6 @@
+TASK: Return whether the agent registry authenticates identities
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- Attribution is not authentication: the agent registry carries no keys or signatures. [thin margin]

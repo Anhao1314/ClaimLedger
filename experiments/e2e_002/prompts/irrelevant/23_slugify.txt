@@ -1,0 +1,4 @@
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- Database migrations run before the service starts.
+- Configuration is read from environment variables only.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.

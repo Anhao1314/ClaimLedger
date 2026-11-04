@@ -1,0 +1,3 @@
+- The service must start within two seconds.
+- 控制台的 proposals 面板必须显示提案人身份。
+- Background jobs use exponential backoff.

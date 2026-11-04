@@ -1,0 +1,3 @@
+- Integration tests run against a disposable database.
+- New services must not emit structured logs.
+- Webhooks are signed with HMAC.

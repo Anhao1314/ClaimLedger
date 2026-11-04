@@ -361,6 +361,8 @@ def main() -> int:
         write_freeze()
         return 0
     if args.tasks_only:
+        (ROOT / "prompts" / "briefs").mkdir(parents=True, exist_ok=True)
+        (ROOT / "prompts" / "irrelevant").mkdir(parents=True, exist_ok=True)
         (ROOT / "prompts").mkdir(parents=True, exist_ok=True)
         (ROOT / "memory").mkdir(parents=True, exist_ok=True)
         (ROOT / "tasks").mkdir(parents=True, exist_ok=True)
@@ -376,6 +378,8 @@ def main() -> int:
         raise SystemExit("TYPESAFE_API_KEY missing (needed to generate briefs)")
     if (ROOT / "freeze.json").exists() and not args.force:
         raise SystemExit("already frozen; use --force to regenerate")
+    (ROOT / "prompts" / "briefs").mkdir(parents=True, exist_ok=True)
+    (ROOT / "prompts" / "irrelevant").mkdir(parents=True, exist_ok=True)
     (ROOT / "prompts").mkdir(parents=True, exist_ok=True)
     (ROOT / "memory").mkdir(parents=True, exist_ok=True)
     (ROOT / "tasks").mkdir(parents=True, exist_ok=True)

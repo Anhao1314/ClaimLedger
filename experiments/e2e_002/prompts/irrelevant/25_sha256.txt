@@ -1,0 +1,4 @@
+- The API must support cursor pagination.
+- The service must start within two seconds.
+- Database migrations run before the service starts.
+- Every endpoint must include a request id.

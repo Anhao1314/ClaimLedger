@@ -1,0 +1,3 @@
+- Model-swap drift remains unmeasured until a second-generation model is available.
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.

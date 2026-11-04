@@ -1,0 +1,4 @@
+- The CLI must exit non-zero on validation failure.
+- User-facing strings must be externalized.
+- Errors must include a stable machine-readable code.
+- PostgreSQL is banned for the analytics service.
