@@ -17,7 +17,13 @@ Known and deliberately left in v3: 15/16/21/22 conflict briefs still miss a
 conflict because stage 1 excludes one side before stage 2. That is reported as a
 separate failure, not hidden by changing the judge mid-protocol.
 
-The 320-call run is pending the regenerated freeze.
+### Run halted (2026-11-04)
+
+The 320-call run was stopped after 288 attempts. DeepSeek returned
+`HTTP 402: Insufficient Balance` for 244 of them; only 26 passed before the
+balance ran out. The task/arm matrix is incomplete, so the partial results were
+deleted and are not analyzed. Top up the API key and rerun step 3 with
+`--fresh`; the frozen artifacts are unchanged.
 
 ## 1. Generate the frozen artifacts (once)
 
