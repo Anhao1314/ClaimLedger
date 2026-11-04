@@ -1,0 +1,21 @@
+{
+  "description": "Candidate binary replacement question for the contradicts-disambiguation cascade. Validated here before any contract promotion.",
+  "frozen_at": "2026-11-05",
+  "questions": {
+    "replacement": {
+      "applies_to": "pair",
+      "criteria": {
+        "no": "Neither record announces a replacement: they are two conflicting requirements with no stated succession",
+        "yes": "One record explicitly states that it replaces, retires, revokes or deprecates the other, or they are two versions of the same requirement where a version number or effective date makes one newer"
+      },
+      "decision_rule": "asked only when the edge question's argmax is contradicts; p_yes >= 0.80 recovers a supersedes proposal (routed to the human edge gate), 0.50-0.79 stays contradicts in the review band, below 0.50 the conflict stands",
+      "instructions": "Two records conflict. Is one of them a newer replacement of the other, meaning the other is retired",
+      "type": "choice",
+      "validation": {
+        "evidence": "experiments/supersedes_003",
+        "status": "VALIDATION_IN_PROGRESS"
+      }
+    }
+  },
+  "version": "supersedes_003_v1"
+}

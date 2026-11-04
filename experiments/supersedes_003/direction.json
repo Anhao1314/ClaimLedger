@@ -1,0 +1,21 @@
+{
+  "description": "Direction question carried verbatim from supersedes_001.",
+  "frozen_at": "2026-11-05",
+  "questions": {
+    "direction": {
+      "applies_to": "pair",
+      "criteria": {
+        "A": "Record A is the newer replacement and record B is the retired one",
+        "B": "Record B is the newer replacement and record A is the retired one"
+      },
+      "decision_rule": "argmax of the returned probability map; asked only when the edge question's argmax is supersedes",
+      "instructions": "One of these two records replaces the other, which is retired. Which record is the newer replacement",
+      "type": "choice",
+      "validation": {
+        "evidence": "experiments/supersedes_001",
+        "status": "VALIDATION_IN_PROGRESS"
+      }
+    }
+  },
+  "version": "supersedes_003_v1"
+}
