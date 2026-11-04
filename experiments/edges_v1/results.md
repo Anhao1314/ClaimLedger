@@ -62,3 +62,38 @@ JEV independently reproduces the DeepSeek reading on the benchmark↔margin boun
 ## Verdict
 
 All four pre-registered gates pass. The `edge` question is validated for adoption into the product contract (`questions.v2.json` → contract bump), with two carry-forward items: (a) resolve the sibling-constraint seam by amending the schema definition or accepting the review-routing behavior, (b) measure supersedes on a purpose-built pair set before promoting that criterion.
+
+## Threshold sensitivity — offline sweep (zero model calls)
+
+Re-analysis of the frozen run data (`threshold_sweep.py` → `results/threshold-sweep.json`),
+run-1 probability maps only.
+
+### Edge proposal threshold (117 gold pairs)
+
+| T | proposed | precision | review load | missed edges |
+|---:|---:|---:|---:|---:|
+| 0.50 | 13 | 0.923 | 0.0% | 1 |
+| 0.55–0.90 | 12 | **1.000** | 0.9% | 1 |
+
+The plateau is the finding: **every threshold from 0.55 to 0.90 produces identical
+decisions** — 12 proposals, all correct, 0.9% review load. The only change is at T = 0.50,
+where the two known p = 0.5 errors enter the proposed set (precision drops to 0.923). Policy
+v2.3's frozen 0.80 sits in the middle of the plateau: it is not a fitted number, it is
+insensitive to threshold choice across a 0.35-wide range. The single constant miss
+(pair_774a, gold supports at unrelated p = 0.5) is a review-band resident at every threshold.
+
+### Cascade recovery threshold (supersedes_003, 43 pairs)
+
+| T | supersedes recall | repaired real conflicts | review band |
+|---:|---:|---:|---:|
+| 0.50–0.60 | **14/14** | **0** | 0 |
+| 0.70 | 13/14 | 0 | 1 |
+| 0.80–0.90 (frozen) | 12/14 | 0 | 2 |
+
+The safety margin is structural, not tuned: the closest true replacement answers p_yes =
+**0.63** and the closest real conflict answers p_yes = **0.10** — a 0.53-wide gap with
+nothing in between. The frozen T_yes = 0.80 recovers 12/14; the data says 0.55 would recover
+14/14 at zero repair cost. It stays at 0.80 for now: the band pairs are visible (review band,
+replacement question attached), n = 2 behind the improvement is too thin to re-freeze policy
+on, and lowering a safety threshold is a decision for a pre-registered protocol with more
+data — exactly the discipline that produced these numbers in the first place.
