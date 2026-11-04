@@ -1,0 +1,216 @@
+{
+  "calibration_supersedes_set": {
+    "0.80-0.89": {
+      "ci95": [
+        0.2077,
+        0.9385
+      ],
+      "k": 2,
+      "n": 3,
+      "rate": 0.6667
+    },
+    "<0.80": {
+      "ci95": [
+        0.2152,
+        0.7848
+      ],
+      "k": 4,
+      "n": 8,
+      "rate": 0.5
+    },
+    "p>=0.90": {
+      "ci95": [
+        0.4385,
+        1.0
+      ],
+      "k": 3,
+      "n": 3,
+      "rate": 1.0
+    }
+  },
+  "control_set_labels": {
+    "pair_6c3b84eae77a": "supports",
+    "pair_a31daffc0f9b": "supports",
+    "pair_a70e82cd2258": "unrelated",
+    "pair_b903cd072572": "unrelated",
+    "pair_bb18ba6982b3": "supports",
+    "pair_ddc418221a3b": "unrelated",
+    "pair_eddb9143c324": "supports",
+    "pair_fb70cdbdcc99": "supports"
+  },
+  "direction_question": {
+    "detail": [
+      {
+        "correct": true,
+        "observed": "A",
+        "p": 1.0,
+        "pair_id": "sup_a1",
+        "truth": "A"
+      },
+      {
+        "correct": true,
+        "observed": "A",
+        "p": 0.97,
+        "pair_id": "sup_a2",
+        "truth": "A"
+      },
+      {
+        "correct": true,
+        "observed": "A",
+        "p": 1.0,
+        "pair_id": "sup_a3",
+        "truth": "A"
+      },
+      {
+        "correct": true,
+        "observed": "B",
+        "p": 1.0,
+        "pair_id": "sup_a4",
+        "truth": "B"
+      },
+      {
+        "correct": true,
+        "observed": "B",
+        "p": 1.0,
+        "pair_id": "sup_b2",
+        "truth": "B"
+      },
+      {
+        "correct": true,
+        "observed": "A",
+        "p": 0.89,
+        "pair_id": "sup_b3",
+        "truth": "A"
+      },
+      {
+        "correct": true,
+        "observed": "B",
+        "p": 1.0,
+        "pair_id": "sup_c2",
+        "truth": "B"
+      },
+      {
+        "correct": true,
+        "observed": "B",
+        "p": 0.99,
+        "pair_id": "sup_d3",
+        "truth": "B"
+      },
+      {
+        "correct": true,
+        "observed": "B",
+        "p": 1.0,
+        "pair_id": "sup_e1",
+        "truth": "B"
+      }
+    ],
+    "metric": {
+      "ci95": [
+        0.7008,
+        1.0
+      ],
+      "k": 9,
+      "n": 9,
+      "rate": 1.0
+    },
+    "scored_on": "supersedes-classified pairs, run 1",
+    "unstable_across_runs": []
+  },
+  "distractor_contradicts_recall": {
+    "ci95": [
+      0.7008,
+      1.0
+    ],
+    "k": 9,
+    "n": 9,
+    "rate": 1.0
+  },
+  "distractor_set_labels": {
+    "dis_1": "contradicts",
+    "dis_2": "contradicts",
+    "dis_3": "contradicts",
+    "dis_4": "contradicts",
+    "dis_5": "contradicts",
+    "dis_6": "contradicts",
+    "dis_7": "contradicts",
+    "dis_8": "contradicts",
+    "dis_9": "contradicts"
+  },
+  "gates": {
+    "S1-H1_supersedes_recall>=0.85": {
+      "metric": {
+        "ci95": [
+          0.3876,
+          0.8366
+        ],
+        "k": 9,
+        "n": 14,
+        "rate": 0.6429
+      },
+      "pass": false
+    },
+    "S1-H2_zero_supersedes_as_contradicts": {
+      "metric": {
+        "k": 4,
+        "n": 14
+      },
+      "pairs": [
+        "sup_b1",
+        "sup_c1",
+        "sup_d1",
+        "sup_f1"
+      ],
+      "pass": false
+    },
+    "S1-H3_zero_distractor_as_supersedes": {
+      "metric": {
+        "k": 0,
+        "n": 9
+      },
+      "pairs": [],
+      "pass": true
+    },
+    "S1-H4_zero_control_as_supersedes": {
+      "metric": {
+        "k": 0,
+        "n": 8
+      },
+      "pairs": [],
+      "pass": true
+    }
+  },
+  "n_pairs": 31,
+  "parse_failures_run1": 0,
+  "schema": "supersedes_001_score_v1",
+  "stability": {
+    "flip_rate": 0.0323,
+    "unstable_pairs": [
+      "sup_b1"
+    ]
+  },
+  "supersedes_recall": {
+    "ci95": [
+      0.3876,
+      0.8366
+    ],
+    "k": 9,
+    "n": 14,
+    "rate": 0.6429
+  },
+  "supersedes_set_labels": {
+    "sup_a1": "supersedes",
+    "sup_a2": "supersedes",
+    "sup_a3": "supersedes",
+    "sup_a4": "supersedes",
+    "sup_b1": "contradicts",
+    "sup_b2": "supersedes",
+    "sup_b3": "supersedes",
+    "sup_c1": "contradicts",
+    "sup_c2": "supersedes",
+    "sup_d1": "contradicts",
+    "sup_d2": "supports",
+    "sup_d3": "supersedes",
+    "sup_e1": "supersedes",
+    "sup_f1": "contradicts"
+  }
+}
