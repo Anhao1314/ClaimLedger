@@ -1,0 +1,227 @@
+{
+  "accuracy_run1": {
+    "ci95": [
+      0.9398,
+      0.9953
+    ],
+    "k": 115,
+    "n": 117,
+    "rate": 0.9829
+  },
+  "calibration_buckets": {
+    "0.80-0.89": {
+      "ci95": [
+        0.6756,
+        1.0
+      ],
+      "k": 8,
+      "n": 8,
+      "rate": 1.0
+    },
+    "<0.80": {
+      "ci95": [
+        0.3,
+        0.9032
+      ],
+      "k": 4,
+      "n": 6,
+      "rate": 0.6667
+    },
+    "p>=0.90": {
+      "ci95": [
+        0.964,
+        1.0
+      ],
+      "k": 103,
+      "n": 103,
+      "rate": 1.0
+    }
+  },
+  "confusion_matrix_predicted_by_gold": {
+    "contradicts": {
+      "contradicts": 5,
+      "supersedes": 0,
+      "supports": 0,
+      "unrelated": 0
+    },
+    "supports": {
+      "contradicts": 0,
+      "supersedes": 0,
+      "supports": 7,
+      "unrelated": 1
+    },
+    "unrelated": {
+      "contradicts": 0,
+      "supersedes": 0,
+      "supports": 1,
+      "unrelated": 103
+    }
+  },
+  "contested_pairs": [
+    {
+      "contested_channel_labels": {
+        "deepseek": "supports",
+        "zcode": "unrelated"
+      },
+      "labels_across_runs": [
+        "unrelated"
+      ],
+      "pair_id": "pair_71dceef73b6c",
+      "run1_label": "unrelated",
+      "run1_p": 0.6
+    },
+    {
+      "contested_channel_labels": {
+        "deepseek": "supports",
+        "zcode": "unrelated"
+      },
+      "labels_across_runs": [
+        "supports"
+      ],
+      "pair_id": "pair_8d1921ca83ce",
+      "run1_label": "supports",
+      "run1_p": 0.88
+    },
+    {
+      "contested_channel_labels": {
+        "deepseek": "supports",
+        "zcode": "unrelated"
+      },
+      "labels_across_runs": [
+        "supports"
+      ],
+      "pair_id": "pair_e250c87793a9",
+      "run1_label": "supports",
+      "run1_p": 0.98
+    }
+  ],
+  "gates": {
+    "P2-H1_accuracy>=0.80": {
+      "metric": {
+        "ci95": [
+          0.9398,
+          0.9953
+        ],
+        "k": 115,
+        "n": 117,
+        "rate": 0.9829
+      },
+      "pass": true
+    },
+    "P2-H2_contradicts_recall=5/5": {
+      "metric": {
+        "ci95": [
+          0.5655,
+          1.0
+        ],
+        "k": 5,
+        "n": 5,
+        "rate": 1.0
+      },
+      "pass": true
+    },
+    "P2-H3_contradicts_precision=5/5": {
+      "metric": {
+        "ci95": [
+          0.5655,
+          1.0
+        ],
+        "k": 5,
+        "n": 5,
+        "rate": 1.0
+      },
+      "pass": true
+    },
+    "P2-H4_unrelated_recall>=0.90": {
+      "metric": {
+        "ci95": [
+          0.9475,
+          0.9983
+        ],
+        "k": 103,
+        "n": 104,
+        "rate": 0.9904
+      },
+      "pass": true
+    },
+    "supersedes_predicted_on_gold": {
+      "k": 0,
+      "note": "directional; zero gold supersedes"
+    }
+  },
+  "latency_ms_median_run1": 944,
+  "n_contested": 3,
+  "n_scored": 117,
+  "parse_failures_run1": 0,
+  "per_class": {
+    "contradicts": {
+      "precision": {
+        "ci95": [
+          0.5655,
+          1.0
+        ],
+        "k": 5,
+        "n": 5,
+        "rate": 1.0
+      },
+      "recall": {
+        "ci95": [
+          0.5655,
+          1.0
+        ],
+        "k": 5,
+        "n": 5,
+        "rate": 1.0
+      }
+    },
+    "supports": {
+      "precision": {
+        "ci95": [
+          0.5291,
+          0.9776
+        ],
+        "k": 7,
+        "n": 8,
+        "rate": 0.875
+      },
+      "recall": {
+        "ci95": [
+          0.5291,
+          0.9776
+        ],
+        "k": 7,
+        "n": 8,
+        "rate": 0.875
+      }
+    },
+    "unrelated": {
+      "precision": {
+        "ci95": [
+          0.9475,
+          0.9983
+        ],
+        "k": 103,
+        "n": 104,
+        "rate": 0.9904
+      },
+      "recall": {
+        "ci95": [
+          0.9475,
+          0.9983
+        ],
+        "k": 103,
+        "n": 104,
+        "rate": 0.9904
+      }
+    }
+  },
+  "schema": "edges_v1_score_v1",
+  "stability": {
+    "flip_rate": 0.0085,
+    "pairs": 117,
+    "unstable": 1,
+    "unstable_pair_ids": [
+      "pair_774a28306b1f"
+    ]
+  }
+}
