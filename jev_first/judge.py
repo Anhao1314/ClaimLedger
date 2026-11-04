@@ -15,13 +15,18 @@ not affect this task.
   The global contradiction signal is retired from the flow: pairwise is strictly
   more informative and cannot punish uninvolved records.
 
-Stage 2.5 — the validated `edge` question on the same pairs, as its own request
-(so neither question's validated single-question configuration is contaminated
-by the other). The answer never changes record actions: it PROPOSES graph
-edges. Policy v2.3: p >= 0.80 and a relational label (supports/contradicts/
-supersedes) proposes an edge; 0.50-0.79 routes the pair to edge review; below
-0.50 or an `unrelated` argmax proposes nothing. An edge failure marks the
-judgment degraded — a missing edge must not look like a clean no.
+Stage 2.5 — the directed edge plane, three passes on the same pairs, each its
+own request (so no question's validated single-question configuration is
+contaminated by another). The `edge` question never changes record actions: it
+PROPOSES graph edges. When it says `contradicts`, the validated `replacement`
+question disambiguates succession from genuine conflict (supersedes_003:
+recall 0.857 vs 0.643 single-question, zero real conflicts repaired). A
+recovered supersedes — and any directly-decided supersedes — then gets the
+`direction` question, because edge-schema.v1.json requires direction for
+supersedes edges. Policy v2.3: p >= 0.80 proposes an edge for the human gate;
+0.50-0.79 holds the pair in the review band; below 0.50 proposes nothing. An
+unclean answer anywhere marks the judgment degraded — a missing edge must not
+look like a clean no.
 
 Stage 3 — `governing` over the surviving set; may promote review to admit,
 never a conflicted record.
@@ -88,16 +93,21 @@ class Entry:
 
 @dataclass(frozen=True)
 class EdgeDecision:
-    """One pair's edge-question outcome. Never changes record actions."""
+    """One pair's edge-plane outcome. Never changes record actions."""
     src: str
     dst: str
     label: str
     p: float
     action: str  # proposed | review | none
+    via: str = "single-question"  # single-question | cascade | cascade-review
+    direction: Optional[str] = None  # A→B meaning src supersedes dst
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"src": self.src, "dst": self.dst, "label": self.label,
-                "p": round(self.p, 4), "action": self.action}
+        body = {"src": self.src, "dst": self.dst, "label": self.label,
+                "p": round(self.p, 4), "action": self.action, "via": self.via}
+        if self.direction:
+            body["direction"] = self.direction
+        return body
 
 
 @dataclass(frozen=True)
@@ -182,7 +192,9 @@ class Judgment:
             degraded=body.get("degraded", False), cached=True,
             selection=body.get("selection") or {},
             edges=[EdgeDecision(src=e["src"], dst=e["dst"], label=e["label"],
-                                p=float(e["p"]), action=e["action"])
+                                p=float(e["p"]), action=e["action"],
+                                via=e.get("via", "single-question"),
+                                direction=e.get("direction"))
                    for e in body.get("edges", [])],
         )
 
@@ -251,6 +263,16 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
                       "instructions": edge_spec["instructions"],
                       "criteria": dict(edge_spec["criteria"])}
                      if edge_spec else None)
+    replacement_spec = spec["questions"].get("replacement")
+    replacement_question = ({"type": replacement_spec["type"],
+                             "instructions": replacement_spec["instructions"],
+                             "criteria": dict(replacement_spec["criteria"])}
+                            if replacement_spec else None)
+    direction_spec = spec["questions"].get("direction")
+    direction_question = ({"type": direction_spec["type"],
+                           "instructions": direction_spec["instructions"],
+                           "criteria": dict(direction_spec["criteria"])}
+                          if direction_spec else None)
     resolved_model = model or jev.model_name()
     version = spec["version"]
 
@@ -259,6 +281,8 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
         "relation": relation_question,
         "relation_scope": "pairs_with_admitted_side",
         **({"edge": edge_question} if edge_question else {}),
+        **({"replacement": replacement_question} if replacement_question else {}),
+        **({"direction": direction_question} if direction_question else {}),
     }, model=resolved_model, question_set_version=version)
     if cache is not None:
         hit = cache.get(top_key)
@@ -392,47 +416,152 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
     ) for e in entries]
 
     # ---- stage 2.5: propose graph edges; never changes record actions -------
-    # Own request, own cache key: the edge question was validated as a
-    # single-question call, and mixing questions would create a third,
-    # unvalidated configuration. State format matches edges_v1 byte-for-byte.
+    # Three passes, each its own request and cache key (no question is ever
+    # mixed into another's validated single-question configuration; state
+    # format matches the validating experiments byte-for-byte):
+    #   a) the `edge` question on every pair
+    #   b) the `replacement` question on pairs the edge question calls
+    #      contradicts (supersedes_003: one four-way question cannot hold
+    #      conflict and succession apart; a binary question can)
+    #   c) the `direction` question on pairs finally decided supersedes
+    #      (edge-schema.v1.json requires_direction)
+    # Frozen decision rule (supersedes_003 protocol): contradicts + p_yes >=
+    # policy.edge_propose_at recovers a supersedes proposal for the human edge
+    # gate; 0.50-0.79 holds the pair in the review band without proposing;
+    # below 0.50 the conflict stands and a contradicts edge is proposed as
+    # before. A missing direction on a would-be supersedes proposal is held
+    # for review, never proposed malformed.
     edge_decisions: List[EdgeDecision] = []
     if edge_question is not None and pairs:
-        def edge_job(pair: tuple) -> Optional[EdgeDecision]:
+
+        def raw_ask(pair: tuple, name: str, question: dict) -> Optional[dict]:
             a, b = pair
             state = f"Record A (src): {a.text}\nRecord B (dst): {b.text}"
             try:
-                parsed = ask(state, {"edge": edge_question})
+                parsed = ask(state, {name: question})
             except jev.JevError:
                 if on_error == "raise":
                     raise
                 with lock:
                     counter["degraded"] = True
                 return None
-            answer = jev.answer(parsed, "edge")
+            answer = jev.answer(parsed, name)
             probabilities = answer.get("probabilities") or {}
             label = (max(probabilities, key=probabilities.get)
                      if probabilities else answer.get("choice"))
-            if label not in (*EDGE_RELATIONAL, "unrelated"):
+            valid = ("A", "B") if name == "direction" else (
+                ("yes", "no") if name == "replacement"
+                else (*EDGE_RELATIONAL, "unrelated"))
+            if label not in valid or any(
+                    not isinstance(probabilities.get(l), (int, float))
+                    for l in valid):
                 # An answer outside the frozen criteria is a broken response,
                 # not a signal: fail open without proposing anything.
                 with lock:
                     counter["degraded"] = True
                 return None
-            p_label = probabilities.get(label)
-            p_value = (float(p_label)
-                       if isinstance(p_label, (int, float)) else None)
-            if label == "unrelated" or p_value is None or p_value < 0.50:
-                action = "none"
-            elif p_value >= policy.edge_propose_at:
-                action = "proposed"
-            else:
-                action = "review"
-            return EdgeDecision(src=a.record_id, dst=b.record_id,
-                                label=label, p=p_value if p_value is not None else 0.0,
-                                action=action)
+            return {"label": label, "probs": probabilities}
 
         with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(pairs)))) as pool:
-            edge_decisions = [d for d in pool.map(edge_job, pairs) if d is not None]
+            edge_raws = dict(zip(pairs, pool.map(
+                lambda p: raw_ask(p, "edge", edge_question), pairs)))
+
+        def conflicted(pair: tuple) -> bool:
+            raw = edge_raws.get(pair)
+            return bool(raw and raw["label"] == "contradicts")
+
+        replacement_raws: dict = {}
+        if replacement_question is not None:
+            rep_pairs = [p for p in pairs if conflicted(p)]
+            if rep_pairs:
+                with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(rep_pairs)))) as pool:
+                    replacement_raws = dict(zip(rep_pairs, pool.map(
+                        lambda p: raw_ask(p, "replacement", replacement_question),
+                        rep_pairs)))
+
+        decided: Dict[tuple, dict] = {}
+        for pair in pairs:
+            raw = edge_raws.get(pair)
+            if raw is None:
+                continue  # transport failure already marked degraded
+            a, b = pair
+            label = raw["label"]
+            p_value = float(raw["probs"][label])
+            if label != "contradicts":
+                if label == "unrelated" or p_value < 0.50:
+                    action, via = "none", "single-question"
+                elif p_value >= policy.edge_propose_at:
+                    action, via = "proposed", "single-question"
+                else:
+                    action, via = "review", "single-question"
+                decided[pair] = {"label": label, "p": p_value,
+                                 "action": action, "via": via}
+                continue
+            rep = replacement_raws.get(pair) if replacement_question else None
+            if rep is None:
+                # The disambiguation did not run cleanly: a suspected conflict
+                # that might be a replacement must not become either edge.
+                decided[pair] = {"label": "contradicts", "p": p_value,
+                                 "action": "review", "via": "cascade"}
+                continue
+            p_yes = float(rep["probs"]["yes"])
+            if p_yes >= policy.edge_propose_at:
+                decided[pair] = {"label": "supersedes", "p": p_yes,
+                                 "action": "proposed", "via": "cascade"}
+            elif p_yes >= 0.50:
+                decided[pair] = {"label": "contradicts", "p": p_value,
+                                 "action": "review", "via": "cascade-review"}
+            else:
+                # p_yes < 0.50 — the conflict stands: keep the single-question
+                # banding on the edge probability so a thin contradicts never
+                # becomes a confident proposal.
+                if p_value >= policy.edge_propose_at:
+                    action = "proposed"
+                elif p_value >= 0.50:
+                    action = "review"
+                else:
+                    action = "none"
+                decided[pair] = {"label": "contradicts", "p": p_value,
+                                 "action": action, "via": "single-question"}
+
+        def needs_direction(pair: tuple) -> bool:
+            d = decided.get(pair)
+            return bool(d and d["label"] == "supersedes"
+                        and d["action"] == "proposed")
+
+        direction_raws: dict = {}
+        if direction_question is not None:
+            dir_pairs = [p for p in pairs if needs_direction(p)]
+            if dir_pairs:
+                with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(dir_pairs)))) as pool:
+                    direction_raws = dict(zip(dir_pairs, pool.map(
+                        lambda p: raw_ask(p, "direction", direction_question),
+                        dir_pairs)))
+        elif any(needs_direction(p) for p in pairs):
+            # The active set lacks the direction question but a supersedes
+            # edge wants one: hold those proposals for review rather than
+            # emit a malformed directed edge.
+            for pair in pairs:
+                if needs_direction(pair):
+                    decided[pair]["action"] = "review"
+
+        edge_decisions = []
+        for pair in pairs:
+            d = decided.get(pair)
+            if d is None:
+                continue
+            a, b = pair
+            direction = None
+            if d["label"] == "supersedes" and d["action"] == "proposed":
+                raw = direction_raws.get(pair)
+                if raw is None:
+                    d["action"] = "review"
+                else:
+                    direction = ("src→dst" if raw["label"] == "A" else "dst→src")
+            edge_decisions.append(EdgeDecision(
+                src=a.record_id, dst=b.record_id, label=d["label"],
+                p=d["p"], action=d["action"], via=d["via"],
+                direction=direction))
 
     # ---- stage 3: governing over the surviving set --------------------------
     governing: Optional[str] = None

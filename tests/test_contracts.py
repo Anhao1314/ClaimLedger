@@ -23,6 +23,7 @@ class ManifestTests(unittest.TestCase):
         status = contracts.verify_manifest()
         self.assertEqual(status, {"questions.v1.json": "ok",
                                   "questions.v2.json": "ok",
+                                  "questions.v3.json": "ok",
                                   "records.v1.json": "ok"})
 
     def test_tampered_file_is_detected(self):
@@ -31,10 +32,10 @@ class ManifestTests(unittest.TestCase):
             tmpdir = Path(tmp)
             (tmpdir / "records.v1.json").write_bytes(
                 contracts.RECORDS_FILE.read_bytes() + b" ")
-            (tmpdir / contracts.QUESTIONS_FILE.name).write_bytes(
-                contracts.QUESTIONS_FILE.read_bytes())
-            (tmpdir / contracts.QUESTIONS_V1_FILE.name).write_bytes(
-                contracts.QUESTIONS_V1_FILE.read_bytes())
+            for attr in ("QUESTIONS_FILE", "QUESTIONS_V2_FILE",
+                         "QUESTIONS_V1_FILE"):
+                path = getattr(contracts, attr)
+                (tmpdir / path.name).write_bytes(path.read_bytes())
             manifest = json.loads((ROOT / "contracts" / "manifest.json").read_text())
             (tmpdir / "manifest.json").write_text(json.dumps(manifest))
             original_dir = contracts.CONTRACT_DIR
@@ -47,18 +48,20 @@ class ManifestTests(unittest.TestCase):
 
 
 class QuestionContractTests(unittest.TestCase):
-    def test_active_set_is_v2(self):
-        self.assertEqual(contracts.questions()["version"], "v2")
+    def test_active_set_is_v3(self):
+        self.assertEqual(contracts.questions()["version"], "v3")
+        self.assertEqual(contracts.questions("v2")["version"], "v2")
         self.assertEqual(contracts.questions("v1")["version"], "v1")
         with self.assertRaises(contracts.ContractError):
             contracts.questions("v9")
 
-    def test_v1_questions_are_carried_verbatim(self):
+    def test_carried_questions_are_verbatim(self):
         """Promotion must not drift the semantics that were already validated."""
-        carried = contracts.questions("v1")["questions"]
         active = contracts.questions()["questions"]
-        for name, entry in carried.items():
-            self.assertEqual(active[name], entry, name)
+        for version in ("v1", "v2"):
+            carried = contracts.questions(version)["questions"]
+            for name, entry in carried.items():
+                self.assertEqual(active[name], entry, f"{version}:{name}")
         self.assertEqual(contracts.questions()["retired"],
                          contracts.questions("v1")["retired"])
 
@@ -69,6 +72,26 @@ class QuestionContractTests(unittest.TestCase):
         self.assertEqual(contracts.edge_question(),
                          {k: spec["questions"]["edge"][k]
                           for k in ("type", "instructions", "criteria")})
+
+    def test_replacement_question_matches_the_validated_experiment(self):
+        spec = json.loads((ROOT / "experiments" / "supersedes_003"
+                           / "questions.json").read_text(encoding="utf-8"))
+        self.assertEqual(contracts.replacement_question(),
+                         {k: spec["questions"]["replacement"][k]
+                          for k in ("type", "instructions", "criteria")})
+
+    def test_direction_question_matches_the_validated_experiment(self):
+        spec = json.loads((ROOT / "experiments" / "supersedes_001"
+                           / "questions.json").read_text(encoding="utf-8"))
+        self.assertEqual(contracts.direction_question(),
+                         {k: spec["questions"]["direction"][k]
+                          for k in ("type", "instructions", "criteria")})
+
+    def test_cascade_questions_are_validated(self):
+        self.assertEqual(contracts.question("replacement")
+                         ["validation"]["status"], "VALIDATED")
+        self.assertEqual(contracts.question("direction")
+                         ["validation"]["status"], "VALIDATED")
 
     def test_edge_question_is_validated_with_four_criteria(self):
         entry = contracts.question("edge")

@@ -26,14 +26,44 @@ def make_records(texts):
 
 
 def fake_core(admit, relations, governing=("none", 0.0), calls=None,
-              fail_pairs=(), edges=None, fail_edges=()):
+              fail_pairs=(), edges=None, fail_edges=(),
+              replacement=None, fail_replacement=(),
+              direction=None, fail_direction=()):
     """admit: {record_id: (choice, p_admit)}
     relations: {(text_a, text_b): label}
     edges: {(text_a, text_b): (label, p)} — defaults to a confident unrelated,
-    which proposes nothing and keeps pre-edge tests unchanged."""
+    which proposes nothing and keeps pre-edge tests unchanged.
+    replacement: {(text_a, text_b): p_yes} — defaults to 0.0 (conflict stands).
+    direction: {(text_a, text_b): "A"|"B"} — defaults to "A" (src is newer)."""
     def call(state, questions):
         if calls is not None:
             calls.append(state)
+        if "replacement" in questions:
+            a = state.split("Record A (src): ", 1)[1].split("\n", 1)[0]
+            b = state.split("Record B (dst): ", 1)[1].strip()
+            if (a, b) in fail_replacement or (b, a) in fail_replacement:
+                raise jev.JevError("transport failure")
+            p_yes = (replacement or {}).get((a, b), (replacement or {}).get((b, a), 0.0))
+            p_no = round(1.0 - p_yes, 4)
+            return {"model": "jev-test",
+                    "answers": {"replacement": {
+                        "type": "choice",
+                        "choice": "yes" if p_yes >= 0.5 else "no",
+                        "confidence": max(p_yes, p_no),
+                        "probabilities": {"yes": p_yes, "no": p_no}}},
+                    "usage": {}}
+        if "direction" in questions:
+            a = state.split("Record A (src): ", 1)[1].split("\n", 1)[0]
+            b = state.split("Record B (dst): ", 1)[1].strip()
+            if (a, b) in fail_direction or (b, a) in fail_direction:
+                raise jev.JevError("transport failure")
+            newer = (direction or {}).get((a, b), (direction or {}).get((b, a), "A"))
+            return {"model": "jev-test",
+                    "answers": {"direction": {
+                        "type": "choice", "choice": newer, "confidence": 0.9,
+                        "probabilities": {"A": 0.9 if newer == "A" else 0.1,
+                                          "B": 0.1 if newer == "A" else 0.9}}},
+                    "usage": {}}
         if "edge" in questions:
             a = state.split("Record A (src): ", 1)[1].split("\n", 1)[0]
             b = state.split("Record B (dst): ", 1)[1].strip()
@@ -317,6 +347,94 @@ class JudgeTests(unittest.TestCase):
         restored = Judgment.from_dict(decision.to_dict())
         self.assertEqual(restored.edges, list(decision.edges))
         self.assertEqual(restored.edges[0].label, "supersedes")
+        # the direction pass orients the supersedes edge (src→dst = src newer)
+        proposed = [e for e in restored.edges if e.action == "proposed"]
+        self.assertEqual(proposed[0].direction, "src→dst")
+
+    # ---- stage 2.5 cascade: conflict vs succession -------------------------
+
+    def test_cascade_recovers_a_stated_replacement(self):
+        """contradicts argmax + confident replacement -> supersedes proposal."""
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {},
+                             edges={(TEXTS["clm_a"], TEXTS["clm_b"]): ("contradicts", 0.9)},
+                             replacement={(TEXTS["clm_a"], TEXTS["clm_b"]): 0.95}))
+        hit = [e for e in decision.edges
+               if (e.src, e.dst) == (self.a, self.b)][0]
+        self.assertEqual(hit.label, "supersedes")
+        self.assertEqual(hit.action, "proposed")
+        self.assertEqual(hit.via, "cascade")
+        self.assertEqual(hit.p, 0.95)
+        self.assertEqual(hit.direction, "src→dst")
+        self.assertFalse(decision.degraded)
+
+    def test_cascade_review_band_holds_the_pair(self):
+        """0.50-0.79 p_yes: not confident enough to repair, not a clean conflict."""
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {},
+                             edges={(TEXTS["clm_a"], TEXTS["clm_b"]): ("contradicts", 0.9)},
+                             replacement={(TEXTS["clm_a"], TEXTS["clm_b"]): 0.63}))
+        hit = [e for e in decision.edges
+               if (e.src, e.dst) == (self.a, self.b)][0]
+        self.assertEqual(hit.label, "contradicts")
+        self.assertEqual(hit.action, "review")
+        self.assertEqual(hit.via, "cascade-review")
+
+    def test_cascade_conflict_stands_below_half(self):
+        """p_yes < 0.50: the conflict stands with the single-question banding."""
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {},
+                             edges={(TEXTS["clm_a"], TEXTS["clm_b"]): ("contradicts", 0.9)},
+                             replacement={(TEXTS["clm_a"], TEXTS["clm_b"]): 0.1}))
+        hit = [e for e in decision.edges
+               if (e.src, e.dst) == (self.a, self.b)][0]
+        self.assertEqual(hit.label, "contradicts")
+        self.assertEqual(hit.action, "proposed")
+        self.assertEqual(hit.via, "single-question")
+
+    def test_replacement_failure_holds_the_conflicted_pair(self):
+        """A suspected conflict that might be a replacement must become neither
+        edge when the disambiguation does not run cleanly."""
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {},
+                             edges={(TEXTS["clm_a"], TEXTS["clm_b"]): ("contradicts", 0.9)},
+                             fail_replacement={(TEXTS["clm_a"], TEXTS["clm_b"])}),
+            on_error="review")
+        hit = [e for e in decision.edges
+               if (e.src, e.dst) == (self.a, self.b)][0]
+        self.assertEqual(hit.label, "contradicts")
+        self.assertEqual(hit.action, "review")
+        self.assertEqual(hit.via, "cascade")
+        self.assertTrue(decision.degraded)
+
+    def test_direction_failure_holds_a_supersedes_proposal(self):
+        """A directed edge without a direction is malformed: hold, don't emit."""
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {},
+                             edges={(TEXTS["clm_a"], TEXTS["clm_b"]): ("supersedes", 0.95)},
+                             fail_direction={(TEXTS["clm_a"], TEXTS["clm_b"])}),
+            on_error="review")
+        hit = [e for e in decision.edges
+               if (e.src, e.dst) == (self.a, self.b)][0]
+        self.assertEqual(hit.label, "supersedes")
+        self.assertEqual(hit.action, "review")
+        self.assertIsNone(hit.direction)
+        self.assertTrue(decision.degraded)
+
+    def test_direction_b_side_makes_dst_the_newer(self):
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {},
+                             edges={(TEXTS["clm_a"], TEXTS["clm_b"]): ("supersedes", 0.95)},
+                             direction={(TEXTS["clm_a"], TEXTS["clm_b"]): "B"}))
+        hit = [e for e in decision.edges
+               if (e.src, e.dst) == (self.a, self.b)][0]
+        self.assertEqual(hit.direction, "dst→src")
 
     def test_governing_promotes_a_clean_review(self):
         admit = {self.a: (ADMIT, 0.9), self.b: (REVIEW, 0.2),

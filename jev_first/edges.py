@@ -97,16 +97,23 @@ def decision_for(path: os.PathLike | str, eid: str) -> Optional[Dict[str, Any]]:
 def propose_edge(path: os.PathLike | str, *, src: str, dst: str,
                  edge_type: str, confidence: float, source: str,
                  judgment_hash: Optional[str] = None,
+                 direction: Optional[str] = None,
                  at: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Append an edge proposal. Returns None when the edge already exists as
     pending or confirmed — proposing a known edge is a no-op, not an error,
-    because judgments re-run and must stay idempotent."""
+    because judgments re-run and must stay idempotent. ``direction`` carries
+    the supersedes orientation per edge-schema.v1.json (src→dst = src is the
+    newer record); required in spirit for supersedes, optional otherwise."""
     if not isinstance(src, str) or not src or not isinstance(dst, str) or not dst:
         raise ValueError("src and dst must be non-empty strings")
     if src == dst:
         raise ValueError("src and dst must differ")
     if edge_type not in EDGE_TYPES:
         raise ValueError(f"edge_type must be one of {EDGE_TYPES}: {edge_type!r}")
+    if edge_type == "supersedes" and direction not in ("src→dst", "dst→src"):
+        raise ValueError("supersedes proposals require direction src→dst or dst→src")
+    if direction is not None and direction not in ("src→dst", "dst→src"):
+        raise ValueError("direction must be src→dst or dst→src")
     if not isinstance(confidence, (int, float)) or not 0.0 <= confidence <= 1.0:
         raise ValueError("confidence must be within [0, 1]")
     if not isinstance(source, str) or not source.strip():
@@ -124,6 +131,8 @@ def propose_edge(path: os.PathLike | str, *, src: str, dst: str,
     }
     if judgment_hash:
         body["judgment_hash"] = judgment_hash
+    if direction:
+        body["direction"] = direction
     body["body_hash"] = body_hash(body)
     _append(path, body)
     return body

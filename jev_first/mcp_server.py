@@ -244,10 +244,12 @@ class MemoryServer:
         for decision in judgment.edges:
             if decision.action != "proposed":
                 continue
+            source = "jev" if decision.via == "single-question" else f"jev:{decision.via}"
             body = edge_log.propose_edge(
                 self.edges_path, src=decision.src, dst=decision.dst,
                 edge_type=decision.label, confidence=decision.p,
-                source="jev", judgment_hash=judgment_hash)
+                source=source, judgment_hash=judgment_hash,
+                direction=decision.direction)
             if body is not None:
                 proposed.append(body)
         return proposed

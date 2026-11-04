@@ -111,6 +111,16 @@ class EdgeLogTests(unittest.TestCase):
         proposal = self.propose(judgment_hash="abc123")
         self.assertEqual(proposal["judgment_hash"], "abc123")
 
+    def test_supersedes_requires_direction(self):
+        """edge-schema.v1.json requires_direction: a malformed directed edge
+        must be rejected at the log boundary."""
+        with self.assertRaises(ValueError):
+            self.propose(edge_type="supersedes")
+        proposal = self.propose(edge_type="supersedes", direction="src→dst")
+        self.assertEqual(proposal["direction"], "src→dst")
+        with self.assertRaises(ValueError):
+            self.propose(edge_type="supports", direction="sideways")
+
 
 if __name__ == "__main__":
     unittest.main()

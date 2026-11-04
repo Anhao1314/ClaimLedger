@@ -2,9 +2,10 @@
 
 The contracts are the product definition:
 
-* ``contracts/questions.v2.json`` — the typed question set (the IP).
-  ``questions.v1.json`` stays on disk as the frozen historical set; the
-  active set is v2, which adds the validated ``edge`` question.
+* ``contracts/questions.v3.json`` — the typed question set (the IP).
+  ``questions.v1.json`` and ``questions.v2.json`` stay on disk as frozen
+  historical sets; the active set is v3, which adds the validated
+  ``replacement`` and ``direction`` questions for the directed edge plane.
 * ``contracts/records.v1.json``   — what a memory record is (no stored status).
 * ``contracts/manifest.json``     — sha256 over exact file bytes.
 
@@ -19,9 +20,11 @@ from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
 CONTRACT_DIR = Path(__file__).resolve().parents[1] / "contracts"
-QUESTION_SETS = {"v1": "questions.v1.json", "v2": "questions.v2.json"}
-ACTIVE_QUESTION_SET = "v2"
+QUESTION_SETS = {"v1": "questions.v1.json", "v2": "questions.v2.json",
+                 "v3": "questions.v3.json"}
+ACTIVE_QUESTION_SET = "v3"
 QUESTIONS_V1_FILE = CONTRACT_DIR / QUESTION_SETS["v1"]
+QUESTIONS_V2_FILE = CONTRACT_DIR / QUESTION_SETS["v2"]
 QUESTIONS_FILE = CONTRACT_DIR / QUESTION_SETS[ACTIVE_QUESTION_SET]
 RECORDS_FILE = CONTRACT_DIR / "records.v1.json"
 MANIFEST_FILE = CONTRACT_DIR / "manifest.json"
@@ -84,6 +87,20 @@ def relation_question() -> Dict[str, Any]:
 def edge_question() -> Dict[str, Any]:
     """The validated edge-classification question, ready for ``jev.ask``."""
     entry = question("edge")
+    return {"type": entry["type"], "instructions": entry["instructions"],
+            "criteria": dict(entry["criteria"])}
+
+
+def replacement_question() -> Dict[str, Any]:
+    """The validated contradicts-disambiguation question, ready for ``jev.ask``."""
+    entry = question("replacement")
+    return {"type": entry["type"], "instructions": entry["instructions"],
+            "criteria": dict(entry["criteria"])}
+
+
+def direction_question() -> Dict[str, Any]:
+    """The validated supersedes-direction question, ready for ``jev.ask``."""
+    entry = question("direction")
     return {"type": entry["type"], "instructions": entry["instructions"],
             "criteria": dict(entry["criteria"])}
 

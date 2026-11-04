@@ -6,11 +6,14 @@
     "questions.v2.json": {
       "sha256": "3989bfacdec798fbfaf500829dd5ddca33e058dc0107783b2c343e1be9b8a3b7"
     },
+    "questions.v3.json": {
+      "sha256": "2fb9a24518078d324aca13a7026ca1c2f1fbf2ef89f832352cd9239edc2cf31c"
+    },
     "records.v1.json": {
       "sha256": "70bd7e5c90a915bfe2efd6f8b397ea44fc2b7250fdec5c8ab17f7b6f75f11875"
     }
   },
   "frozen_at": "2026-11-05",
-  "note": "sha256 over exact file bytes. A contract change is a version bump, never an edit. questions.v1.json is retained as the frozen historical set; the active set is questions.v2.json (adds the validated 'edge' question).",
-  "version": 2
+  "note": "sha256 over exact file bytes. A contract change is a version bump, never an edit. questions.v1.json and questions.v2.json are retained as frozen historical sets; the active set is questions.v3.json (adds the validated 'replacement' and 'direction' questions for the directed edge plane).",
+  "version": 3
 }
