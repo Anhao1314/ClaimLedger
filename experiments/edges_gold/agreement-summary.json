@@ -1,0 +1,92 @@
+{
+  "cohens_kappa": 0.886,
+  "confusion_matrix": {
+    "abstain": {
+      "abstain": 0,
+      "contradicts": 0,
+      "supersedes": 0,
+      "supports": 0,
+      "unrelated": 0
+    },
+    "contradicts": {
+      "abstain": 0,
+      "contradicts": 5,
+      "supersedes": 0,
+      "supports": 0,
+      "unrelated": 0
+    },
+    "supersedes": {
+      "abstain": 0,
+      "contradicts": 0,
+      "supersedes": 0,
+      "supports": 0,
+      "unrelated": 0
+    },
+    "supports": {
+      "abstain": 0,
+      "contradicts": 0,
+      "supersedes": 0,
+      "supports": 8,
+      "unrelated": 0
+    },
+    "unrelated": {
+      "abstain": 0,
+      "contradicts": 0,
+      "supersedes": 0,
+      "supports": 3,
+      "unrelated": 104
+    }
+  },
+  "constructed_probe": {
+    "deepseek_correct": 11,
+    "misses": [],
+    "n": 11,
+    "zcode_correct": 11
+  },
+  "contested": {
+    "n": 3,
+    "pairs": [
+      {
+        "deepseek": "supports",
+        "deepseek_conf": 0.78,
+        "pair_id": "pair_71dceef73b6c",
+        "type": "A",
+        "zcode": "unrelated",
+        "zcode_conf": 0.7
+      },
+      {
+        "deepseek": "supports",
+        "deepseek_conf": 0.75,
+        "pair_id": "pair_8d1921ca83ce",
+        "type": "A",
+        "zcode": "unrelated",
+        "zcode_conf": 0.85
+      },
+      {
+        "deepseek": "supports",
+        "deepseek_conf": 0.8,
+        "pair_id": "pair_e250c87793a9",
+        "type": "A",
+        "zcode": "unrelated",
+        "zcode_conf": 0.85
+      }
+    ],
+    "type_a_semantic": 3,
+    "type_b_boundary": 0
+  },
+  "deepseek_distribution": {
+    "contradicts": 5,
+    "supports": 11,
+    "unrelated": 104
+  },
+  "expected_agreement": 0.7806,
+  "gold_rule": "agreement pairs become gold; contested pairs are excluded from the frozen gold and reported separately",
+  "n_pairs": 120,
+  "raw_agreement": 0.975,
+  "version": "edges_gold_v1_agreement_v1",
+  "zcode_distribution": {
+    "contradicts": 5,
+    "supports": 8,
+    "unrelated": 107
+  }
+}
