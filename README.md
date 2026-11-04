@@ -392,6 +392,7 @@ question set, and every difference is measurable at the output. [Full analysis](
 | Edge classification (117 gold pairs) | **115/117 = 0.983**; contradicts **5/5 both ways**; **both errors at p = 0.5** → review routing catches them | [edges_v1](experiments/edges_v1/results.md) |
 | Supersedes recall (3 experiments) | wording iteration 0.643 → 0.786 (churn) → **binary cascade 0.857, zero real conflicts repaired** | [supersedes_003](experiments/supersedes_003/results.md) |
 | Threshold sensitivity (offline, zero calls) | proposal precision **1.0 across T = 0.55–0.90** (plateau — 0.80 is not fitted); cascade safety gap **0.63 vs 0.10** | [threshold-sweep](experiments/edges_v1/results/threshold-sweep.json) |
+| End-to-end delivery (40 tasks × 4 arms × 3 runs) | judged brief **0.875** vs no-memory / irrelevant controls **0.525** (McNemar p = 0.0005 / 0.0013); conflicts caught **10/10 vs 1/10** | [e2e_002](experiments/e2e_002/results.md) |
 
 Known limitation, recorded honestly: the candidate selector is lexical, so a record with zero
 token overlap is not selected. Semantic recall is deferred to a topic field (contract v2).
@@ -429,6 +430,18 @@ Two ways to handle it, one rejected:
 The invariant that makes this the right trade: wrong suppression is silent, wrong retention
 is visible. A seam pair held for review costs one human glance; a forced classification that
 guesses wrong costs a constraint the agent silently follows or silently drops.
+
+### 6. End-to-end delivery — the whole loop on 40 pre-registered tasks
+
+![e2e_002: task success by stratum and arm](docs/img/e2e002-arms.svg)
+
+Four arms, same model, same tasks: **A** no memory, **B** all confirmed records verbatim,
+**C** the judged brief, **D** length-matched irrelevant records. C delivers **0.875**;
+A and D both sit at **0.525** — so the win is the *right* memory, not memory itself and not
+brevity. The conflict strata are the discriminating evidence: B and C catch 10/10 and 9/10
+of the designed+natural conflicts, A catches 0/10 and D 1/10. And B's extra 2.5 points cost
+**3.2× C's prompt tokens** (764 vs 237 mean) — the brief is the efficient point on the
+curve. [Full protocol and results](experiments/e2e_002/results.md).
 
 ## How this compares to RAG
 
