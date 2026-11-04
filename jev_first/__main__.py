@@ -132,6 +132,7 @@ def main(argv=None) -> int:
     p_brief.add_argument("--budget", type=int, default=DEFAULT_BUDGET_BYTES)
     p_brief.add_argument("--cache", help="judgment cache path")
     p_brief.add_argument("--no-cache", action="store_true")
+    p_brief.add_argument("--edges", help="edges.jsonl path; confirmed edges annotate the brief")
 
     p_outcome = sub.add_parser("outcome", help="record how a judgment turned out")
     p_outcome.add_argument("--outcomes", required=True, help="outcomes.jsonl path")
@@ -346,7 +347,11 @@ def main(argv=None) -> int:
         judgment = judge(args.task, candidates, budget_bytes=args.budget,
                          on_error="review", cache=cache)
         judgment = replace(judgment, selection=stats)
-        brief = render_brief(judgment)
+        confirmed = None
+        if args.edges:
+            from . import edges as edge_log
+            confirmed = edge_log.confirmed(args.edges)
+        brief = render_brief(judgment, confirmed_edges=confirmed)
         print(brief["text"])
         print(f"\n[brief: {brief['bytes']} bytes · {brief['admitted']} admitted · "
               f"warnings {brief['warnings'] or 'none'} · input {brief['input_hash'][:16]}…]")

@@ -388,9 +388,46 @@ question set, and every difference is measurable at the output. [Full analysis](
 | Adversarial benchmark (60 pairs, 3 methods) | Jev 0.933 vs lexical 0.483 — **discriminating gate PASS** | [relation_002](experiments/relation_002/results.json) |
 | Constraint delivery (premise_001 v1.1) | memory-layer delivery **non-inferior** to prompt delivery | [premise_001](experiments/premise_001/results.json) |
 | Judge comparison (3 judges × 5 axes) | accuracy tie, **stability 0 vs 7 flips**, schema 99.3% vs 86% | [judge_bench_001](experiments/judge_bench_001/results.md) |
+| Edge gold (dual-model, 120 pairs) | **κ = 0.886**, constructed probe **11/11** both channels; 3 contested pairs = one ontology seam | [edges_gold](experiments/edges_gold/agreement-report.md) |
+| Edge classification (117 gold pairs) | **115/117 = 0.983**; contradicts **5/5 both ways**; **both errors at p = 0.5** → review routing catches them | [edges_v1](experiments/edges_v1/results.md) |
+| Supersedes recall (3 experiments) | wording iteration 0.643 → 0.786 (churn) → **binary cascade 0.857, zero real conflicts repaired** | [supersedes_003](experiments/supersedes_003/results.md) |
 
 Known limitation, recorded honestly: the candidate selector is lexical, so a record with zero
 token overlap is not selected. Semantic recall is deferred to a topic field (contract v2).
+
+### 5. The graph plane — and the seam we chose not to paper over
+
+The multi-relational memory plane (contract v3) classifies typed edges between records with
+three validated questions: `edge` (4-way), `replacement` (the contradicts-disambiguation
+cascade), and `direction` (supersedes orientation, 21/21 across two experiments). Confirmed
+edges feed back into the brief: a retired constraint is flagged `superseded by …`, related
+constraints carry `supported by: …`, and conflicts confirmed on earlier tasks surface as
+**known conflicts** even when the current run's relation stage sees nothing — the graph's
+compounding payoff.
+
+**The sibling-constraint seam is an accepted design decision, not a bug.** During gold
+annotation, three independent signals converged on the same pair family — two consistent
+constraints under one resource (a console feature freeze vs a no-new-panels rule, migrations
+vs health checks): both annotator channels contested exactly those pairs, the human
+annotator's lowest-confidence call (0.55) landed there, and JEV marked the same pairs
+p = 0.5 with run-to-run label flips. The supports/unrelated line for sibling constraints
+depends on whether "refinement" must be *stated in the text* — a genuine ambiguity in the
+ontology, not annotator noise.
+
+Two ways to handle it, one rejected:
+
+- **Re-wording the criteria** was measured on the supersedes criterion and rejected: edits
+  moved individual pairs in both directions (a previously-correct pair regressed with 0.84
+  confidence) without moving the decision boundary. Prompt iteration is churn, not progress.
+- **Route, don't force.** The system classifies only inside its validated confidence region
+  (p ≥ 0.80) and hands the seam to a human: p = 0.5 pairs land in the review band, appear in
+  the brief as needs-review, and proposed edges wait for confirmation anyway. On the gold
+  set this costs a ~5% review load and produces **zero silent errors** — 111/111 correct
+  decisions inside the confident region.
+
+The invariant that makes this the right trade: wrong suppression is silent, wrong retention
+is visible. A seam pair held for review costs one human glance; a forced classification that
+guesses wrong costs a constraint the agent silently follows or silently drops.
 
 ## How this compares to RAG
 
@@ -469,6 +506,12 @@ part the checks could not kill: an auditable judgment layer with an honest bound
   down by record author — **source reliability, not reviewer reliability**: the outcome is the
   ground truth, so there is no higher truth to score the reviewer against.
 - The candidate selector is lexical; a record with zero token overlap is not selected.
+- The **sibling-constraint seam** (supports vs unrelated for two consistent constraints under
+  one resource) is routed to human review by design — see Results §5. Classification only
+  happens inside the validated confidence region; gold-v1 is dual-model annotated (no human
+  gold), bounded by an 11/11 constructed-pair probe.
+- Supersedes recall is 0.857 via the cascade; the two residual misses sit in the review band
+  with the replacement question attached, never silently misclassified.
 - No web UI (the console is a local view, not a product surface), no daemon, no cross-machine sync.
 - **For projects with fewer than ~20 stable constraints, a `CLAUDE.md` file is simpler and
   better.** This layer earns its complexity at scale; below that threshold it adds a

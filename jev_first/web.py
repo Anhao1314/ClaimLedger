@@ -66,7 +66,8 @@ class Console:
         judgment = judge(task, candidates, budget_bytes=budget,
                          on_error="review", cache=self.cache)
         judgment = replace(judgment, selection=stats)
-        brief = render_brief(judgment)
+        from . import edges as edge_log
+        brief = render_brief(judgment, confirmed_edges=edge_log.confirmed(self.edges_path))
         sealed = jlog.append_judgment(self.log_path, judgment.to_dict())
         outcomes = {o["record_id"]: o["verdict"]
                     for o in read_outcomes(self.outcomes_path)
@@ -167,6 +168,8 @@ class Console:
         """Recent sealed judgments, newest first, with their recorded outcomes."""
         rows = jlog.read(self.log_path)[-max(1, limit):]
         outcomes = read_outcomes(self.outcomes_path)
+        from . import edges as edge_log
+        confirmed = edge_log.confirmed(self.edges_path)
         by_hash: Dict[str, Dict[str, str]] = {}
         for outcome in outcomes:
             by_hash.setdefault(outcome.get("judgment_hash"), {})[
@@ -174,7 +177,8 @@ class Console:
         out = []
         for row in reversed(rows):
             try:
-                brief_text = render_brief(Judgment.from_dict(row))["text"]
+                brief_text = render_brief(
+                    Judgment.from_dict(row), confirmed_edges=confirmed)["text"]
             except (KeyError, TypeError, ValueError):
                 brief_text = ""
             out.append({

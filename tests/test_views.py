@@ -114,6 +114,74 @@ class BriefTests(unittest.TestCase):
         self.assertIn("no lexical match", brief["text"])
         self.assertTrue(brief["fallback_to_recency"])
 
+    # ---- confirmed graph edges annotate the brief ---------------------------
+
+    def test_confirmed_supersedes_flags_a_retired_constraint(self):
+        """A must-follow record that the graph says is retired must not read
+        as safely followable."""
+        records = make_records(["Use PostgreSQL 15 for storage.",
+                                "Use PostgreSQL 16 for storage."])
+        judgment = self._judgment(records, caller=fake_core(
+            {r["record_id"]: (ADMIT, 0.9) for r in records}, {}))
+        edges = [{"edge_id": "edg_x", "src": records[1]["record_id"],
+                  "dst": records[0]["record_id"], "edge_type": "supersedes",
+                  "direction": "src→dst", "confidence": 0.99}]
+        brief = render_brief(judgment, confirmed_edges=edges)
+        self.assertIn("superseded by", brief["text"])
+        self.assertIn("confirm before relying", brief["text"])
+        self.assertIn("Use PostgreSQL 16", brief["text"].split("superseded by")[1])
+
+    def test_confirmed_supports_annotate_active_constraints(self):
+        records = make_records(["All storage must use PostgreSQL.",
+                                "Database connections use PostgreSQL drivers."])
+        judgment = self._judgment(records, caller=fake_core(
+            {r["record_id"]: (ADMIT, 0.9) for r in records}, {}))
+        edges = [{"edge_id": "edg_y", "src": records[0]["record_id"],
+                  "dst": records[1]["record_id"], "edge_type": "supports",
+                  "confidence": 0.9}]
+        brief = render_brief(judgment, confirmed_edges=edges)
+        self.assertIn("supported by:", brief["text"])
+        self.assertEqual(brief["text"].count("supported by:"), 2)  # both directions
+
+    def test_confirmed_contradicts_surfaces_cross_task_knowledge(self):
+        """A conflict confirmed on an earlier task must appear even when this
+        run's relation stage saw nothing — that is the graph's payoff."""
+        records = make_records(["Deployments happen only on Tuesdays.",
+                                "Deployments happen only on Fridays."])
+        judgment = self._judgment(records, caller=fake_core(
+            {r["record_id"]: (ADMIT, 0.9) for r in records}, {}))
+        self.assertEqual(judgment.conflicts, [])
+        edges = [{"edge_id": "edg_z", "src": records[0]["record_id"],
+                  "dst": records[1]["record_id"], "edge_type": "contradicts",
+                  "confidence": 0.9}]
+        brief = render_brief(judgment, confirmed_edges=edges)
+        self.assertIn("KNOWN CONFLICTS (confirmed in the graph on earlier tasks):",
+                      brief["text"])
+        self.assertEqual(brief["graph_conflicts"],
+                         [[records[0]["record_id"], records[1]["record_id"]]])
+
+    def test_graph_conflicts_dedupe_against_this_runs_conflicts(self):
+        records = make_records(["Use PostgreSQL.", "SQLite only."])
+        judgment = self._judgment(records, caller=fake_core(
+            {r["record_id"]: (ADMIT, 0.9) for r in records},
+            {(records[0]["text"], records[1]["text"]): "contradiction"}))
+        edges = [{"edge_id": "edg_w", "src": records[0]["record_id"],
+                  "dst": records[1]["record_id"], "edge_type": "contradicts",
+                  "confidence": 0.9}]
+        brief = render_brief(judgment, confirmed_edges=edges)
+        self.assertNotIn("KNOWN CONFLICTS", brief["text"])  # already shown once
+
+    def test_edges_touching_records_outside_the_brief_are_ignored(self):
+        records = make_records(["Use PostgreSQL."])
+        judgment = self._judgment(records, caller=fake_core(
+            {records[0]["record_id"]: (ADMIT, 0.9)}, {}))
+        edges = [{"edge_id": "edg_v", "src": records[0]["record_id"],
+                  "dst": "rec_absent0000000000000000", "edge_type": "supports",
+                  "confidence": 0.9}]
+        brief = render_brief(judgment, confirmed_edges=edges)
+        self.assertNotIn("supported by:", brief["text"])
+        self.assertEqual(brief["graph_conflicts"], [])
+
 
 class OutcomeTests(unittest.TestCase):
     def setUp(self):

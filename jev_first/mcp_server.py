@@ -214,7 +214,9 @@ class MemoryServer:
         sealed = append_judgment(self.log_path, judgment.to_dict())
         proposed = self._propose_edges(judgment,
                                        judgment_hash=sealed["judgment_hash"])
-        brief = render_brief(judgment)
+        from . import edges as edge_log
+        brief = render_brief(judgment,
+                             confirmed_edges=edge_log.confirmed(self.edges_path))
         payload = {
             "brief": brief["text"],
             "admitted": brief["admitted"],
@@ -258,7 +260,9 @@ class MemoryServer:
         from .brief import render_brief
         judgment, stats = self._decide(args)
         sealed = append_judgment(self.log_path, judgment.to_dict())
-        brief = render_brief(judgment)
+        from . import edges as edge_log
+        brief = render_brief(judgment,
+                             confirmed_edges=edge_log.confirmed(self.edges_path))
         return {"brief": brief["text"], "bytes": brief["bytes"],
                 "admitted": brief["admitted"], "warnings": brief["warnings"],
                 "degraded": judgment.degraded,
