@@ -1,0 +1,14 @@
+{
+  "task": "05_date_parser",
+  "arm": "C",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 221,
+  "completion_tokens": 417,
+  "latency_ms": 2609,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "check_output": ""
+}

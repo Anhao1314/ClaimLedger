@@ -14,7 +14,7 @@
     "prompts/irrelevant/05_date_parser.txt": "286da429d8bbcf24f97c78691777f224caf5b05796a4765b4cd63dd578c46804",
     "prompts/irrelevant/06_control_math.txt": "f1e265486c43ee7d5a69cd30ac927bd3182942c87ea708540add275d9d7d90cc",
     "prompts/system.md": "5958ae99b7b636e5122dc1679344200165be64601b82f5adabaa6c3344269203",
-    "protocol.md": "cc2aa4c226ebbd4d8d0b1cd8e2a32ce38ef7dab3f1b363caf5f1ddf2ca690cde",
+    "protocol.md": "caf098a841ca5dd66c3c13d674df973998061f43b4a444d8fdef05fa1ea10ef8",
     "tasks/01_storage_postgres/check.py": "82dbad587dbe0179f69f11e158aacf9608508b50eb7672fcb351deadf3cfd990",
     "tasks/01_storage_postgres/meta.json": "a946524051ded5a39cab9f42733784de9e9681b62c8756437455eb1678e1732d",
     "tasks/01_storage_postgres/starter.py": "c2dc6170d5a818f0cddb842d696459b858367058dca0e2d28b0302ede05ffa68",

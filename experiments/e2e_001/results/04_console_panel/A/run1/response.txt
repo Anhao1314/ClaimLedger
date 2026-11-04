@@ -1,0 +1,322 @@
+```python
+"""A small interactive console featuring a proposals panel.
+
+Run ``python console.py`` to open the panel.  Navigation is handled with the
+``up``/``down`` commands (or ``k``/``j``); ``a`` approves the selected
+proposal and ``r`` rejects it.
+
+The module has no third-party dependencies so it can be used from tests as
+well as from an interactive terminal.
+"""
+
+from __future__ import annotations
+
+import sys
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Callable, Iterable, List, Optional, TextIO
+
+PENDING = "pending"
+APPROVED = "approved"
+REJECTED = "rejected"
+VALID_STATUSES = (PENDING, APPROVED, REJECTED)
+
+
+def _truncate(text: str, limit: int) -> str:
+    """Return *text* shortened to at most *limit* characters."""
+    text = str(text).replace("\n", " ").replace("\r", " ")
+    if limit <= 0:
+        return ""
+    if len(text) <= limit:
+        return text
+    if limit <= 3:
+        return text[:limit]
+    return text[: limit - 3] + "..."
+
+
+@dataclass
+class Proposal:
+    """A single proposal displayed in the proposals panel."""
+
+    identifier: str
+    title: str
+    description: str = ""
+    author: str = ""
+    status: str = PENDING
+    created_at: datetime = field(default_factory=datetime.now)
+
+    def __post_init__(self) -> None:
+        if self.status not in VALID_STATUSES:
+            raise ValueError(f"unknown proposal status: {self.status!r}")
+
+    @property
+    def is_pending(self) -> bool:
+        return self.status == PENDING
+
+    def approve(self) -> None:
+        self.status = APPROVED
+
+    def reject(self) -> None:
+        self.status = REJECTED
+
+
+class ProposalsPanel:
+    """A navigable panel that lists proposals."""
+
+    title = "Proposals"
+
+    def __init__(
+        self,
+        proposals: Optional[Iterable[Proposal]] = None,
+        width: int = 74,
+    ) -> None:
+        if width < 20:
+            raise ValueError("width must be at least 20")
+        self.width = width
+        self._proposals: List[Proposal] = []
+        self._selected = 0
+        for proposal in proposals or ():
+            self.add(proposal)
+
+    # ------------------------------------------------------------------
+    # Collection management
+    # ------------------------------------------------------------------
+    def __len__(self) -> int:
+        return len(self._proposals)
+
+    def __iter__(self):
+        return iter(self._proposals)
+
+    @property
+    def proposals(self) -> tuple:
+        return tuple(self._proposals)
+
+    def add(self, proposal: Proposal) -> Proposal:
+        if not isinstance(proposal, Proposal):
+            raise TypeError("proposal must be a Proposal instance")
+        if self.get(proposal.identifier) is not None:
+            raise ValueError(
+                f"a proposal with id {proposal.identifier!r} already exists"
+            )
+        self._proposals.append(proposal)
+        return proposal
+
+    def remove(self, identifier: str) -> bool:
+        proposal = self.get(identifier)
+        if proposal is None:
+            return False
+        index = self._proposals.index(proposal)
+        del self._proposals[index]
+        if self._proposals:
+            self._selected = min(self._selected, len(self._proposals) - 1)
+        else:
+            self._selected = 0
+        return True
+
+    def get(self, identifier: str) -> Optional[Proposal]:
+        for proposal in self._proposals:
+            if proposal.identifier == identifier:
+                return proposal
+        return None
+
+    def clear(self) -> None:
+        self._proposals.clear()
+        self._selected = 0
+
+    @property
+    def pending(self) -> tuple:
+        return tuple(p for p in self._proposals if p.is_pending)
+
+    # ------------------------------------------------------------------
+    # Selection
+    # ------------------------------------------------------------------
+    @property
+    def selected_index(self) -> int:
+        return self._selected
+
+    @property
+    def selected_proposal(self) -> Optional[Proposal]:
+        if not self._proposals:
+            return None
+        return self._proposals[self._selected]
+
+    def select(self, index: int) -> Proposal:
+        if not self._proposals:
+            raise IndexError("cannot select a proposal: the panel is empty")
+        if index < 0:
+            index += len(self._proposals)
+        if not 0 <= index < len(self._proposals):
+            raise IndexError(f"proposal index out of range: {index}")
+        self._selected = index
+        return self._proposals[index]
+
+    def move_selection(self, delta: int) -> int:
+        if not self._proposals:
+            self._selected = 0
+            return 0
+        self._selected = max(
+            0, min(len(self._proposals) - 1, self._selected + delta)
+        )
+        return self._selected
+
+    def approve_selected(self) -> Optional[Proposal]:
+        proposal = self.selected_proposal
+        if proposal is not None:
+            proposal.approve()
+        return proposal
+
+    def reject_selected(self) -> Optional[Proposal]:
+        proposal = self.selected_proposal
+        if proposal is not None:
+            proposal.reject()
+        return proposal
+
+    # ------------------------------------------------------------------
+    # Rendering
+    # ------------------------------------------------------------------
+    def _border(self, label: str) -> str:
+        inner = self.width - 2
+        text = f"-- {label} "
+        text = _truncate(text, inner)
+        return "+" + text + "-" * (inner - len(text)) + "+"
+
+    def _line(self, text: str = "") -> str:
+        inner = self.width - 4
+        text = _truncate(text, inner)
+        return "| " + text.ljust(inner) + " |"
+
+    def _row(self, index: int, proposal: Proposal) -> str:
+        inner = self.width - 4
+        marker = ">" if index == self._selected else " "
+        status = f"[{proposal.status}]"
+        prefix = f"{marker} {status:<10} {proposal.identifier:<10} "
+        author = f"({proposal.author})" if proposal.author else ""
+        suffix = f" {author}" if author else ""
+        room = inner - len(prefix) - len(suffix)
+        if room < 4:
+            suffix = ""
+            room = inner - len(prefix)
+        room = max(room, 1)
+        title = _truncate(proposal.title, room)
+        text = prefix + title
+        if suffix:
+            text += " " * max(0, room - len(title)) + suffix
+        return self._line(text)
+
+    def render(self) -> str:
+        inner = self.width - 2
+        lines = [self._border(f"{self.title} ({len(self._proposals)})")]
+
+        if not self._proposals:
+            lines.append(self._line("(no proposals yet)"))
+        else:
+            for index, proposal in enumerate(self._proposals):
+                lines.append(self._row(index, proposal))
+
+        lines.append(self._line(""))
+        if self._proposals:
+            position = f"{self._selected + 1}/{len(self._proposals)} selected"
+        else:
+            position = "0/0 selected"
+        lines.append(self._line(position))
+        lines.append(self._line("up/down: navigate  a: approve  r: reject  q: quit"))
+        lines.append("+" + "-" * inner + "+")
+        return "\n".join(lines)
+
+
+class Console:
+    """Minimal command-driven console hosting a proposals panel."""
+
+    def __init__(
+        self,
+        proposals: Optional[Iterable[Proposal]] = None,
+        width: int = 74,
+        stream: Optional[TextIO] = None,
+    ) -> None:
+        self.proposals = ProposalsPanel(proposals, width=width)
+        self.stream = stream if stream is not None else sys.stdout
+        self.messages: List[str] = []
+        self.running = True
+
+    def log(self, message: str) -> str:
+        self.messages.append(str(message))
+        return message
+
+    def add_proposal(self, proposal: Proposal) -> Proposal:
+        return self.proposals.add(proposal)
+
+    def render(self) -> str:
+        lines = [self.proposals.render()]
+        if self.messages:
+            lines.append("")
+            lines.append("Messages:")
+            for message in self.messages[-3:]:
+                lines.append(f"  {message}")
+        return "\n".join(lines)
+
+    def handle_command(self, command: str) -> str:
+        key = command.strip().lower()
+
+        if not key:
+            return self.render()
+
+        if key in ("up", "k"):
+            self.proposals.move_selection(-1)
+        elif key in ("down", "j"):
+            self.proposals.move_selection(1)
+        elif key in ("a", "approve"):
+            proposal = self.proposals.approve_selected()
+            if proposal is None:
+                self.log("No proposal selected.")
+            else:
+                self.log(f"Approved {proposal.identifier}.")
+        elif key in ("r", "reject"):
+            proposal = self.proposals.reject_selected()
+            if proposal is None:
+                self.log("No proposal selected.")
+            else:
+                self.log(f"Rejected {proposal.identifier}.")
+        elif key in ("q", "quit", "exit"):
+            self.running = False
+            self.log("Goodbye.")
+        else:
+            self.log(f"Unknown command: {command!r}")
+
+        return self.render()
+
+    def run(self, input_func: Optional[Callable[[str], str]] = None) -> int:
+        if input_func is None:
+            input_func = input
+
+        out = self.stream
+        print(self.render(), file=out)
+
+        while self.running:
+            try:
+                command = input_func("console> ")
+            except (EOFError, KeyboardInterrupt):
+                print(file=out)
+                break
+            print(self.handle_command(command), file=out)
+
+        return 0
+
+
+def main(argv: Optional[Iterable[str]] = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+
+    if args and args[0] in ("-h", "--help"):
+        print("usage: console.py [PROPOSAL_TITLE ...]")
+        return 0
+
+    proposals = [
+        Proposal(identifier=f"P-{index:03d}", title=title)
+        for index, title in enumerate(args, start=1)
+    ]
+    console = Console(proposals)
+    return console.run()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```

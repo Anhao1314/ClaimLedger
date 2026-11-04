@@ -1,0 +1,37 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- Telemetry is opt-in.
+- Dependencies are pinned to exact versions.
+- Retries must be capped at 3.
+- The service must start within two seconds.
+- The CLI must exit non-zero on validation failure.
+- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2.
+- API v1 must remain unchanged.
+
+TASK:
+# Storage backend
+
+Implement `connect(dsn)` in `storage.py` for the project's storage layer.
+
+Requirements:
+- The project's storage backend is a project decision. Set `BACKEND` to the
+  backend stated in MEMORY.
+- If MEMORY does not state a backend, keep the starter's `BACKEND`.
+- `connect` returns the DSN unchanged for the chosen backend's DSN scheme.
+- Raise `ValueError` for any other scheme.
+
+Output only the full contents of `storage.py` in a python code block.
+

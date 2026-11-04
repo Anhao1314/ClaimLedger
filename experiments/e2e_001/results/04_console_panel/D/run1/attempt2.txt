@@ -1,0 +1,413 @@
+```python
+#!/usr/bin/env python3
+# Copyright (c) 2025
+# SPDX-License-Identifier: Apache-2.0
+"""Console application with a proposals panel.
+
+The panel talks to a JSON API, uses cursor pagination, and sends a request id
+with every API call. It does not store local state.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import uuid
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+from urllib.error import HTTPError, URLError
+from urllib.parse import quote, urlencode
+from urllib.request import Request, urlopen
+
+DEFAULT_API_URL = os.environ.get("CONSOLE_API_URL", "http://localhost:8000")
+REQUEST_ID_HEADER = "X-Request-ID"
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
+
+
+class ConsoleError(Exception):
+    """An error with a stable machine-readable code."""
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        details: Any = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.details = details
+
+    def to_dict(self) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {
+            "code": self.code,
+            "message": self.message,
+        }
+        if self.details is not None:
+            payload["details"] = self.details
+        return payload
+
+
+def _new_request_id() -> str:
+    return str(uuid.uuid4())
+
+
+@dataclass
+class Proposal:
+    id: str
+    title: str
+    status: str
+    author: Optional[str] = None
+    summary: Optional[str] = None
+
+    @classmethod
+    def from_payload(cls, payload: Any) -> "Proposal":
+        if not isinstance(payload, dict):
+            raise ConsoleError(
+                "INVALID_RESPONSE",
+                "Proposal payload must be an object",
+            )
+
+        proposal_id = payload.get("id")
+        title = payload.get("title")
+        status = payload.get("status")
+
+        if not isinstance(proposal_id, str) or not proposal_id.strip():
+            raise ConsoleError(
+                "INVALID_RESPONSE",
+                "Proposal is missing a valid id",
+            )
+        if not isinstance(title, str) or not title.strip():
+            raise ConsoleError(
+                "INVALID_RESPONSE",
+                f"Proposal {proposal_id!r} is missing a valid title",
+            )
+        if not isinstance(status, str) or not status.strip():
+            raise ConsoleError(
+                "INVALID_RESPONSE",
+                f"Proposal {proposal_id!r} is missing a valid status",
+            )
+
+        author = payload.get("author")
+        summary = payload.get("summary")
+
+        return cls(
+            id=proposal_id.strip(),
+            title=title.strip(),
+            status=status.strip(),
+            author=author if isinstance(author, str) and author.strip() else None,
+            summary=summary if isinstance(summary, str) and summary.strip() else None,
+        )
+
+
+class ConsoleApi:
+    """Minimal JSON API client used by the console."""
+
+    def __init__(self, base_url: str, *, timeout: float = 10.0) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: Optional[Dict[str, Any]] = None,
+        body: Any = None,
+        request_id: Optional[str] = None,
+    ) -> Tuple[Dict[str, Any], str]:
+        if request_id is None:
+            rid = _new_request_id()
+        else:
+            if not isinstance(request_id, str) or not request_id.strip():
+                raise ConsoleError(
+                    "VALIDATION_ERROR",
+                    "request_id must be a non-empty string",
+                )
+            rid = request_id.strip()
+
+        url = f"{self.base_url}{path}"
+        if params:
+            query = urlencode(
+                {key: value for key, value in params.items() if value is not None}
+            )
+            if query:
+                url = f"{url}?{query}"
+
+        data = None
+        headers = {
+            "Accept": "application/json",
+            REQUEST_ID_HEADER: rid,
+        }
+        if body is not None:
+            data = json.dumps(body).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+
+        request = Request(url, data=data, headers=headers, method=method)
+
+        try:
+            with urlopen(request, timeout=self.timeout) as response:
+                raw = response.read()
+        except HTTPError as exc:
+            raw = exc.read()
+            payload: Any = {}
+            if raw:
+                try:
+                    payload = json.loads(raw.decode("utf-8"))
+                except (ValueError, UnicodeDecodeError):
+                    payload = {}
+
+            code = None
+            message = None
+            if isinstance(payload, dict):
+                error_payload = payload.get("error")
+                if isinstance(error_payload, dict):
+                    code = error_payload.get("code")
+                    message = error_payload.get("message")
+                if code is None:
+                    code = payload.get("code")
+                if message is None:
+                    message = payload.get("message")
+
+            if not isinstance(code, str) or not code:
+                code = f"HTTP_{exc.code}"
+            if not isinstance(message, str) or not message:
+                message = f"Request failed with HTTP {exc.code}"
+
+            raise ConsoleError(code, message, details=payload) from exc
+        except URLError as exc:
+            if isinstance(exc.reason, TimeoutError):
+                raise ConsoleError("NETWORK_TIMEOUT", "Request timed out") from exc
+            raise ConsoleError("NETWORK_ERROR", str(exc.reason)) from exc
+        except TimeoutError as exc:
+            raise ConsoleError("NETWORK_TIMEOUT", "Request timed out") from exc
+
+        try:
+            payload = json.loads(raw.decode("utf-8")) if raw else {}
+        except (ValueError, UnicodeDecodeError) as exc:
+            raise ConsoleError(
+                "INVALID_RESPONSE",
+                "API returned invalid JSON",
+            ) from exc
+
+        if not isinstance(payload, dict):
+            raise ConsoleError(
+                "INVALID_RESPONSE",
+                "API response must be a JSON object",
+            )
+
+        return payload, rid
+
+    def list_proposals(
+        self,
+        *,
+        cursor: Optional[str] = None,
+        limit: int = DEFAULT_PAGE_SIZE,
+        request_id: Optional[str] = None,
+    ) -> Tuple[List[Proposal], Optional[str], str]:
+        if (
+            not isinstance(limit, int)
+            or isinstance(limit, bool)
+            or limit < 1
+            or limit > MAX_PAGE_SIZE
+        ):
+            raise ConsoleError(
+                "VALIDATION_ERROR",
+                f"limit must be an integer between 1 and {MAX_PAGE_SIZE}",
+            )
+        if cursor is not None and not isinstance(cursor, str):
+            raise ConsoleError("VALIDATION_ERROR", "cursor must be a string")
+
+        payload, rid = self._request(
+            "GET",
+            "/proposals",
+            params={"cursor": cursor, "limit": limit},
+            request_id=request_id,
+        )
+
+        items_payload = payload.get("items")
+        if items_payload is None:
+            items_payload = payload.get("data")
+        if not isinstance(items_payload, list):
+            raise ConsoleError(
+                "INVALID_RESPONSE",
+                "Proposals response must include an items list",
+            )
+
+        items = [Proposal.from_payload(item) for item in items_payload]
+
+        next_cursor = payload.get("next_cursor")
+        if next_cursor is None:
+            next_cursor = payload.get("next")
+        if next_cursor is not None and not isinstance(next_cursor, str):
+            raise ConsoleError(
+                "INVALID_RESPONSE",
+                "next_cursor must be a string or null",
+            )
+
+        return items, next_cursor, rid
+
+    def get_proposal(
+        self,
+        proposal_id: str,
+        *,
+        request_id: Optional[str] = None,
+    ) -> Tuple[Proposal, str]:
+        if not isinstance(proposal_id, str) or not proposal_id.strip():
+            raise ConsoleError("VALIDATION_ERROR", "proposal id is required")
+
+        normalized_id = proposal_id.strip()
+        payload, rid = self._request(
+            "GET",
+            f"/proposals/{quote(normalized_id, safe='')}",
+            request_id=request_id,
+        )
+
+        item = payload.get("proposal")
+        if item is None:
+            item = payload.get("data")
+        if item is None:
+            item = payload
+
+        return Proposal.from_payload(item), rid
+
+
+class ProposalsPanel:
+    """Stateful proposals panel with cursor pagination."""
+
+    def __init__(
+        self,
+        api: ConsoleApi,
+        *,
+        page_size: int = DEFAULT_PAGE_SIZE,
+    ) -> None:
+        self.api = api
+        self.page_size = page_size
+        self.items: List[Proposal] = []
+        self.next_cursor: Optional[str] = None
+        self.current_cursor: Optional[str] = None
+        self.cursor_stack: List[Optional[str]] = []
+        self.last_request_id: Optional[str] = None
+
+    def load(
+        self,
+        *,
+        cursor: Optional[str] = None,
+        request_id: Optional[str] = None,
+    ) -> List[Proposal]:
+        items, next_cursor, rid = self.api.list_proposals(
+            cursor=cursor,
+            limit=self.page_size,
+            request_id=request_id,
+        )
+        self.items = items
+        self.next_cursor = next_cursor
+        self.current_cursor = cursor
+        self.last_request_id = rid
+        return items
+
+    def next_page(
+        self,
+        *,
+        request_id: Optional[str] = None,
+    ) -> List[Proposal]:
+        if self.next_cursor is None:
+            raise ConsoleError(
+                "NO_NEXT_PAGE",
+                "No next proposals page is available",
+            )
+        self.cursor_stack.append(self.current_cursor)
+        return self.load(cursor=self.next_cursor, request_id=request_id)
+
+    def previous_page(
+        self,
+        *,
+        request_id: Optional[str] = None,
+    ) -> List[Proposal]:
+        if not self.cursor_stack:
+            raise ConsoleError(
+                "NO_PREVIOUS_PAGE",
+                "No previous proposals page is available",
+            )
+        cursor = self.cursor_stack.pop()
+        return self.load(cursor=cursor, request_id=request_id)
+
+    def render(self) -> str:
+        lines = ["Proposals", "=" * 9]
+
+        if not self.items:
+            lines.append("No proposals found.")
+        else:
+            lines.append(f"{'ID':<24} {'STATUS':<12} TITLE")
+            lines.append("-" * 72)
+            for proposal in self.items:
+                lines.append(
+                    f"{proposal.id:<24} {proposal.status:<12} {proposal.title}"
+                )
+
+        lines.append("")
+        lines.append(f"Request ID: {self.last_request_id or '-'}")
+        if self.next_cursor:
+            lines.append(
+                "Next cursor available; use `next` to load the next page."
+            )
+        return "\n".join(lines)
+
+    def show(
+        self,
+        proposal_id: str,
+        *,
+        request_id: Optional[str] = None,
+    ) -> str:
+        proposal, rid = self.api.get_proposal(
+            proposal_id,
+            request_id=request_id,
+        )
+        self.last_request_id = rid
+
+        lines = [
+            f"Proposal {proposal.id}",
+            "=" * (9 + len(proposal.id)),
+            f"Title: {proposal.title}",
+            f"Status: {proposal.status}",
+        ]
+
+        if proposal.author:
+            lines.append(
+                f"Author: {proposal.author} "
+                "(attribution only; not authentication)"
+            )
+        if proposal.summary:
+            lines.extend(["", proposal.summary])
+
+        lines.extend(["", f"Request ID: {rid}"])
+        return "\n".join(lines)
+
+
+class _ArgumentParser(argparse.ArgumentParser):
+    def error(self, message: str) -> None:
+        raise ConsoleError("VALIDATION_ERROR", message)
+
+
+class Console:
+    """Console entry point."""
+
+    def __init__(
+        self,
+        api: Optional[ConsoleApi] = None,
+        *,
+        stdin: Any = None,
+        stdout: Any = None,
+        stderr: Any = None,
+    ) -> None:
+        self.api = api
+        self.stdin = stdin if stdin is not None else sys.stdin
+        self.stdout = stdout if stdout is not None else sys.stdout
+        self.stderr = stderr if stderr is not None else sys.stderr
+
+    def run(self, argv: Optional[Sequence[str]] = None) -> int:
+        parser = self._build_

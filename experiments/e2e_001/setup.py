@@ -343,7 +343,14 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--jev-env", default="~/.config/claimledger/jev.env")
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--freeze-only", action="store_true",
+                        help="re-hash existing artifacts (e.g. after a protocol edit)")
     args = parser.parse_args()
+    if args.freeze_only:
+        if (ROOT / "freeze.json").exists():
+            (ROOT / "freeze.json").unlink()
+        write_freeze()
+        return 0
     load_env(Path(args.jev_env))
     if not os.environ.get("TYPESAFE_API_KEY"):
         raise SystemExit("TYPESAFE_API_KEY missing (needed to generate briefs)")

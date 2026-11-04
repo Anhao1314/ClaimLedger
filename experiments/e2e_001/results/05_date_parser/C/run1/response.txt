@@ -1,0 +1,17 @@
+```python
+from datetime import date
+import re
+
+
+_ISO_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def parse_date(s):
+    if not isinstance(s, str) or not _ISO_DATE_PATTERN.fullmatch(s):
+        raise ValueError(f"Invalid ISO date: {s!r}")
+
+    try:
+        return date.fromisoformat(s)
+    except ValueError as exc:
+        raise ValueError(f"Invalid ISO date: {s!r}") from exc
+```

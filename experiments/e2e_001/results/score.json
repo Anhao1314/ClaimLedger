@@ -1,0 +1,192 @@
+{
+  "tasks": {
+    "01_storage_postgres": {
+      "A": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 4617.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 2859.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 2356.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 8229.0
+      }
+    },
+    "02_retry_cap": {
+      "A": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 848.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 2652.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 2164.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 7363.0
+      }
+    },
+    "03_analytics_storage": {
+      "A": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 15119.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 798.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 457.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 16338.0
+      }
+    },
+    "04_console_panel": {
+      "A": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 7839.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 917.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 438.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 16314.0
+      }
+    },
+    "05_date_parser": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 694.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1556.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 638.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 768.0
+      }
+    },
+    "06_control_math": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 214.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1088.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 307.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 241.0
+      }
+    }
+  },
+  "summary": {
+    "A": {
+      "passes": 2,
+      "n": 6,
+      "rate": 0.333,
+      "wilson": [
+        0.097,
+        0.7
+      ]
+    },
+    "B": {
+      "passes": 6,
+      "n": 6,
+      "rate": 1.0,
+      "wilson": [
+        0.61,
+        1.0
+      ]
+    },
+    "C": {
+      "passes": 6,
+      "n": 6,
+      "rate": 1.0,
+      "wilson": [
+        0.61,
+        1.0
+      ]
+    },
+    "D": {
+      "passes": 2,
+      "n": 6,
+      "rate": 0.333,
+      "wilson": [
+        0.097,
+        0.7
+      ]
+    }
+  },
+  "comparisons": {
+    "C_vs_A": {
+      "C_only": 4,
+      "A_only": 0,
+      "p": 0.125
+    },
+    "C_vs_B": {
+      "C_only": 0,
+      "B_only": 0,
+      "p": 1.0
+    },
+    "C_vs_D": {
+      "C_only": 4,
+      "D_only": 0,
+      "p": 0.125
+    }
+  },
+  "runs": 1
+}

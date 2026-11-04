@@ -1,0 +1,21 @@
+```python
+def fetch_with_retry(fn, attempts):
+    """Call ``fn`` and retry on failure, up to ``attempts`` total calls.
+
+    The effective retry cap is ``attempts`` because no separate cap is
+    defined by the task or project memory. The last exception is re-raised
+    if every attempt fails.
+    """
+    if attempts < 1:
+        raise ValueError("attempts must be at least 1")
+
+    last_exception = None
+
+    for _ in range(attempts):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exception = exc
+
+    raise last_exception
+```

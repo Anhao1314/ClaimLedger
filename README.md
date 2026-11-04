@@ -455,6 +455,7 @@ part the checks could not kill: an auditable judgment layer with an honest bound
 | [docs/console-design.md](docs/console-design.md) | user-first console design: five jobs, eight blockers, acceptance criteria |
 | [docs/usage-protocol.md](docs/usage-protocol.md) | 14-day real-use protocol: daily loop, success criteria, exit report |
 | [docs/external-eval-protocol.md](docs/external-eval-protocol.md) | external blind evaluation: 240 pairs, separated roles, pre-registered decision rule |
+| [experiments/e2e_001/results.md](experiments/e2e_001/results.md) | end-to-end pilot: brief vs no memory vs full memory vs irrelevant memory (6 tasks) |
 | [docs/brand.md](docs/brand.md) | logo geometry → component mapping; usage rules |
 | [docs/design-v2.zh-CN.md](docs/design-v2.zh-CN.md) | legacy design record (pre-inversion) |
 

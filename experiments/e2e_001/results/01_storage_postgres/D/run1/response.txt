@@ -1,0 +1,35 @@
+```python
+"""Storage backend connection helpers."""
+
+from urllib.parse import urlparse
+
+# MEMORY does not specify a storage backend, so retain the starter backend.
+BACKEND = "sqlite"
+
+_SCHEME_BY_BACKEND = {
+    "postgres": "postgresql",
+    "postgresql": "postgresql",
+    "sqlite": "sqlite",
+    "mysql": "mysql",
+}
+
+
+def connect(dsn: str) -> str:
+    """Return *dsn* unchanged when it matches the configured backend.
+
+    Raise ``ValueError`` when the DSN uses any other scheme.
+    """
+    if not isinstance(dsn, str):
+        raise ValueError("DSN must be a string")
+
+    scheme = urlparse(dsn).scheme.lower()
+    expected_scheme = _SCHEME_BY_BACKEND.get(BACKEND.lower(), BACKEND.lower())
+
+    if scheme == expected_scheme:
+        return dsn
+
+    raise ValueError(
+        f"Unsupported DSN scheme {scheme!r} for storage backend {BACKEND!r}; "
+        f"expected {expected_scheme!r}"
+    )
+```

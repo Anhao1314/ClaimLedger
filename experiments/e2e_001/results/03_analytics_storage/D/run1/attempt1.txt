@@ -1,0 +1,37 @@
+```python
+"""SQLite-backed storage for the analytics service.
+
+This module uses only the Python standard library. It does not log event
+payloads or credentials.
+"""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+import threading
+import uuid
+from collections.abc import Iterable, Iterator, Mapping
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+__all__ = ["AnalyticsEvent", "AnalyticsStorage", "DEFAULT_DATABASE_PATH"]
+
+DEFAULT_DATABASE_PATH = "analytics.sqlite3"
+
+JsonDict = dict[str, Any]
+TimestampLike = datetime | str
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _coerce_datetime(value: TimestampLike | None) -> datetime:
+    if value is None:
+        return _utc_now()
+
+    if isinstance(value, datetime):

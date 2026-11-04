@@ -1,0 +1,14 @@
+{
+  "task": "04_console_panel",
+  "arm": "D",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 314,
+  "completion_tokens": 16000,
+  "latency_ms": 68863,
+  "pass": false,
+  "error": "truncated after length retry",
+  "attempts": 1,
+  "finish_reason": "length",
+  "length_retries": 1
+}

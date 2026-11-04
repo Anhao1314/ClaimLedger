@@ -1,0 +1,14 @@
+{
+  "task": "01_storage_postgres",
+  "arm": "C",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 305,
+  "completion_tokens": 2051,
+  "latency_ms": 10901,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "check_output": ""
+}

@@ -1,0 +1,14 @@
+{
+  "task": "02_retry_cap",
+  "arm": "C",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 258,
+  "completion_tokens": 1906,
+  "latency_ms": 10150,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "check_output": ""
+}

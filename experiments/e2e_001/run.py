@@ -163,7 +163,7 @@ def main() -> int:
     parser.add_argument("--runs", type=int, default=1)
     parser.add_argument("--tasks", default="")
     parser.add_argument("--arms", default="A,B,C,D")
-    parser.add_argument("--max-tokens", type=int, default=3000)
+    parser.add_argument("--max-tokens", type=int, default=8000)
     parser.add_argument("--max-calls", type=int, default=100)
     parser.add_argument("--retries", type=int, default=5)
     parser.add_argument("--sleep", type=float, default=0.5)
@@ -222,27 +222,39 @@ def main() -> int:
         record = {"task": task_id, "arm": arm, "run": run, "model": model,
                   "prompt_tokens": None, "completion_tokens": None,
                   "latency_ms": None, "pass": False, "error": None,
-                  "attempts": None, "finish_reason": None}
+                  "attempts": None, "finish_reason": None,
+                  "length_retries": 0}
         if calls >= args.max_calls:
             record["error"] = "max_calls reached"
             _append(results_path, record)
             break
         try:
-            response = call_api(system, user, model=model,
-                                max_tokens=args.max_tokens,
-                                base_url=args.base_url,
-                                retries=args.retries)
-            calls += 1
-            body = response["body"]
-            choice = body["choices"][0]
-            content = choice["message"]["content"]
-            record["latency_ms"] = response["latency_ms"]
-            record["attempts"] = response.get("attempts")
-            record["finish_reason"] = choice.get("finish_reason")
-            usage = body.get("usage") or {}
-            record["prompt_tokens"] = usage.get("prompt_tokens")
-            record["completion_tokens"] = usage.get("completion_tokens")
+            budget = args.max_tokens
+            content = ""
+            for length_try in range(2):
+                response = call_api(system, user, model=model,
+                                    max_tokens=budget,
+                                    base_url=args.base_url,
+                                    retries=args.retries)
+                calls += 1
+                body = response["body"]
+                choice = body["choices"][0]
+                content = choice["message"]["content"]
+                record["latency_ms"] = response["latency_ms"]
+                record["attempts"] = response.get("attempts")
+                record["finish_reason"] = choice.get("finish_reason")
+                usage = body.get("usage") or {}
+                record["prompt_tokens"] = usage.get("prompt_tokens")
+                record["completion_tokens"] = usage.get("completion_tokens")
+                (out_dir / f"attempt{length_try + 1}.txt").write_text(
+                    content, encoding="utf-8")
+                if record["finish_reason"] != "length" or length_try == 1:
+                    break
+                record["length_retries"] += 1
+                budget = min(budget * 2, 16000)
             (out_dir / "response.txt").write_text(content, encoding="utf-8")
+            if record["finish_reason"] == "length":
+                record["error"] = "truncated after length retry"
             code = extract_code(content)
             with tempfile.TemporaryDirectory(prefix="e2e_") as tmp_name:
                 tmp = Path(tmp_name)

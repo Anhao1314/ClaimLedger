@@ -1,0 +1,16 @@
+```python
+BACKEND = "postgresql"
+
+
+def connect(dsn):
+    """Return a PostgreSQL DSN unchanged; reject unsupported schemes."""
+    if not isinstance(dsn, str):
+        raise ValueError("DSN must be a string")
+
+    if dsn.startswith(("postgresql://", "postgres://")):
+        return dsn
+
+    raise ValueError(
+        "Unsupported DSN scheme; expected postgresql:// or postgres://"
+    )
+```

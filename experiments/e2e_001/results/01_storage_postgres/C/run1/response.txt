@@ -1,0 +1,27 @@
+```python
+"""Storage backend connection helpers."""
+
+from __future__ import annotations
+
+BACKEND = "postgresql"
+
+_POSTGRES_SCHEMES = frozenset({"postgresql", "postgres"})
+
+
+def connect(dsn: str) -> str:
+    """Return a PostgreSQL DSN unchanged after validating its scheme.
+
+    Raises:
+        ValueError: If the DSN does not use a PostgreSQL scheme.
+    """
+    if not isinstance(dsn, str) or "://" not in dsn:
+        raise ValueError(f"Invalid DSN for {BACKEND!r} backend: {dsn!r}")
+
+    scheme = dsn.split("://", 1)[0].lower()
+    if scheme not in _POSTGRES_SCHEMES:
+        raise ValueError(
+            f"Unsupported DSN scheme {scheme!r} for {BACKEND!r} backend"
+        )
+
+    return dsn
+```

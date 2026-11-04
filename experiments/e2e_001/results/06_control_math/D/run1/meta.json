@@ -1,0 +1,14 @@
+{
+  "task": "06_control_math",
+  "arm": "D",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 194,
+  "completion_tokens": 47,
+  "latency_ms": 1429,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "check_output": ""
+}

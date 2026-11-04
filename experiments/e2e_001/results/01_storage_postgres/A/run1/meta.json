@@ -1,0 +1,15 @@
+{
+  "task": "01_storage_postgres",
+  "arm": "A",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 228,
+  "completion_tokens": 4389,
+  "latency_ms": 24309,
+  "pass": false,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "check_output": "Traceback (most recent call last):\n  File \"/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e_5387_ngm/check.py\", line 3, in <module>\n    assert storage.BACKEND == \"postgresql\", storage.BACKEND\nAssertionError: sqlite"
+}

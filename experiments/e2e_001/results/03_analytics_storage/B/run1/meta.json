@@ -1,0 +1,14 @@
+{
+  "task": "03_analytics_storage",
+  "arm": "B",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 724,
+  "completion_tokens": 74,
+  "latency_ms": 1148,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "check_output": ""
+}

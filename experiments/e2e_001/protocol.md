@@ -73,8 +73,12 @@ no repo browsing, no test execution.
 
 ## Runs
 
-- Model: `deepseek-flash` (the configured default), temperature 0, `max_tokens`
-  1200.
+- Model: `deepseek-flash` (the configured default), temperature 0,
+  `max_tokens` 8000. The model emits reasoning tokens before the answer; a
+  1200-token budget truncates the code block. Any run ending with
+  `finish_reason=length` is retried once with the same prompt and a doubled
+  budget (16000); if it still truncates, it is recorded as a failure (never
+  silently dropped).
 - One run per task × arm for the pilot; the full run uses three runs.
 - Each run gets a fresh temp directory. Responses, prompts, and metadata are
   saved under `results/`.

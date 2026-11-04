@@ -1,0 +1,712 @@
+```python
+"""SQLite-backed storage layer for the analytics service.
+
+The module provides a dependency-free event store with insertion, filtering,
+aggregation, and retention helpers.  All timestamps are normalized to UTC.
+"""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+import threading
+import uuid
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from datetime import date, datetime, timezone
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+
+
+__all__ = [
+    "AnalyticsStorage",
+    "Event",
+    "StorageClosedError",
+    "StorageError",
+]
+
+
+class StorageError(Exception):
+    """Base exception raised by the analytics storage layer."""
+
+
+class StorageClosedError(StorageError):
+    """Raised when an operation is attempted on a closed store."""
+
+
+def _normalize_timestamp(
+    value: Optional[Union[datetime, date, str, int, float]] = None
+) -> datetime:
+    """Return *value* as a timezone-aware UTC datetime."""
+    if value is None:
+        return datetime.now(timezone.utc)
+
+    if isinstance(value, datetime):
+        dt = value
+    elif isinstance(value, date):
+        dt = datetime(value.year, value.month, value.day, tzinfo=timezone.utc)
+    elif isinstance(value, (int, float)):
+        dt = datetime.fromtimestamp(value, tz=timezone.utc)
+    elif isinstance(value, str):
+        text = value.strip()
+        if not text:
+            raise ValueError("invalid timestamp: empty string")
+        if text.endswith(("Z", "z")):
+            text = text[:-1] + "+00:00"
+        try:
+            dt = datetime.fromisoformat(text)
+        except ValueError as exc:
+            raise ValueError(f"invalid timestamp: {value!r}") from exc
+    else:
+        raise TypeError(f"unsupported timestamp type: {type(value)!r}")
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _format_timestamp(value: Union[datetime, date, str, int, float]) -> str:
+    """Format a timestamp for storage in SQLite.
+
+    The stored representation is UTC without an explicit offset so SQLite's
+    date and time functions work consistently.
+    """
+    dt = _normalize_timestamp(value)
+    return dt.replace(tzinfo=None).isoformat(timespec="microseconds")
+
+
+def _parse_timestamp(value: str) -> datetime:
+    """Parse a stored timestamp string back into an aware UTC datetime."""
+    text = str(value).strip()
+    if text.endswith(("Z", "z")):
+        text = text[:-1] + "+00:00"
+    dt = datetime.fromisoformat(text)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+@dataclass(frozen=True)
+class Event:
+    """A single analytics event."""
+
+    name: str
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    id: str = field(default_factory=lambda: uuid.uuid4().hex)
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
+    properties: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        name = "" if self.name is None else str(self.name).strip()
+        if not name:
+            raise ValueError("event name must be a non-empty string")
+
+        object.__setattr__(self, "name", name)
+        object.__setattr__(self, "id", str(self.id))
+        object.__setattr__(self, "timestamp", _normalize_timestamp(self.timestamp))
+        object.__setattr__(
+            self,
+            "user_id",
+            None if self.user_id is None else str(self.user_id),
+        )
+        object.__setattr__(
+            self,
+            "session_id",
+            None if self.session_id is None else str(self.session_id),
+        )
+        object.__setattr__(self, "properties", dict(self.properties or {}))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Return a JSON-friendly dictionary representation."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "timestamp": self.timestamp.isoformat(),
+            "user_id": self.user_id,
+            "session_id": self.session_id,
+            "properties": dict(self.properties),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "Event":
+        """Build an event from a mapping."""
+        name = data.get("name", data.get("event", data.get("event_name")))
+        properties = data.get("properties", data.get("props", {}))
+        return cls(
+            name=name,
+            timestamp=data.get("timestamp"),
+            id=str(data.get("id") or data.get("event_id") or uuid.uuid4().hex),
+            user_id=data.get("user_id"),
+            session_id=data.get("session_id"),
+            properties=dict(properties or {}),
+        )
+
+
+class AnalyticsStorage:
+    """Persistent storage for analytics events.
+
+    Parameters
+    ----------
+    path:
+        SQLite database path.  Defaults to an in-memory database.
+    timeout:
+        SQLite connection timeout in seconds.
+    """
+
+    _EVENT_COLUMNS = "id, name, timestamp, user_id, session_id, properties"
+
+    _BUCKET_FORMATS = {
+        "minute": "%Y-%m-%dT%H:%M",
+        "hour": "%Y-%m-%dT%H:00",
+        "day": "%Y-%m-%d",
+        "week": "%Y-W%W",
+        "month": "%Y-%m",
+        "year": "%Y",
+    }
+
+    _GROUP_COLUMNS = {
+        "event_name": "name",
+        "name": "name",
+        "user_id": "user_id",
+        "session_id": "session_id",
+    }
+
+    def __init__(self, path: str = ":memory:", *, timeout: float = 5.0) -> None:
+        self.path = str(path)
+        self._lock = threading.RLock()
+        self._closed = False
+        self._conn = sqlite3.connect(
+            self.path,
+            timeout=timeout,
+            check_same_thread=False,
+        )
+        self._conn.row_factory = sqlite3.Row
+        with self._lock:
+            self._conn.execute("PRAGMA foreign_keys = ON")
+            self._create_schema()
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+    def _create_schema(self) -> None:
+        with self._conn:
+            self._conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS events (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    user_id TEXT,
+                    session_id TEXT,
+                    properties TEXT NOT NULL DEFAULT '{}'
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_events_timestamp
+                    ON events(timestamp);
+
+                CREATE INDEX IF NOT EXISTS idx_events_name_timestamp
+                    ON events(name, timestamp);
+
+                CREATE INDEX IF NOT EXISTS idx_events_user_timestamp
+                    ON events(user_id, timestamp);
+                """
+            )
+
+    def _ensure_open(self) -> None:
+        if self._closed:
+            raise StorageClosedError("analytics storage is closed")
+
+    def close(self) -> None:
+        """Close the underlying database connection."""
+        with self._lock:
+            if not self._closed:
+                self._conn.close()
+                self._closed = True
+
+    def __enter__(self) -> "AnalyticsStorage":
+        self._ensure_open()
+        return self
+
+    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+        self.close()
+
+    # ------------------------------------------------------------------
+    # Conversion helpers
+    # ------------------------------------------------------------------
+    def _row_for_event(self, event: Event) -> Tuple[Any, ...]:
+        properties = json.dumps(
+            event.properties or {},
+            default=str,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        return (
+            event.id,
+            event.name,
+            _format_timestamp(event.timestamp),
+            event.user_id,
+            event.session_id,
+            properties,
+        )
+
+    @staticmethod
+    def _row_to_event(row: sqlite3.Row) -> Event:
+        raw_properties = row["properties"]
+        properties = json.loads(raw_properties) if raw_properties else {}
+        return Event(
+            id=row["id"],
+            name=row["name"],
+            timestamp=_parse_timestamp(row["timestamp"]),
+            user_id=row["user_id"],
+            session_id=row["session_id"],
+            properties=properties,
+        )
+
+    @staticmethod
+    def _coerce_event(item: Union[Event, Mapping[str, Any]]) -> Event:
+        if isinstance(item, Event):
+            return item
+        if isinstance(item, Mapping):
+            return Event.from_dict(item)
+        raise TypeError(f"expected Event or mapping, got {type(item)!r}")
+
+    @staticmethod
+    def _normalize_names(
+        event_name: Optional[Union[str, Iterable[str]]]
+    ) -> List[str]:
+        if event_name is None:
+            return []
+        if isinstance(event_name, str):
+            return [event_name]
+        try:
+            return [str(name) for name in event_name]
+        except TypeError:
+            return [str(event_name)]
+
+    def _build_where(
+        self,
+        *,
+        event_name: Optional[Union[str, Iterable[str]]] = None,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        start: Optional[Union[datetime, date, str, int, float]] = None,
+        end: Optional[Union[datetime, date, str, int, float]] = None,
+    ) -> Tuple[str, List[Any]]:
+        clauses: List[str] = []
+        params: List[Any] = []
+
+        names = self._normalize_names(event_name)
+        if names:
+            placeholders = ",".join("?" for _ in names)
+            clauses.append(f"name IN ({placeholders})")
+            params.extend(names)
+
+        if user_id is not None:
+            clauses.append("user_id = ?")
+            params.append(str(user_id))
+
+        if session_id is not None:
+            clauses.append("session_id = ?")
+            params.append(str(session_id))
+
+        if start is not None:
+            clauses.append("timestamp >= ?")
+            params.append(_format_timestamp(start))
+
+        if end is not None:
+            clauses.append("timestamp <= ?")
+            params.append(_format_timestamp(end))
+
+        where = ""
+        if clauses:
+            where = " WHERE " + " AND ".join(clauses)
+        return where, params
+
+    # ------------------------------------------------------------------
+    # Writes
+    # ------------------------------------------------------------------
+    def record_event(
+        self,
+        name: str,
+        *,
+        event_id: Optional[str] = None,
+        timestamp: Optional[Union[datetime, date, str, int, float]] = None,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        properties: Optional[Mapping[str, Any]] = None,
+    ) -> Event:
+        """Insert one event and return the stored event."""
+        self._ensure_open()
+        event = Event(
+            name=name,
+            timestamp=_normalize_timestamp(timestamp),
+            id=str(event_id) if event_id else uuid.uuid4().hex,
+            user_id=user_id,
+            session_id=session_id,
+            properties=dict(properties or {}),
+        )
+        with self._lock, self._conn:
+            self._conn.execute(
+                f"""
+                INSERT INTO events ({self._EVENT_COLUMNS})
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                self._row_for_event(event),
+            )
+        return event
+
+    track = record_event
+    ingest = record_event
+
+    def record_many(
+        self,
+        events: Iterable[Union[Event, Mapping[str, Any]]],
+    ) -> List[Event]:
+        """Insert multiple events in a single transaction."""
+        self._ensure_open()
+        normalized = [self._coerce_event(item) for item in events]
+        if not normalized:
+            return []
+
+        with self._lock, self._conn:
+            self._conn.executemany(
+                f"""
+                INSERT INTO events ({self._EVENT_COLUMNS})
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                [self._row_for_event(event) for event in normalized],
+            )
+        return normalized
+
+    record_events = record_many
+
+    def record(self, event: Union[Event, Mapping[str, Any]]) -> Event:
+        """Insert a single Event or mapping."""
+        return self.record_many([event])[0]
+
+    insert = record
+
+    # ------------------------------------------------------------------
+    # Reads
+    # ------------------------------------------------------------------
+    def get_event(self, event_id: str) -> Optional[Event]:
+        """Return an event by id, or None when it does not exist."""
+        self._ensure_open()
+        with self._lock:
+            row = self._conn.execute(
+                f"SELECT {self._EVENT_COLUMNS} FROM events WHERE id = ?",
+                (str(event_id),),
+            ).fetchone()
+        return self._row_to_event(row) if row is not None else None
+
+    def query_events(
+        self,
+        *,
+        event_name: Optional[Union[str, Iterable[str]]] = None,
+        name: Optional[Union[str, Iterable[str]]] = None,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        start: Optional[Union[datetime, date, str, int, float]] = None,
+        end: Optional[Union[datetime, date, str, int, float]] = None,
+        limit: Optional[int] = 100,
+        offset: int = 0,
+        newest_first: bool = True,
+    ) -> List[Event]:
+        """Query events with optional filters and pagination."""
+        self._ensure_open()
+
+        if offset < 0:
+            raise ValueError("offset must be non-negative")
+        if limit is not None and int(limit) < 0:
+            raise ValueError("limit must be non-negative or None")
+
+        filter_name = event_name if event_name is not None else name
+        where, params = self._build_where(
+            event_name=filter_name,
+            user_id=user_id,
+            session_id=session_id,
+            start=start,
+            end=end,
+        )
+
+        direction = "DESC" if newest_first else "ASC"
+        limit_value = -1 if limit is None else int(limit)
+
+        sql = (
+            f"SELECT {self._EVENT_COLUMNS} FROM events"
+            f"{where}"
+            f" ORDER BY timestamp {direction}, rowid {direction}"
+            " LIMIT ? OFFSET ?"
+        )
+        params.extend([limit_value, int(offset)])
+
+        with self._lock:
+            rows = self._conn.execute(sql, params).fetchall()
+        return [self._row_to_event(row) for row in rows]
+
+    get_events = query_events
+    fetch_events = query_events
+
+    def count_events(
+        self,
+        *,
+        event_name: Optional[Union[str, Iterable[str]]] = None,
+        name: Optional[Union[str, Iterable[str]]] = None,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        start: Optional[Union[datetime, date, str, int, float]] = None,
+        end: Optional[Union[datetime, date, str, int, float]] = None,
+    ) -> int:
+        """Return the number of events matching the filters."""
+        self._ensure_open()
+
+        filter_name = event_name if event_name is not None else name
+        where, params = self._build_where(
+            event_name=filter_name,
+            user_id=user_id,
+            session_id=session_id,
+            start=start,
+            end=end,
+        )
+
+        with self._lock:
+            row = self._conn.execute(
+                f"SELECT COUNT(*) AS total FROM events{where}",
+                params,
+            ).fetchone()
+        return int(row["total"])
+
+    count = count_events
+
+    def unique_users(
+        self,
+        *,
+        event_name: Optional[Union[str, Iterable[str]]] = None,
+        name: Optional[Union[str, Iterable[str]]] = None,
+        start: Optional[Union[datetime, date, str, int, float]] = None,
+        end: Optional[Union[datetime, date, str, int, float]] = None,
+    ) -> int:
+        """Return the number of distinct users matching the filters."""
+        self._ensure_open()
+
+        filter_name = event_name if event_name is not None else name
+        where, params = self._build_where(
+            event_name=filter_name,
+            start=start,
+            end=end,
+        )
+
+        with self._lock:
+            row = self._conn.execute(
+                f"""
+                SELECT COUNT(DISTINCT user_id) AS total
+                FROM events{where}
+                """,
+                params,
+            ).fetchone()
+        return int(row["total"])
+
+    def list_event_names(self) -> List[str]:
+        """Return all distinct event names sorted alphabetically."""
+        self._ensure_open()
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT DISTINCT name FROM events ORDER BY name ASC"
+            ).fetchall()
+        return [row["name"] for row in rows]
+
+    def event_name_counts(self) -> List[Dict[str, Any]]:
+        """Return event names together with their event counts."""
+        self._ensure_open()
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT name, COUNT(*) AS count
+                FROM events
+                GROUP BY name
+                ORDER BY count DESC, name ASC
+                """
+            ).fetchall()
+        return [{"name": row["name"], "count": int(row["count"])} for row in rows]
+
+    # ------------------------------------------------------------------
+    # Aggregation
+    # ------------------------------------------------------------------
+    def aggregate_events(
+        self,
+        *,
+        event_name: Optional[Union[str, Iterable[str]]] = None,
+        name: Optional[Union[str, Iterable[str]]] = None,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        start: Optional[Union[datetime, date, str, int, float]] = None,
+        end: Optional[Union[datetime, date, str, int, float]] = None,
+        bucket: str = "day",
+        group_by: Optional[str] = None,
+        metric: str = "count",
+        limit: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        """Aggregate events into time buckets.
+
+        Returns a list of dictionaries containing ``bucket``, ``value``, and,
+        when ``group_by`` is supplied, the grouped field.
+        """
+        self._ensure_open()
+
+        bucket_format = self._BUCKET_FORMATS.get(bucket)
+        if bucket_format is None:
+            valid = ", ".join(sorted(self._BUCKET_FORMATS))
+            raise ValueError(f"unknown bucket {bucket!r}; expected one of: {valid}")
+
+        if metric in ("count", "event_count", "events"):
+            metric_expression = "COUNT(*)"
+        elif metric in ("unique_users", "users"):
+            metric_expression = "COUNT(DISTINCT user_id)"
+        elif metric in ("unique_sessions", "sessions"):
+            metric_expression = "COUNT(DISTINCT session_id)"
+        else:
+            raise ValueError(
+                "unknown metric {!r}; expected count, unique_users, "
+                "or unique_sessions".format(metric)
+            )
+
+        group_column: Optional[str] = None
+        group_alias: Optional[str] = None
+        if group_by is not None:
+            group_column = self._GROUP_COLUMNS.get(group_by)
+            if group_column is None:
+                valid = ", ".join(sorted(self._GROUP_COLUMNS))
+                raise ValueError(
+                    f"unknown group_by {group_by!r}; expected one of: {valid}"
+                )
+            group_alias = (
+                "event_name" if group_by in ("event_name", "name") else group_by
+            )
+
+        filter_name = event_name if event_name is not None else name
+        where, where_params = self._build_where(
+            event_name=filter_name,
+            user_id=user_id,
+            session_id=session_id,
+            start=start,
+            end=end,
+        )
+
+        select_parts = ["strftime(?, timestamp) AS bucket"]
+        if group_column is not None:
+            select_parts.append(f"{group_column} AS {group_alias}")
+        select_parts.append(f"{metric_expression} AS value")
+
+        group_clause = "1, 2" if group_column is not None else "1"
+        order_clause = "1 ASC, 2 ASC" if group_column is not None else "1 ASC"
+
+        sql = (
+            "SELECT " + ", ".join(select_parts) + " FROM events"
+            f"{where}"
+            f" GROUP BY {group_clause}"
+            f" ORDER BY {order_clause}"
+        )
+
+        params: List[Any] = [bucket_format]
+        params.extend(where_params)
+
+        if limit is not None:
+            if int(limit) < 0:
+                raise ValueError("limit must be non-negative or None")
+            sql += " LIMIT ?"
+            params.append(int(limit))
+
+        with self._lock:
+            rows = self._conn.execute(sql, params).fetchall()
+
+        results: List[Dict[str, Any]] = []
+        for row in rows:
+            item: Dict[str, Any] = {
+                "bucket": row["bucket"],
+                "value": int(row["value"]),
+            }
+            if group_alias is not None:
+                item[group_alias] = row[group_alias]
+            results.append(item)
+        return results
+
+    aggregate = aggregate_events
+
+    def time_series(
+        self,
+        *,
+        event_name: Optional[Union[str, Iterable[str]]] = None,
+        name: Optional[Union[str, Iterable[str]]] = None,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        start: Optional[Union[datetime, date, str, int, float]] = None,
+        end: Optional[Union[datetime, date, str, int, float]] = None,
+        bucket: str = "day",
+        metric: str = "count",
+    ) -> Dict[str, int]:
+        """Return a bucket-to-value mapping for ungrouped aggregation."""
+        rows = self.aggregate_events(
+            event_name=event_name,
+            name=name,
+            user_id=user_id,
+            session_id=session_id,
+            start=start,
+            end=end,
+            bucket=bucket,
+            metric=metric,
+        )
+        return {row["bucket"]: row["value"] for row in rows}
+
+    # ------------------------------------------------------------------
+    # Statistics and retention
+    # ------------------------------------------------------------------
+    def stats(self) -> Dict[str, Any]:
+        """Return high-level statistics for the whole store."""
+        self._ensure_open()
+        with self._lock:
+            row = self._conn.execute(
+                """
+                SELECT
+                    COUNT(*) AS total_events,
+                    COUNT(DISTINCT user_id) AS unique_users,
+                    MIN(timestamp) AS first_timestamp,
+                    MAX(timestamp) AS last_timestamp
+                FROM events
+                """
+            ).fetchone()
+
+        first = row["first_timestamp"]
+        last = row["last_timestamp"]
+        return {
+            "total_events": int(row["total_events"]),
+            "unique_users": int(row["unique_users"] or 0),
+            "first_timestamp": _parse_timestamp(first) if first else None,
+            "last_timestamp": _parse_timestamp(last) if last else None,
+        }
+
+    def delete_events_before(
+        self,
+        cutoff: Union[datetime, date, str, int, float],
+    ) -> int:
+        """Delete events strictly older than *cutoff*."""
+        self._ensure_open()
+        timestamp = _format_timestamp(cutoff)
+        with self._lock, self._conn:
+            cursor = self._conn.execute(
+                "DELETE FROM events WHERE timestamp < ?",
+                (timestamp,),
+            )
+            return int(cursor.rowcount)
+
+    delete_before = delete_events_before
+    purge_before = delete_events_before
+
+    def clear(self) -> int:
+        """Delete all stored events and return the number removed."""
+        self._ensure_open()
+        with self._lock, self._conn:
+            cursor = self._conn.execute("DELETE FROM events")
+            return int(cursor.rowcount)
+
+    reset = clear
+```

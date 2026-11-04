@@ -2,12 +2,15 @@
 
 Pilot harness for the experiment described in [protocol.md](protocol.md).
 
-## Status (2026-11-03)
+## Status (2026-11-04)
 
-Harness and task checks are validated offline (`python selftest.py`: 6/6 OK) and
-the briefs are frozen. The pilot run itself is blocked: the DeepSeek API returns
-`503 service_unavailable` ("service is too busy") for every configured model.
-No results are committed. Rerun step 2 when the provider recovers.
+Pilot complete: 24 runs, six tasks, one run per arm. Results and caveats are in
+[results.md](results.md). Headline: A/D 2/6, B/C 6/6; C matched full memory at
+roughly one third to one half of the prompt tokens. With six tasks this is a
+harness validation, not evidence.
+
+The tasks and briefs are frozen; `python selftest.py` validates all checks
+offline. Re-running `setup.py` needs `--force` and creates a new freeze.
 
 ## 1. Generate the frozen artifacts (once)
 
