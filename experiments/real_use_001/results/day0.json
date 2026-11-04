@@ -1,0 +1,73 @@
+{
+  "captured_at": "2026-11-05",
+  "counts": {
+    "agents": 2,
+    "edges": 0,
+    "judgments": 4,
+    "outcomes": 1,
+    "proposals_confirmed": 1,
+    "records": 12
+  },
+  "records": [
+    {
+      "record_id": "rec_bd756b223a9d71279f3d92d3",
+      "source": "zcode",
+      "text": "Claims about the system must be weakened when the sample size is below 100."
+    },
+    {
+      "record_id": "rec_5b3e9289c2b116114f179ecd",
+      "source": "zcode",
+      "text": "Do not add console features until one external user has used the system for two "
+    },
+    {
+      "record_id": "rec_c201b4e612d7470112d739ac",
+      "source": "zcode",
+      "text": "The console must not introduce new backend concepts; this round is presentation "
+    },
+    {
+      "record_id": "rec_2ff261cde06a7812673e7092",
+      "source": "zcode",
+      "text": "Benchmarks must be pre-registered; thresholds cannot be tuned after seeing resul"
+    },
+    {
+      "record_id": "rec_648da3f9105a6938adcb984e",
+      "source": "zcode",
+      "text": "API keys must live in ~/.config/claimledger/*.env and never enter the repository"
+    },
+    {
+      "record_id": "rec_fc4fcfbc185763f8f8552269",
+      "source": "zcode",
+      "text": "The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the abla"
+    },
+    {
+      "record_id": "rec_297c8fb58a36f580e8303423",
+      "source": "zcode",
+      "text": "Attribution is not authentication: the agent registry carries no keys or signatu"
+    },
+    {
+      "record_id": "rec_80711b6e3c44ea5be5a1d6a0",
+      "source": "zcode",
+      "text": "Model-swap drift remains unmeasured until a second-generation model is available"
+    },
+    {
+      "record_id": "rec_f2fa8728f167e4f2df0ad1a0",
+      "source": "doubao-work",
+      "text": "In the README, the delta=0.2 margin threshold must consistently be described as "
+    },
+    {
+      "record_id": "rec_804dcfd179a2dc5e1d3af929",
+      "source": "doubao-work",
+      "text": "Always describe the delta=0.2 margin threshold as a safety margin, never as a tu"
+    },
+    {
+      "record_id": "rec_c5936ffce196554c0f017575",
+      "source": "doubao-work",
+      "text": "README 中 delta=0.2 的 margin 阈值必须始终表述为 safety margin，而不是 tuned optimum。"
+    },
+    {
+      "record_id": "rec_695faf42220f020c8603fb5c",
+      "source": "doubao-work",
+      "text": "控制台的 proposals 面板必须显示提案人身份。"
+    }
+  ]
+}
