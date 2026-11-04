@@ -24,6 +24,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import urllib.error
 import urllib.request
@@ -32,6 +34,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 CODE_RE = re.compile(r"```(?:python3?|py)?\s*\n(.*?)(?:```|$)", re.S)
 RETRYABLE = (429, 500, 502, 503, 504)
+
+
+class CallBudget:
+    def __init__(self, limit: int):
+        self.limit = limit
+        self.calls = 0
+        self.lock = threading.Lock()
+
+    def take(self) -> bool:
+        with self.lock:
+            if self.calls >= self.limit:
+                return False
+            self.calls += 1
+            return True
 
 
 def load_env(path: Path) -> None:
@@ -170,6 +186,7 @@ def main() -> int:
     parser.add_argument("--max-calls", type=int, default=100)
     parser.add_argument("--retries", type=int, default=5)
     parser.add_argument("--sleep", type=float, default=0.5)
+    parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--fresh", action="store_true")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
@@ -213,9 +230,11 @@ def main() -> int:
             if (task_id, arm, run) not in done]
     if args.shuffle:
         random.Random(args.seed).shuffle(jobs)
-    calls = 0
+    call_budget = CallBudget(args.max_calls)
+    print_lock = threading.Lock()
 
-    for task_id, arm, run in jobs:
+    def run_job(job):
+        task_id, arm, run = job
         meta = task_meta(task_id)
         system, user = build_prompt(task_id, arm)
         out_dir = ROOT / "results" / task_id / arm / f"run{run}"
@@ -226,20 +245,20 @@ def main() -> int:
                   "prompt_tokens": None, "completion_tokens": None,
                   "latency_ms": None, "pass": False, "error": None,
                   "attempts": None, "finish_reason": None,
-                  "length_retries": 0}
-        if calls >= args.max_calls:
-            record["error"] = "max_calls reached"
-            _append(results_path, record)
-            break
+                  "length_retries": 0, "reasoning_tokens": None,
+                  "prompt_cache_hit_tokens": None,
+                  "prompt_cache_miss_tokens": None}
         try:
-            budget = args.max_tokens
+            token_budget = args.max_tokens
             content = ""
             for length_try in range(2):
+                if not call_budget.take():
+                    record["error"] = "max_calls reached"
+                    break
                 response = call_api(system, user, model=model,
-                                    max_tokens=budget,
+                                    max_tokens=token_budget,
                                     base_url=args.base_url,
                                     retries=args.retries)
-                calls += 1
                 body = response["body"]
                 choice = body["choices"][0]
                 content = choice["message"]["content"]
@@ -249,43 +268,65 @@ def main() -> int:
                 usage = body.get("usage") or {}
                 record["prompt_tokens"] = usage.get("prompt_tokens")
                 record["completion_tokens"] = usage.get("completion_tokens")
+                record["reasoning_tokens"] = (
+                    usage.get("completion_tokens_details") or {}).get("reasoning_tokens")
+                record["prompt_cache_hit_tokens"] = usage.get("prompt_cache_hit_tokens")
+                record["prompt_cache_miss_tokens"] = usage.get("prompt_cache_miss_tokens")
                 (out_dir / f"attempt{length_try + 1}.txt").write_text(
                     content, encoding="utf-8")
                 if record["finish_reason"] != "length" or length_try == 1:
                     break
                 record["length_retries"] += 1
-                budget = min(budget * 2, 16000)
-            (out_dir / "response.txt").write_text(content, encoding="utf-8")
-            if record["finish_reason"] == "length":
-                record["error"] = "truncated after length retry"
-            code = extract_code(content)
-            with tempfile.TemporaryDirectory(prefix="e2e_") as tmp_name:
-                tmp = Path(tmp_name)
-                shutil.copyfile(ROOT / "tasks" / task_id / "check.py",
-                                tmp / "check.py")
-                if meta["target"]:
-                    shutil.copyfile(ROOT / "tasks" / task_id / "starter.py",
-                                    tmp / meta["target"])
-                    if not code:
-                        record["error"] = (
-                            f"no code block (finish={record['finish_reason']})")
+                token_budget = min(token_budget * 2, 16000)
+            if not record["error"]:
+                (out_dir / "response.txt").write_text(content, encoding="utf-8")
+                if record["finish_reason"] == "length":
+                    record["error"] = "truncated after length retry"
+                code = extract_code(content)
+                with tempfile.TemporaryDirectory(prefix="e2e_") as tmp_name:
+                    tmp = Path(tmp_name)
+                    shutil.copyfile(ROOT / "tasks" / task_id / "check.py",
+                                    tmp / "check.py")
+                    if meta["target"]:
+                        shutil.copyfile(ROOT / "tasks" / task_id / "starter.py",
+                                        tmp / meta["target"])
+                        if not code:
+                            record["error"] = (
+                                f"no code block (finish={record['finish_reason']})")
+                        else:
+                            (tmp / meta["target"]).write_text(code, encoding="utf-8")
                     else:
-                        (tmp / meta["target"]).write_text(code, encoding="utf-8")
-                else:
-                    (tmp / "response.txt").write_text(content, encoding="utf-8")
-                if not record["error"]:
-                    passed, output = run_check(tmp)
-                    record["pass"] = passed
-                    record["check_output"] = output
+                        (tmp / "response.txt").write_text(content, encoding="utf-8")
+                    if not record["error"]:
+                        passed, output = run_check(tmp)
+                        record["pass"] = passed
+                        record["check_output"] = output
         except Exception as exc:  # noqa: BLE001 - one failure must not stop the run
             record["error"] = f"{type(exc).__name__}: {exc}"
-        _append(results_path, record)
+        with print_lock:
+            _append(results_path, record)
         (out_dir / "meta.json").write_text(
             json.dumps(record, indent=2) + "\n", encoding="utf-8")
-        print(f"{task_id:22} {arm} run{run} "
-              f"{'PASS' if record['pass'] else 'fail'} "
-              f"{record['error'] or ''}", flush=True)
+        with print_lock:
+            print(f"{task_id:22} {arm} run{run} "
+                  f"{'PASS' if record['pass'] else 'fail'} "
+                  f"{record['error'] or ''}", flush=True)
         time.sleep(args.sleep)
+        return record
+
+    if args.workers <= 1:
+        for job in jobs:
+            run_job(job)
+    else:
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            futures = [pool.submit(run_job, job) for job in jobs]
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as exc:  # noqa: BLE001
+                    with print_lock:
+                        print(f"worker error: {type(exc).__name__}: {exc}")
+    print(f"calls={call_budget.calls} results={results_path}")
     return 0
 
 

@@ -1,4 +1,4 @@
-"""Aggregate e2e_001 results: pass table, Wilson CI, McNemar (C vs each arm)."""
+"""Aggregate e2e_002 results: pass table, strata, Wilson CI, McNemar."""
 from __future__ import annotations
 
 import json
@@ -9,6 +9,33 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 RESULTS = ROOT / "results" / "results.jsonl"
 ARMS = ["A", "B", "C", "D"]
+
+STRATA = {
+    "constraint": {
+        "01_storage_postgres", "02_retry_cap", "07_api_v1_unchanged",
+        "08_log_retention", "09_deploy_window", "10_margin_language",
+        "11_key_path", "12_preregister", "13_claim_strength", "14_attribution",
+    },
+    "conflict_explicit": {
+        "03_analytics_storage", "04_console_panel", "15_logs_explicit",
+        "16_api_removal_explicit", "17_dependencies_explicit",
+        "18_flags_explicit",
+    },
+    "conflict_natural": {
+        "19_storage_natural", "20_panel_natural", "21_logs_natural",
+        "22_api_natural",
+    },
+    "irrelevant": {
+        "05_date_parser", "23_slugify", "24_paginate", "25_sha256",
+        "26_human_bytes", "27_clamp", "28_chunks", "29_collapse_spaces",
+        "30_median", "31_parse_bool",
+    },
+    "control": {
+        "06_control_math", "32_multiply", "33_is_even", "34_reverse",
+        "35_max_list", "36_factorial", "37_count_vowels", "38_title_case",
+        "39_flatten", "40_dedupe",
+    },
+}
 
 
 def load() -> list:
@@ -71,7 +98,7 @@ def main() -> int:
                 if arm_rows else None,
             }
 
-    print(f"# e2e_001 results ({len(tasks)} tasks, {runs} run(s)/arm)\n")
+    print(f"# e2e_002 results ({len(tasks)} tasks, {runs} run(s)/arm)\n")
     header = "| task | " + " | ".join(ARMS) + " |"
     print(header)
     print("| --- | " + " | ".join("---:" for _ in ARMS) + " |")
@@ -95,6 +122,38 @@ def main() -> int:
         print(f"- {arm}: {passes}/{n} = "
               f"{passes / n:.0%} (95% CI {low:.0%}–{high:.0%})" if n else
               f"- {arm}: no data")
+
+    print("\n## By stratum (task-level majority)\n")
+    print("| stratum | n | " + " | ".join(ARMS) + " |")
+    print("| --- | ---: | " + " | ".join("---:" for _ in ARMS) + " |")
+    strata_out = {}
+    for name, ids in STRATA.items():
+        selected = [task for task in tasks if task in ids]
+        cells = []
+        row_out = {"n": len(selected)}
+        for arm in ARMS:
+            values = [table[task][arm]["pass"] for task in selected
+                      if table[task][arm]["pass"] is not None]
+            passes = sum(1 for value in values if value)
+            row_out[arm] = {"passes": passes, "n": len(values)}
+            cells.append(f"{passes}/{len(values)}" if values else "—")
+        strata_out[name] = row_out
+        print(f"| {name} | {len(selected)} | " + " | ".join(cells) + " |")
+
+    print("\n## Prompt cost (mean prompt tokens per task)\n")
+    prompt_means = {}
+    for arm in ARMS:
+        values = []
+        for task in tasks:
+            arm_rows = by_task_arm.get((task, arm), [])
+            tokens = [r.get("prompt_tokens") for r in arm_rows
+                      if r.get("prompt_tokens") is not None]
+            if tokens:
+                values.append(sum(tokens) / len(tokens))
+        prompt_means[arm] = round(sum(values) / len(values), 1) if values else None
+        print(f"- {arm}: {prompt_means[arm]}")
+    if prompt_means.get("B") and prompt_means.get("C"):
+        print(f"- C/B prompt ratio: {prompt_means['C'] / prompt_means['B']:.2f}")
 
     print("\n## C vs each arm (McNemar, paired by task)\n")
     comparisons = {}
@@ -121,8 +180,9 @@ def main() -> int:
         cells = [str(table[task][arm]["tokens"]) for arm in ARMS]
         print(f"| {task} | " + " | ".join(cells) + " |")
 
-    out = {"tasks": table, "summary": summary,
-           "comparisons": comparisons, "runs": runs}
+    out = {"tasks": table, "summary": summary, "strata": strata_out,
+           "prompt_means": prompt_means, "comparisons": comparisons,
+           "runs": runs}
     (ROOT / "results" / "score.json").write_text(
         json.dumps(out, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print("\nPilot note: with six tasks and one run this is a harness check, "
