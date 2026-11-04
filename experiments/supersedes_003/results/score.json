@@ -1,0 +1,429 @@
+{
+  "cascade_recall": {
+    "ci95": [
+      0.6006,
+      0.9599
+    ],
+    "k": 12,
+    "n": 14,
+    "rate": 0.8571
+  },
+  "direction_question": {
+    "detail": [
+      {
+        "correct": true,
+        "observed": "A",
+        "p": 1.0,
+        "pair_id": "sup_a1",
+        "truth": "A"
+      },
+      {
+        "correct": true,
+        "observed": "A",
+        "p": 0.98,
+        "pair_id": "sup_a2",
+        "truth": "A"
+      },
+      {
+        "correct": true,
+        "observed": "A",
+        "p": 1.0,
+        "pair_id": "sup_a3",
+        "truth": "A"
+      },
+      {
+        "correct": true,
+        "observed": "B",
+        "p": 1.0,
+        "pair_id": "sup_a4",
+        "truth": "B"
+      },
+      {
+        "correct": true,
+        "observed": "A",
+        "p": 0.98,
+        "pair_id": "sup_b1",
+        "truth": "A"
+      },
+      {
+        "correct": true,
+        "observed": "B",
+        "p": 1.0,
+        "pair_id": "sup_b2",
+        "truth": "B"
+      },
+      {
+        "correct": true,
+        "observed": "A",
+        "p": 0.85,
+        "pair_id": "sup_b3",
+        "truth": "A"
+      },
+      {
+        "correct": true,
+        "observed": "B",
+        "p": 1.0,
+        "pair_id": "sup_c2",
+        "truth": "B"
+      },
+      {
+        "correct": true,
+        "observed": "B",
+        "p": 0.98,
+        "pair_id": "sup_d2",
+        "truth": "B"
+      },
+      {
+        "correct": true,
+        "observed": "B",
+        "p": 0.99,
+        "pair_id": "sup_d3",
+        "truth": "B"
+      },
+      {
+        "correct": true,
+        "observed": "B",
+        "p": 1.0,
+        "pair_id": "sup_e1",
+        "truth": "B"
+      },
+      {
+        "correct": true,
+        "observed": "B",
+        "p": 0.97,
+        "pair_id": "sup_f1",
+        "truth": "B"
+      }
+    ],
+    "metric": {
+      "ci95": [
+        0.7575,
+        1.0
+      ],
+      "k": 12,
+      "n": 12,
+      "rate": 1.0
+    }
+  },
+  "distractor_p_yes_telemetry": [
+    {
+      "band": "conflict-stands",
+      "p_yes": 0.1,
+      "pair_id": "dis_7"
+    },
+    {
+      "band": "conflict-stands",
+      "p_yes": 0.0,
+      "pair_id": "dis_1"
+    },
+    {
+      "band": "conflict-stands",
+      "p_yes": 0.0,
+      "pair_id": "dis_2"
+    },
+    {
+      "band": "conflict-stands",
+      "p_yes": 0.0,
+      "pair_id": "dis_3"
+    },
+    {
+      "band": "conflict-stands",
+      "p_yes": 0.0,
+      "pair_id": "dis_4"
+    },
+    {
+      "band": "conflict-stands",
+      "p_yes": 0.0,
+      "pair_id": "dis_5"
+    },
+    {
+      "band": "conflict-stands",
+      "p_yes": 0.0,
+      "pair_id": "dis_6"
+    },
+    {
+      "band": "conflict-stands",
+      "p_yes": 0.0,
+      "pair_id": "dis_8"
+    },
+    {
+      "band": "conflict-stands",
+      "p_yes": 0.0,
+      "pair_id": "dis_9"
+    }
+  ],
+  "gates": {
+    "S3-H1_cascade_recall>=0.85": {
+      "metric": {
+        "ci95": [
+          0.6006,
+          0.9599
+        ],
+        "k": 12,
+        "n": 14,
+        "rate": 0.8571
+      },
+      "pass": true
+    },
+    "S3-H2_zero_distractor_repaired": {
+      "metric": {
+        "k": 0,
+        "n": 9
+      },
+      "pairs": [],
+      "pass": true
+    },
+    "S3-H3_zero_control_supersedes": {
+      "metric": {
+        "k": 0,
+        "n": 20
+      },
+      "pairs": [],
+      "pass": true
+    }
+  },
+  "gold_member_view": {
+    "label_changes": [
+      {
+        "band": "single-question",
+        "final": "supports",
+        "gold": "unrelated",
+        "pair_id": "pair_fb70cdbdcc99"
+      }
+    ],
+    "n": 24
+  },
+  "n_pairs": 43,
+  "p_yes_calibration": {
+    "0.50-0.79": {
+      "ci95": [
+        0.0,
+        0.5615
+      ],
+      "k": 0,
+      "n": 3,
+      "rate": 0.0
+    },
+    "<0.50": {
+      "ci95": [
+        0.7008,
+        1.0
+      ],
+      "k": 9,
+      "n": 9,
+      "rate": 1.0
+    },
+    "p_yes>=0.90": {
+      "ci95": [
+        0.3424,
+        1.0
+      ],
+      "k": 2,
+      "n": 2,
+      "rate": 1.0
+    }
+  },
+  "primary_labels": {
+    "dis_1": {
+      "band": "conflict-stands",
+      "final": "contradicts"
+    },
+    "dis_2": {
+      "band": "conflict-stands",
+      "final": "contradicts"
+    },
+    "dis_3": {
+      "band": "conflict-stands",
+      "final": "contradicts"
+    },
+    "dis_4": {
+      "band": "conflict-stands",
+      "final": "contradicts"
+    },
+    "dis_5": {
+      "band": "conflict-stands",
+      "final": "contradicts"
+    },
+    "dis_6": {
+      "band": "conflict-stands",
+      "final": "contradicts"
+    },
+    "dis_7": {
+      "band": "conflict-stands",
+      "final": "contradicts"
+    },
+    "dis_8": {
+      "band": "conflict-stands",
+      "final": "contradicts"
+    },
+    "dis_9": {
+      "band": "conflict-stands",
+      "final": "contradicts"
+    },
+    "pair_212b11247847": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_2df8e8550e60": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_348472f1fa43": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_385f844df7fe": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_69e3e359c8fd": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_6c3b84eae77a": {
+      "band": "single-question",
+      "final": "supports"
+    },
+    "pair_8cf582b34287": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_8d496a311414": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_a31daffc0f9b": {
+      "band": "single-question",
+      "final": "supports"
+    },
+    "pair_a70e82cd2258": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_b903cd072572": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_bb18ba6982b3": {
+      "band": "single-question",
+      "final": "supports"
+    },
+    "pair_cc7893cd2ae0": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_ccd75d7d51e1": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_d2d80057d181": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_db84fad5d3f2": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_ddc418221a3b": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_df55a213fba9": {
+      "band": "single-question",
+      "final": "unrelated"
+    },
+    "pair_eddb9143c324": {
+      "band": "single-question",
+      "final": "supports"
+    },
+    "pair_fb70cdbdcc99": {
+      "band": "single-question",
+      "final": "supports"
+    },
+    "sup_a1": {
+      "band": "single-question",
+      "final": "supersedes"
+    },
+    "sup_a2": {
+      "band": "single-question",
+      "final": "supersedes"
+    },
+    "sup_a3": {
+      "band": "single-question",
+      "final": "supersedes"
+    },
+    "sup_a4": {
+      "band": "single-question",
+      "final": "supersedes"
+    },
+    "sup_b1": {
+      "band": "single-question",
+      "final": "supersedes"
+    },
+    "sup_b2": {
+      "band": "single-question",
+      "final": "supersedes"
+    },
+    "sup_b3": {
+      "band": "single-question",
+      "final": "supersedes"
+    },
+    "sup_c1": {
+      "band": "review-band",
+      "final": "contradicts"
+    },
+    "sup_c2": {
+      "band": "single-question",
+      "final": "supersedes"
+    },
+    "sup_d1": {
+      "band": "review-band",
+      "final": "contradicts"
+    },
+    "sup_d2": {
+      "band": "cascade-recovered",
+      "final": "supersedes"
+    },
+    "sup_d3": {
+      "band": "single-question",
+      "final": "supersedes"
+    },
+    "sup_e1": {
+      "band": "single-question",
+      "final": "supersedes"
+    },
+    "sup_f1": {
+      "band": "single-question",
+      "final": "supersedes"
+    }
+  },
+  "recovered_pairs": [
+    {
+      "band": "cascade-recovered",
+      "p_yes": 0.99,
+      "pair_id": "sup_d2"
+    }
+  ],
+  "replacement_subset": 14,
+  "schema": "supersedes_003_score_v1",
+  "stability": {
+    "flip_rate": 0.0233,
+    "unstable_pairs": [
+      "sup_d3"
+    ]
+  },
+  "still_missed": [
+    {
+      "band": "review-band",
+      "edge": "contradicts",
+      "p_yes": 0.76,
+      "pair_id": "sup_c1"
+    },
+    {
+      "band": "review-band",
+      "edge": "contradicts",
+      "p_yes": 0.63,
+      "pair_id": "sup_d1"
+    }
+  ]
+}
