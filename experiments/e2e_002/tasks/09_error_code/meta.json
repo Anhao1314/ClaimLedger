@@ -1,0 +1,11 @@
+{
+  "id": "09_error_code",
+  "title": "Error response",
+  "target": "errors.py",
+  "blocked": false,
+  "system": "explicit",
+  "runs": 3,
+  "relevant": [
+    "Errors must include a stable machine-readable code."
+  ]
+}

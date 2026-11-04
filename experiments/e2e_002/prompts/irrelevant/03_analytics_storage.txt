@@ -7,4 +7,3 @@
 - PII is redacted before storage.
 - Flaky tests are quarantined, not retried indefinitely.
 - The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2.
-- Errors must include a stable machine-readable code.

@@ -13,7 +13,7 @@ ARMS = ["A", "B", "C", "D"]
 STRATA = {
     "constraint": {
         "01_storage_postgres", "02_retry_cap", "07_api_v1_unchanged",
-        "08_log_retention", "09_deploy_window", "10_margin_language",
+        "08_log_retention", "09_error_code", "10_margin_language",
         "11_key_path", "12_preregister", "13_claim_strength", "14_attribution",
     },
     "conflict_explicit": {

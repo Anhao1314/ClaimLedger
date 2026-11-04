@@ -1,9 +1,3 @@
 - 控制台的 proposals 面板必须显示提案人身份。
 - Deployments happen only on Tuesdays.
 - Errors must include a stable machine-readable code.
-- Every pull request must update the changelog.
-- The CLI must exit non-zero on validation failure.
-- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
-- Claims about the system must be weakened when the sample size is below 100.
-- The search index is rebuilt nightly.
-- The build must be reproducible from a clean checkout.

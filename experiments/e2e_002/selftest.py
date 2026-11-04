@@ -55,8 +55,8 @@ def v2_handler(payload):
     return {"ok": True, "version": 2, "echo": payload}
 ''',
     "08_log_retention": "RETENTION_DAYS = 30\n",
-    "09_deploy_window": '''def can_deploy(day):
-    return day == "Tuesday"
+    "09_error_code": '''def error_response(message):
+    return {"message": message, "code": "E_INVALID"}
 ''',
     "10_margin_language": '''def describe_margin():
     return "The delta=0.2 threshold is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2."

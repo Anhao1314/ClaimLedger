@@ -1,0 +1,5 @@
+- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.
+- The docs site is built from the main branch.
+- All HTTP handlers must return JSON.
+- The admin UI is internal-only.
+- Retries must be capped at 3.

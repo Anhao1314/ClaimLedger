@@ -4,10 +4,9 @@ ACTIVE CONSTRAINTS: none admitted for this task.
 
 NEEDS HUMAN REVIEW (not admitted — do not rely yet):
 - Do not add console features until one external user has used the system for two weeks. [conflicts with another record]
-- Feature flags default to off. [conflicts with another record]
-- Feature flags default to on. [conflicts with another record]
+- Feature flags default to off. [thin margin]
+- Feature flags default to on. [thin margin]
 - The console must add a proposals panel. [conflicts with another record]
 
 UNRESOLVED CONFLICTS (resolve with a human before acting):
-- Feature flags default to on.  ⟂  Feature flags default to off.
 - The console must add a proposals panel.  ⟂  Do not add console features until one external user has used the system for two weeks.

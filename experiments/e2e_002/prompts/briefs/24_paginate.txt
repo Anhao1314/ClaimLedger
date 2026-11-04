@@ -1,3 +1,6 @@
 TASK: Paginate
 
 NO RELEVANT RECORDS: nothing in memory matches this task lexically. The candidates below were selected by recency, not relevance, and none were admitted.
+
+CANDIDATES CONSIDERED (recency fallback — not admitted):
+- Dependencies must float to the latest minor version. [thin margin]

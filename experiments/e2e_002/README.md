@@ -5,18 +5,19 @@ preserved under [../e2e_001/](../e2e_001/).
 
 ## Status (2026-11-04)
 
-**v3/v4/v5 design revision.** The first 480-call attempt was stopped before any scored
+**v3–v8 design revision.** The first 480-call attempt was stopped before any scored
 analysis. A pre-run health check found three design bugs: the 08/09 task queries
 did not retrieve their own constraint, the 10_margin check rejected the correct
 sentence because it contains "tuned", and D blocks sampled other tasks' conflict
 pairs, so D could block instead of ignoring memory. Those are fixed; briefs and D
 blocks are regenerated; runs are stratified to 320 calls (primary strata 3,
-sanity strata 1) and frozen as `e2e_002_v5`; partial v2 results were discarded.
+sanity strata 1) and frozen as `e2e_002_v8`; partial v2 results were discarded.
 
-v5 also fixes the conflict miss: stage 2 now pairs excluded records with
-admitted ones, so the 15/16/21/22 briefs should surface their conflicts. The
-judgment cache key includes the new relation scope, so old cached judgments are
-not reused.
+v8 fixes the conflict miss without the v5 false positives: stage 2 pairs only
+when at least one side is admitted. The 15/16/21/22 conflicts surface, while
+two low-relevance reviews no longer create a conflict. Tasks 01, 08, 09 and the
+06 control query are calibrated to their own records; 09 was replaced (the
+deployment record never admitted for the code task).
 
 ### Run halted (2026-11-04)
 

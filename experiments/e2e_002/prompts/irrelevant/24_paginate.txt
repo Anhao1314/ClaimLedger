@@ -2,3 +2,5 @@
 - Release notes are written before the tag.
 - Frontend assets must be minified before release.
 - Integration tests run against a disposable database.
+- All timestamps are stored in UTC.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.

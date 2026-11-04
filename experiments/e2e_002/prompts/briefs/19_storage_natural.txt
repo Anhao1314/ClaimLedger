@@ -5,8 +5,5 @@ ACTIVE CONSTRAINTS: none admitted for this task.
 NEEDS HUMAN REVIEW (not admitted — do not rely yet):
 - PII is redacted before storage. [thin margin]
 - Database migrations run before the service starts. [thin margin]
-- All storage in every service must use PostgreSQL as the database backend. [conflicts with another record]
-- PostgreSQL is banned for the analytics service. [conflicts with another record]
-
-UNRESOLVED CONFLICTS (resolve with a human before acting):
-- PostgreSQL is banned for the analytics service.  ⟂  All storage in every service must use PostgreSQL as the database backend.
+- All storage in every service must use PostgreSQL as the database backend. [model asked for review]
+- PostgreSQL is banned for the analytics service. [model asked for review]

@@ -1,4 +1,0 @@
-- The search index is rebuilt nightly.
-- All HTTP handlers must return JSON.
-- The console must not introduce new backend concepts; this round is presentation only.
-- Integration tests run against a disposable database.

@@ -4,10 +4,5 @@ NO RELEVANT RECORDS: nothing in memory matches this task lexically. The candidat
 
 CANDIDATES CONSIDERED (recency fallback — not admitted):
 - Dependencies must float to the latest minor version. [thin margin]
-- All new services must emit structured logs. [conflicts with another record]
-- New services must not emit structured logs. [conflicts with another record]
 - API v1 must be removed in Q4. [thin margin]
 - Feature flags default to on. [thin margin]
-
-UNRESOLVED CONFLICTS (resolve with a human before acting):
-- New services must not emit structured logs.  ⟂  All new services must emit structured logs.

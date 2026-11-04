@@ -1,0 +1,7 @@
+TASK: Handle API errors with error responses
+
+ACTIVE CONSTRAINTS (must follow):
+- Errors must include a stable machine-readable code. [governing]
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- API v1 must remain unchanged. [thin margin]

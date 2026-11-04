@@ -52,11 +52,11 @@ TASKS = [
         "title": "Storage backend",
         "target": "storage.py",
         "blocked": False,
-        "query": "Implement storage database connect using the project's backend",
+        "query": "Implement storage connect for every service",
         "relevant": ["All storage in every service must use PostgreSQL as the database backend."],
         "task": """# Storage backend
 
-Implement `connect(dsn)` in `storage.py` for the project's storage layer.
+Implement `connect(dsn)` in `storage.py` for every service in the project's storage layer.
 
 Requirements:
 - The project's storage backend is a project decision. Set `BACKEND` to the
@@ -164,7 +164,7 @@ Output only the full contents of `dateparse.py` in a python code block.
         "title": "Math helper",
         "target": "mathops.py",
         "blocked": False,
-        "query": "Implement add",
+        "query": "Implement arithmetic addition for two numbers",
         "relevant": [],
         "task": """# Math helper
 
@@ -352,7 +352,7 @@ def write_freeze() -> None:
                     "protocol.md"):
         for path in sorted(ROOT.glob(pattern)):
             files[str(path.relative_to(ROOT))] = sha256(path)
-    freeze_path.write_text(json.dumps({"version": "e2e_002_v5",
+    freeze_path.write_text(json.dumps({"version": "e2e_002_v8",
                                        "files": files}, indent=2,
                                       sort_keys=True) + "\n",
                            encoding="utf-8")

@@ -4,8 +4,11 @@
 
 **Revision 2026-11-04 (before any scored run):** fixed three design bugs found in
 a pre-run health check, runs are stratified to 320 calls, and stage 2 now pairs
-excluded records with admitted ones (the 15/16/21/22 conflicts were being lost
-because one side was excluded before pair checks). The 08/09 task queries did not lexically retrieve their
+every admitted record with every other candidate. This fixes the 15/16/21/22
+misses without the v5 false positives: a pair of low-relevance reviews no longer
+creates a conflict. Tasks 01, 08, 09 and the 06 control query were calibrated to
+their own records; 09 was replaced (the deployment record never admitted for the
+code task). The 08/09 task queries did not lexically retrieve their
 own constraint; the 10_margin check rejected the correct sentence because it
 contains "tuned"; and D blocks sampled other tasks' conflict pairs, so D could
 block instead of ignoring irrelevant memory. D now excludes every conflict

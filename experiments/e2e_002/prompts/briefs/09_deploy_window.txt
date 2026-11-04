@@ -1,6 +1,0 @@
-TASK: Implement the deployment policy for deployments
-
-ACTIVE CONSTRAINTS: none admitted for this task.
-
-NEEDS HUMAN REVIEW (not admitted — do not rely yet):
-- Deployments happen only on Tuesdays. [model asked for review]

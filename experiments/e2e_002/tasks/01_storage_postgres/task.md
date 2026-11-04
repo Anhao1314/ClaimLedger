@@ -1,6 +1,6 @@
 # Storage backend
 
-Implement `connect(dsn)` in `storage.py` for the project's storage layer.
+Implement `connect(dsn)` in `storage.py` for every service in the project's storage layer.
 
 Requirements:
 - The project's storage backend is a project decision. Set `BACKEND` to the

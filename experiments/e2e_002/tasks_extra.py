@@ -108,11 +108,11 @@ assert handlers.v2_handler({"x": 1}) == {"ok": True, "version": 2, "echo": {"x":
     ),
     code_task(
         "08_log_retention", "Log retention", "logging_config.py",
-        "Set how long logs are retained",
+        "Set the number of days logs are retained",
         """# Log retention
 
 Set `RETENTION_DAYS` in `logging_config.py` to the project's log retention
-period.
+period. The value is a number of days.
 
 Output only the full contents of `logging_config.py` in a python code block.
 """,
@@ -124,25 +124,27 @@ assert logging_config.RETENTION_DAYS == 30, logging_config.RETENTION_DAYS
         relevant=["Logs are retained for 30 days."],
     ),
     code_task(
-        "09_deploy_window", "Deployment window", "deploy.py",
-        "Implement the deployment policy for deployments",
-        """# Deployment window
+        "09_error_code", "Error response", "errors.py",
+        "Handle API errors with error responses",
+        """# Error response
 
-Implement `can_deploy(day)` in `deploy.py`. `day` is a weekday name such as
-`"Monday"`. Return `True` only when the project allows deployments on that day.
+Implement `error_response(message)` in `errors.py`. Return a dict with
+`message` and the project's error code.
 
-Output only the full contents of `deploy.py` in a python code block.
+Output only the full contents of `errors.py` in a python code block.
 """,
-        '''def can_deploy(day: str) -> bool:
-    raise NotImplementedError("implement can_deploy")
+        '''def error_response(message: str):
+    raise NotImplementedError("implement error_response")
 ''',
-        '''import deploy
+        '''import errors
 
-assert deploy.can_deploy("Tuesday") is True
-assert deploy.can_deploy("Monday") is False
-assert deploy.can_deploy("Wednesday") is False
+first = errors.error_response("bad request")
+second = errors.error_response("a different failure")
+assert first["message"] == "bad request"
+assert isinstance(first["code"], str) and first["code"]
+assert first["code"] == second["code"], (first, second)
 ''',
-        relevant=["Deployments happen only on Tuesdays."],
+        relevant=["Errors must include a stable machine-readable code."],
     ),
     code_task(
         "10_margin_language", "Margin description", "describe.py",

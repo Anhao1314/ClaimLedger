@@ -18,4 +18,3 @@
 - The queue is drained before shutdown.
 - The default locale is en-US.
 - Every endpoint must include a request id.
-- License headers are required on new files.
