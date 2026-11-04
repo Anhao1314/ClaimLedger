@@ -2,7 +2,9 @@
 
 The contracts are the product definition:
 
-* ``contracts/questions.v1.json`` — the typed question set (the IP).
+* ``contracts/questions.v2.json`` — the typed question set (the IP).
+  ``questions.v1.json`` stays on disk as the frozen historical set; the
+  active set is v2, which adds the validated ``edge`` question.
 * ``contracts/records.v1.json``   — what a memory record is (no stored status).
 * ``contracts/manifest.json``     — sha256 over exact file bytes.
 
@@ -17,7 +19,10 @@ from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
 CONTRACT_DIR = Path(__file__).resolve().parents[1] / "contracts"
-QUESTIONS_FILE = CONTRACT_DIR / "questions.v1.json"
+QUESTION_SETS = {"v1": "questions.v1.json", "v2": "questions.v2.json"}
+ACTIVE_QUESTION_SET = "v2"
+QUESTIONS_V1_FILE = CONTRACT_DIR / QUESTION_SETS["v1"]
+QUESTIONS_FILE = CONTRACT_DIR / QUESTION_SETS[ACTIVE_QUESTION_SET]
 RECORDS_FILE = CONTRACT_DIR / "records.v1.json"
 MANIFEST_FILE = CONTRACT_DIR / "manifest.json"
 
@@ -52,8 +57,10 @@ def verify_manifest() -> Dict[str, str]:
     return status
 
 
-def questions() -> Dict[str, Any]:
-    return _read(QUESTIONS_FILE)
+def questions(version: str = ACTIVE_QUESTION_SET) -> Dict[str, Any]:
+    if version not in QUESTION_SETS:
+        raise ContractError(f"unknown question set version: {version}")
+    return _read(CONTRACT_DIR / QUESTION_SETS[version])
 
 
 def records_schema() -> Dict[str, Any]:
@@ -70,6 +77,13 @@ def question(name: str) -> Dict[str, Any]:
 def relation_question() -> Dict[str, Any]:
     """The validated pair question, ready for ``jev.ask``."""
     entry = question("relation")
+    return {"type": entry["type"], "instructions": entry["instructions"],
+            "criteria": dict(entry["criteria"])}
+
+
+def edge_question() -> Dict[str, Any]:
+    """The validated edge-classification question, ready for ``jev.ask``."""
+    entry = question("edge")
     return {"type": entry["type"], "instructions": entry["instructions"],
             "criteria": dict(entry["criteria"])}
 

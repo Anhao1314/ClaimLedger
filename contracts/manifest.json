@@ -1,13 +1,16 @@
 {
-  "version": 1,
-  "frozen_at": "2026-11-02",
-  "note": "sha256 over exact file bytes. A contract change is a version bump, never an edit.",
   "files": {
     "questions.v1.json": {
       "sha256": "7ee3f9660ea4d8ca837877f8c9b54eb8e5813853a08c9ec1ac15c963a8eeca72"
     },
+    "questions.v2.json": {
+      "sha256": "3989bfacdec798fbfaf500829dd5ddca33e058dc0107783b2c343e1be9b8a3b7"
+    },
     "records.v1.json": {
       "sha256": "70bd7e5c90a915bfe2efd6f8b397ea44fc2b7250fdec5c8ab17f7b6f75f11875"
     }
-  }
+  },
+  "frozen_at": "2026-11-05",
+  "note": "sha256 over exact file bytes. A contract change is a version bump, never an edit. questions.v1.json is retained as the frozen historical set; the active set is questions.v2.json (adds the validated 'edge' question).",
+  "version": 2
 }

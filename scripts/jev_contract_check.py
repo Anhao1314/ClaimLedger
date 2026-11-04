@@ -31,7 +31,7 @@ def main() -> int:
     status = contracts.verify_manifest()
     print("contracts:", status)
     question = contracts.relation_question()
-    print("question source: contracts/questions.v1.json (relation)\n")
+    print(f"question source: contracts/{contracts.QUESTIONS_FILE.name} (relation)\n")
 
     prior = {row["id"]: row for row in
              json.loads((EXP / "results.json").read_text(encoding="utf-8"))["rows"]}

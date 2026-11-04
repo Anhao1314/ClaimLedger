@@ -21,7 +21,9 @@ def load_eval_module():
 class ManifestTests(unittest.TestCase):
     def test_contract_files_match_the_manifest(self):
         status = contracts.verify_manifest()
-        self.assertEqual(status, {"questions.v1.json": "ok", "records.v1.json": "ok"})
+        self.assertEqual(status, {"questions.v1.json": "ok",
+                                  "questions.v2.json": "ok",
+                                  "records.v1.json": "ok"})
 
     def test_tampered_file_is_detected(self):
         import tempfile
@@ -29,8 +31,10 @@ class ManifestTests(unittest.TestCase):
             tmpdir = Path(tmp)
             (tmpdir / "records.v1.json").write_bytes(
                 contracts.RECORDS_FILE.read_bytes() + b" ")
-            (tmpdir / "questions.v1.json").write_bytes(
+            (tmpdir / contracts.QUESTIONS_FILE.name).write_bytes(
                 contracts.QUESTIONS_FILE.read_bytes())
+            (tmpdir / contracts.QUESTIONS_V1_FILE.name).write_bytes(
+                contracts.QUESTIONS_V1_FILE.read_bytes())
             manifest = json.loads((ROOT / "contracts" / "manifest.json").read_text())
             (tmpdir / "manifest.json").write_text(json.dumps(manifest))
             original_dir = contracts.CONTRACT_DIR
@@ -43,6 +47,35 @@ class ManifestTests(unittest.TestCase):
 
 
 class QuestionContractTests(unittest.TestCase):
+    def test_active_set_is_v2(self):
+        self.assertEqual(contracts.questions()["version"], "v2")
+        self.assertEqual(contracts.questions("v1")["version"], "v1")
+        with self.assertRaises(contracts.ContractError):
+            contracts.questions("v9")
+
+    def test_v1_questions_are_carried_verbatim(self):
+        """Promotion must not drift the semantics that were already validated."""
+        carried = contracts.questions("v1")["questions"]
+        active = contracts.questions()["questions"]
+        for name, entry in carried.items():
+            self.assertEqual(active[name], entry, name)
+        self.assertEqual(contracts.questions()["retired"],
+                         contracts.questions("v1")["retired"])
+
+    def test_edge_question_matches_the_validated_experiment(self):
+        """The edges_v1 result only transfers if the wire payload is identical."""
+        spec = json.loads((ROOT / "experiments" / "edges_v1"
+                           / "questions.v2.json").read_text(encoding="utf-8"))
+        self.assertEqual(contracts.edge_question(),
+                         {k: spec["questions"]["edge"][k]
+                          for k in ("type", "instructions", "criteria")})
+
+    def test_edge_question_is_validated_with_four_criteria(self):
+        entry = contracts.question("edge")
+        self.assertEqual(entry["validation"]["status"], "VALIDATED")
+        self.assertEqual(set(entry["criteria"]),
+                         {"supports", "contradicts", "supersedes", "unrelated"})
+
     def test_relation_question_matches_the_validated_experiment(self):
         """The 30-pair result only transfers if the question is byte-identical."""
         eval_module = load_eval_module()
