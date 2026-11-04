@@ -1,0 +1,383 @@
+{
+  "cascade_recovery_threshold": [
+    {
+      "margin": {
+        "max_p_yes_real_conflict": 0.1,
+        "min_p_yes_true_replacement": 0.63
+      },
+      "recovered": [
+        {
+          "p_yes": 0.76,
+          "pair_id": "sup_c1"
+        },
+        {
+          "p_yes": 0.99,
+          "pair_id": "sup_d2"
+        },
+        {
+          "p_yes": 0.63,
+          "pair_id": "sup_d1"
+        }
+      ],
+      "repaired_real_conflicts": [],
+      "review_band": [],
+      "supersedes_recall": {
+        "k": 14,
+        "n": 14,
+        "rate": 1.0
+      },
+      "threshold": 0.5
+    },
+    {
+      "margin": {
+        "max_p_yes_real_conflict": 0.1,
+        "min_p_yes_true_replacement": 0.63
+      },
+      "recovered": [
+        {
+          "p_yes": 0.76,
+          "pair_id": "sup_c1"
+        },
+        {
+          "p_yes": 0.99,
+          "pair_id": "sup_d2"
+        },
+        {
+          "p_yes": 0.63,
+          "pair_id": "sup_d1"
+        }
+      ],
+      "repaired_real_conflicts": [],
+      "review_band": [],
+      "supersedes_recall": {
+        "k": 14,
+        "n": 14,
+        "rate": 1.0
+      },
+      "threshold": 0.55
+    },
+    {
+      "margin": {
+        "max_p_yes_real_conflict": 0.1,
+        "min_p_yes_true_replacement": 0.63
+      },
+      "recovered": [
+        {
+          "p_yes": 0.76,
+          "pair_id": "sup_c1"
+        },
+        {
+          "p_yes": 0.99,
+          "pair_id": "sup_d2"
+        },
+        {
+          "p_yes": 0.63,
+          "pair_id": "sup_d1"
+        }
+      ],
+      "repaired_real_conflicts": [],
+      "review_band": [],
+      "supersedes_recall": {
+        "k": 14,
+        "n": 14,
+        "rate": 1.0
+      },
+      "threshold": 0.6
+    },
+    {
+      "margin": {
+        "max_p_yes_real_conflict": 0.1,
+        "min_p_yes_true_replacement": 0.63
+      },
+      "recovered": [
+        {
+          "p_yes": 0.76,
+          "pair_id": "sup_c1"
+        },
+        {
+          "p_yes": 0.99,
+          "pair_id": "sup_d2"
+        }
+      ],
+      "repaired_real_conflicts": [],
+      "review_band": [
+        {
+          "gold": "supersedes",
+          "p_yes": 0.63,
+          "pair_id": "sup_d1"
+        }
+      ],
+      "supersedes_recall": {
+        "k": 13,
+        "n": 14,
+        "rate": 0.9286
+      },
+      "threshold": 0.7
+    },
+    {
+      "margin": {
+        "max_p_yes_real_conflict": 0.1,
+        "min_p_yes_true_replacement": 0.63
+      },
+      "recovered": [
+        {
+          "p_yes": 0.99,
+          "pair_id": "sup_d2"
+        }
+      ],
+      "repaired_real_conflicts": [],
+      "review_band": [
+        {
+          "gold": "supersedes",
+          "p_yes": 0.76,
+          "pair_id": "sup_c1"
+        },
+        {
+          "gold": "supersedes",
+          "p_yes": 0.63,
+          "pair_id": "sup_d1"
+        }
+      ],
+      "supersedes_recall": {
+        "k": 12,
+        "n": 14,
+        "rate": 0.8571
+      },
+      "threshold": 0.8
+    },
+    {
+      "margin": {
+        "max_p_yes_real_conflict": 0.1,
+        "min_p_yes_true_replacement": 0.63
+      },
+      "recovered": [
+        {
+          "p_yes": 0.99,
+          "pair_id": "sup_d2"
+        }
+      ],
+      "repaired_real_conflicts": [],
+      "review_band": [
+        {
+          "gold": "supersedes",
+          "p_yes": 0.76,
+          "pair_id": "sup_c1"
+        },
+        {
+          "gold": "supersedes",
+          "p_yes": 0.63,
+          "pair_id": "sup_d1"
+        }
+      ],
+      "supersedes_recall": {
+        "k": 12,
+        "n": 14,
+        "rate": 0.8571
+      },
+      "threshold": 0.9
+    }
+  ],
+  "edge_proposal_threshold": [
+    {
+      "decided_none": 104,
+      "missed_edges": [
+        {
+          "gold": "supports",
+          "pair_id": "pair_774a28306b1f"
+        }
+      ],
+      "per_class_decided_correct": {
+        "contradicts": {
+          "decided_correct": 5,
+          "n": 5
+        },
+        "supersedes": {
+          "decided_correct": 0,
+          "n": 0
+        },
+        "supports": {
+          "decided_correct": 7,
+          "n": 8
+        },
+        "unrelated": {
+          "decided_correct": 103,
+          "n": 104
+        }
+      },
+      "proposal_precision": 0.9231,
+      "proposed": 13,
+      "review_load": 0.0,
+      "threshold": 0.5,
+      "wrong_proposals": [
+        {
+          "gold": "unrelated",
+          "p": 0.5,
+          "pair_id": "pair_fb70cdbdcc99",
+          "pred": "supports"
+        }
+      ]
+    },
+    {
+      "decided_none": 104,
+      "missed_edges": [
+        {
+          "gold": "supports",
+          "pair_id": "pair_774a28306b1f"
+        }
+      ],
+      "per_class_decided_correct": {
+        "contradicts": {
+          "decided_correct": 5,
+          "n": 5
+        },
+        "supersedes": {
+          "decided_correct": 0,
+          "n": 0
+        },
+        "supports": {
+          "decided_correct": 7,
+          "n": 8
+        },
+        "unrelated": {
+          "decided_correct": 103,
+          "n": 104
+        }
+      },
+      "proposal_precision": 1.0,
+      "proposed": 12,
+      "review_load": 0.0085,
+      "threshold": 0.55,
+      "wrong_proposals": []
+    },
+    {
+      "decided_none": 104,
+      "missed_edges": [
+        {
+          "gold": "supports",
+          "pair_id": "pair_774a28306b1f"
+        }
+      ],
+      "per_class_decided_correct": {
+        "contradicts": {
+          "decided_correct": 5,
+          "n": 5
+        },
+        "supersedes": {
+          "decided_correct": 0,
+          "n": 0
+        },
+        "supports": {
+          "decided_correct": 7,
+          "n": 8
+        },
+        "unrelated": {
+          "decided_correct": 103,
+          "n": 104
+        }
+      },
+      "proposal_precision": 1.0,
+      "proposed": 12,
+      "review_load": 0.0085,
+      "threshold": 0.6,
+      "wrong_proposals": []
+    },
+    {
+      "decided_none": 104,
+      "missed_edges": [
+        {
+          "gold": "supports",
+          "pair_id": "pair_774a28306b1f"
+        }
+      ],
+      "per_class_decided_correct": {
+        "contradicts": {
+          "decided_correct": 5,
+          "n": 5
+        },
+        "supersedes": {
+          "decided_correct": 0,
+          "n": 0
+        },
+        "supports": {
+          "decided_correct": 7,
+          "n": 8
+        },
+        "unrelated": {
+          "decided_correct": 103,
+          "n": 104
+        }
+      },
+      "proposal_precision": 1.0,
+      "proposed": 12,
+      "review_load": 0.0085,
+      "threshold": 0.7,
+      "wrong_proposals": []
+    },
+    {
+      "decided_none": 104,
+      "missed_edges": [
+        {
+          "gold": "supports",
+          "pair_id": "pair_774a28306b1f"
+        }
+      ],
+      "per_class_decided_correct": {
+        "contradicts": {
+          "decided_correct": 5,
+          "n": 5
+        },
+        "supersedes": {
+          "decided_correct": 0,
+          "n": 0
+        },
+        "supports": {
+          "decided_correct": 7,
+          "n": 8
+        },
+        "unrelated": {
+          "decided_correct": 103,
+          "n": 104
+        }
+      },
+      "proposal_precision": 1.0,
+      "proposed": 12,
+      "review_load": 0.0085,
+      "threshold": 0.8,
+      "wrong_proposals": []
+    },
+    {
+      "decided_none": 104,
+      "missed_edges": [
+        {
+          "gold": "supports",
+          "pair_id": "pair_774a28306b1f"
+        }
+      ],
+      "per_class_decided_correct": {
+        "contradicts": {
+          "decided_correct": 5,
+          "n": 5
+        },
+        "supersedes": {
+          "decided_correct": 0,
+          "n": 0
+        },
+        "supports": {
+          "decided_correct": 7,
+          "n": 8
+        },
+        "unrelated": {
+          "decided_correct": 103,
+          "n": 104
+        }
+      },
+      "proposal_precision": 1.0,
+      "proposed": 12,
+      "review_load": 0.0085,
+      "threshold": 0.9,
+      "wrong_proposals": []
+    }
+  ],
+  "note": "offline re-analysis of frozen run data; zero model calls",
+  "schema": "threshold_sweep_v1"
+}
