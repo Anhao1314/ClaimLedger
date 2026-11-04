@@ -1,0 +1,30 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- Retries must be capped at 3.
+- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2.
+- 控制台的 proposals 面板必须显示提案人身份。
+- License headers are required on new files.
+- Health checks must not depend on the database.
+
+TASK:
+# Dedupe
+
+Implement the function in `dedupe.py`.
+
+Remove duplicates while preserving first-seen order.
+
+Output only the full contents of `dedupe.py` in a python code block.
+

@@ -1,0 +1,8 @@
+```python
+from pathlib import Path
+
+
+def key_path() -> Path:
+    """Return the path to the ClaimLedger API key file."""
+    return Path.home() / ".config" / "claimledger" / "api_key.env"
+```

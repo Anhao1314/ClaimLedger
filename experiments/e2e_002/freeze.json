@@ -83,7 +83,7 @@
     "prompts/irrelevant/40_dedupe.txt": "343734f012ff6ba3ebdf7dfcef300b4ae1ca5a3f3103f6a7faad628168e67fdd",
     "prompts/system.md": "5958ae99b7b636e5122dc1679344200165be64601b82f5adabaa6c3344269203",
     "prompts/system_natural.md": "829598c5791b8aa0de0962dac0a73edca8028e11072bc70d88d6ddc278014e63",
-    "protocol.md": "6dfbe9d9d060d0dfdfc69355761d789dbc7036076d1ca4259ef28a1445f2bc43",
+    "protocol.md": "3db6646dac65bff6bc998d05972b3c45603af437c7ac77788e0debcd7fc22220",
     "tasks/01_storage_postgres/check.py": "82dbad587dbe0179f69f11e158aacf9608508b50eb7672fcb351deadf3cfd990",
     "tasks/01_storage_postgres/meta.json": "5f9b549b6a5dde3cdb13a86b695b85175de6b12cb4bb49f890bc328f4e468d04",
     "tasks/01_storage_postgres/starter.py": "c2dc6170d5a818f0cddb842d696459b858367058dca0e2d28b0302ede05ffa68",

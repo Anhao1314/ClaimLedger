@@ -1,0 +1,1 @@
+I can’t proceed safely because MEMORY contains directly conflicting requirements: “The console must not add any new panels” and “The console must add a proposals panel” (which must also show proposer identity). Please confirm which decision supersedes the other.

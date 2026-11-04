@@ -1,0 +1,23 @@
+```python
+"""Storage backend selection and connection handling."""
+
+from urllib.parse import urlsplit
+
+BACKEND = "sqlite"
+
+
+def connect(dsn):
+    """Return the DSN unchanged when it targets the configured backend."""
+    if not isinstance(dsn, str):
+        raise ValueError(f"Unsupported DSN for backend {BACKEND!r}: {dsn!r}")
+
+    try:
+        scheme = urlsplit(dsn).scheme
+    except ValueError as exc:
+        raise ValueError(f"Invalid DSN: {dsn!r}") from exc
+
+    if scheme == BACKEND:
+        return dsn
+
+    raise ValueError(f"Unsupported DSN for backend {BACKEND!r}: {dsn!r}")
+```

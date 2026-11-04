@@ -1,0 +1,260 @@
+```python
+"""Console rendering for proposals.
+
+The proposals panel shows proposer identity. That identity is attribution only:
+the agent registry intentionally contains no keys, signatures, or other
+authentication material.
+"""
+
+from __future__ import annotations
+
+import gettext
+import json
+import os
+import sys
+from collections.abc import Mapping as MappingABC
+from dataclasses import dataclass
+from typing import Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
+
+DEFAULT_LOCALE = "en-US"
+
+
+@dataclass(frozen=True)
+class ConsoleConfig:
+    locale: str = DEFAULT_LOCALE
+    locale_dir: str = "locale"
+
+    @classmethod
+    def from_env(cls) -> "ConsoleConfig":
+        return cls(
+            locale=os.environ.get("CONSOLE_LOCALE", DEFAULT_LOCALE),
+            locale_dir=os.environ.get("CONSOLE_LOCALE_DIR", "locale"),
+        )
+
+
+_CONFIG = ConsoleConfig.from_env()
+_TRANSLATION = gettext.translation(
+    "console",
+    localedir=_CONFIG.locale_dir,
+    languages=[_CONFIG.locale],
+    fallback=True,
+)
+_ = _TRANSLATION.gettext
+
+
+class ValidationError(ValueError):
+    """Raised when console input cannot be rendered."""
+
+
+@dataclass(frozen=True)
+class ProposerAttribution:
+    agent_id: str
+    display_name: str
+
+
+@dataclass(frozen=True)
+class Proposal:
+    proposal_id: str
+    title: str
+    proposer_id: str
+    summary: str = ""
+
+    @property
+    def id(self) -> str:
+        return self.proposal_id
+
+    @property
+    def proposer(self) -> str:
+        return self.proposer_id
+
+
+class AgentRegistry:
+    """Attribution-only registry.
+
+    This registry stores display metadata for agents. It deliberately contains
+    no keys, signatures, or other authentication material.
+    """
+
+    def __init__(self) -> None:
+        self._attributions: Dict[str, ProposerAttribution] = {}
+
+    def register(self, agent_id: str, display_name: Optional[str] = None) -> ProposerAttribution:
+        agent_id = str(agent_id).strip()
+        if not agent_id:
+            raise ValidationError(_("Agent id is required."))
+
+        name = str(display_name).strip() if display_name is not None else agent_id
+        if not name:
+            name = agent_id
+
+        attribution = ProposerAttribution(agent_id=agent_id, display_name=name)
+        self._attributions[agent_id] = attribution
+        return attribution
+
+    register_agent = register
+
+    def attribution_for(self, agent_id: str) -> Optional[ProposerAttribution]:
+        return self._attributions.get(str(agent_id).strip())
+
+    def __contains__(self, agent_id: object) -> bool:
+        return isinstance(agent_id, str) and agent_id.strip() in self._attributions
+
+
+def _coerce_proposal(value: Union[Proposal, Mapping[str, object]]) -> Proposal:
+    if isinstance(value, Proposal):
+        return value
+
+    if not isinstance(value, MappingABC):
+        raise ValidationError(_("Invalid proposal entry."))
+
+    return Proposal(
+        proposal_id=str(value.get("proposal_id") or value.get("id") or ""),
+        title=str(value.get("title") or ""),
+        proposer_id=str(value.get("proposer_id") or value.get("proposer") or ""),
+        summary=str(value.get("summary") or ""),
+    )
+
+
+def validate_proposals(proposals: Sequence[Proposal]) -> None:
+    seen: set = set()
+
+    for proposal in proposals:
+        if not proposal.proposal_id.strip():
+            raise ValidationError(_("Proposal id is required."))
+
+        if proposal.proposal_id in seen:
+            raise ValidationError(
+                _("Duplicate proposal id: {proposal_id}").format(
+                    proposal_id=proposal.proposal_id
+                )
+            )
+        seen.add(proposal.proposal_id)
+
+        if not proposal.title.strip():
+            raise ValidationError(_("Proposal title is required."))
+
+        if not proposal.proposer_id.strip():
+            raise ValidationError(_("Proposer identity is required."))
+
+
+class ProposalsPanel:
+    def __init__(
+        self,
+        registry: Optional[AgentRegistry] = None,
+        *,
+        translate: Callable[[str], str] = _,
+    ) -> None:
+        self._registry = registry if registry is not None else AgentRegistry()
+        self._translate = translate
+
+    def _proposer_label(self, proposer_id: str) -> str:
+        attribution = self._registry.attribution_for(proposer_id)
+
+        if attribution is None:
+            return self._translate(
+                "Unattributed proposer ({proposer_id})"
+            ).format(proposer_id=proposer_id)
+
+        return self._translate("{display_name} ({agent_id})").format(
+            display_name=attribution.display_name,
+            agent_id=attribution.agent_id,
+        )
+
+    def render(self, proposals: Iterable[Union[Proposal, Mapping[str, object]]]) -> str:
+        proposal_list = [_coerce_proposal(item) for item in proposals]
+        validate_proposals(proposal_list)
+
+        lines = [
+            self._translate("Proposals"),
+            self._translate("Proposer identity is attribution, not authentication."),
+            "",
+        ]
+
+        if not proposal_list:
+            lines.append(self._translate("No proposals."))
+        else:
+            for proposal in proposal_list:
+                lines.append(
+                    self._translate("[{proposal_id}] {title}").format(
+                        proposal_id=proposal.proposal_id,
+                        title=proposal.title,
+                    )
+                )
+                lines.append(
+                    self._translate("Proposed by: {proposer}").format(
+                        proposer=self._proposer_label(proposal.proposer_id)
+                    )
+                )
+
+                if proposal.summary:
+                    lines.append(
+                        self._translate("Summary: {summary}").format(
+                            summary=proposal.summary
+                        )
+                    )
+
+                lines.append("")
+
+        return "\n".join(lines).rstrip() + "\n"
+
+
+def render_proposals_panel(
+    proposals: Iterable[Union[Proposal, Mapping[str, object]]],
+    registry: Optional[AgentRegistry] = None,
+    *,
+    translate: Callable[[str], str] = _,
+) -> str:
+    return ProposalsPanel(registry, translate=translate).render(proposals)
+
+
+def _load_console_input(path: str) -> Tuple[List[Proposal], AgentRegistry]:
+    with open(path, "r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+
+    if isinstance(payload, list):
+        raw_proposals = payload
+        raw_agents: List[object] = []
+    elif isinstance(payload, MappingABC):
+        raw_proposals = payload.get("proposals", [])
+        raw_agents = payload.get("agents", [])
+    else:
+        raise ValidationError(_("Proposals file must contain a JSON object or array."))
+
+    if not isinstance(raw_proposals, list):
+        raise ValidationError(_("Proposals must be a list."))
+
+    if not isinstance(raw_agents, list):
+        raise ValidationError(_("Agents must be a list."))
+
+    registry = AgentRegistry()
+
+    for raw_agent in raw_agents:
+        if not isinstance(raw_agent, MappingABC):
+            raise ValidationError(_("Invalid agent entry."))
+
+        agent_id = raw_agent.get("id") or raw_agent.get("agent_id") or ""
+        display_name = raw_agent.get("display_name") or raw_agent.get("name") or agent_id
+        registry.register(str(agent_id), str(display_name))
+
+    proposals = [_coerce_proposal(raw) for raw in raw_proposals]
+    return proposals, registry
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+
+    try:
+        if len(args) != 1:
+            raise ValidationError(_("Usage: console.py <proposals.json>"))
+
+        proposals, registry = _load_console_input(args[0])
+        sys.stdout.write(ProposalsPanel(registry).render(proposals))
+        return 0
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValidationError) as exc:
+        sys.stderr.write(_("Validation failed: {error}\n").format(error=exc))
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```

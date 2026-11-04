@@ -1,0 +1,18 @@
+{
+  "task": "19_storage_natural",
+  "arm": "C",
+  "run": 2,
+  "model": "deepseek-flash",
+  "prompt_tokens": 246,
+  "completion_tokens": 781,
+  "latency_ms": 6465,
+  "pass": true,
+  "error": null,
+  "attempts": 2,
+  "finish_reason": "stop",
+  "length_retries": 1,
+  "reasoning_tokens": 727,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 246,
+  "check_output": ""
+}

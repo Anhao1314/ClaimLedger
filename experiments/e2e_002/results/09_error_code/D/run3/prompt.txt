@@ -1,0 +1,29 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.
+- The docs site is built from the main branch.
+- All HTTP handlers must return JSON.
+- The admin UI is internal-only.
+- Retries must be capped at 3.
+
+TASK:
+# Error response
+
+Implement `error_response(message)` in `errors.py`. Return a dict with
+`message` and the project's error code.
+
+Output only the full contents of `errors.py` in a python code block.
+

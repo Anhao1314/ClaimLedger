@@ -1,0 +1,26 @@
+```python
+def human_bytes(num_bytes):
+    """Format a byte count as a human-readable string using base 1000."""
+    units = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+
+    if num_bytes < 0:
+        return "-" + human_bytes(-num_bytes)
+
+    if num_bytes < 1000:
+        return f"{int(num_bytes)} B"
+
+    value = float(num_bytes)
+    for unit in units[1:]:
+        value /= 1000.0
+        if value < 1000 or unit == units[-1]:
+            return f"{value:.1f} {unit}"
+
+
+format_bytes = human_bytes
+bytesize = human_bytes
+human_readable = human_bytes
+human_size = human_bytes
+humanize = human_bytes
+humanize_bytes = human_bytes
+human_readable_bytes = human_bytes
+```

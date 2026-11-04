@@ -1,0 +1,26 @@
+```python
+BACKEND = "sqlite"
+
+_BACKEND_SCHEMES = {
+    "sqlite": ("sqlite://",),
+    "postgres": ("postgres://", "postgresql://"),
+    "postgresql": ("postgres://", "postgresql://"),
+    "mysql": ("mysql://",),
+    "mariadb": ("mariadb://", "mysql://"),
+    "redis": ("redis://", "rediss://"),
+    "mongodb": ("mongodb://", "mongodb+srv://"),
+}
+
+
+def connect(dsn):
+    if not isinstance(dsn, str):
+        raise ValueError("DSN must be a string")
+
+    schemes = _BACKEND_SCHEMES.get(BACKEND, (f"{BACKEND}://",))
+    if not any(dsn.startswith(scheme) for scheme in schemes):
+        raise ValueError(
+            f"Unsupported DSN scheme for storage backend {BACKEND!r}: {dsn!r}"
+        )
+
+    return dsn
+```

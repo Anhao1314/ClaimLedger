@@ -1,0 +1,187 @@
+```python
+"""Structured JSON logging setup for the service.
+
+This module provides a small, dependency-free structured logging layer built on
+top of the standard library. Log records are emitted as JSON and can be enriched
+with request-scoped context via context variables.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import sys
+from contextlib import contextmanager
+from contextvars import ContextVar, Token
+from datetime import datetime, timezone
+from typing import Any, Dict, Iterator, Mapping, Optional, Union
+
+_DEFAULT_SERVICE_NAME = "service"
+_DEFAULT_ENVIRONMENT = "local"
+
+_LOG_CONTEXT: ContextVar[Dict[str, Any]] = ContextVar("log_context", default={})
+
+_STANDARD_RECORD_ATTRS = set(logging.makeLogRecord({}).__dict__) | {
+    "message",
+    "asctime",
+    "taskName",
+}
+
+
+def _utc_timestamp(created: float) -> str:
+    """Return an ISO-8601 UTC timestamp for a logging record."""
+    return (
+        datetime.fromtimestamp(created, tz=timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
+def _context_snapshot() -> Dict[str, Any]:
+    """Return a copy of the current logging context."""
+    return dict(_LOG_CONTEXT.get())
+
+
+class JsonFormatter(logging.Formatter):
+    """Formatter that serializes log records as single-line JSON objects."""
+
+    def __init__(
+        self,
+        service_name: str = _DEFAULT_SERVICE_NAME,
+        environment: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.service_name = service_name
+        self.environment = environment or os.getenv(
+            "ENVIRONMENT", _DEFAULT_ENVIRONMENT
+        )
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload: Dict[str, Any] = {
+            "timestamp": _utc_timestamp(record.created),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "service": self.service_name,
+            "environment": self.environment,
+        }
+
+        payload.update(_context_snapshot())
+
+        for key, value in record.__dict__.items():
+            if key in _STANDARD_RECORD_ATTRS or key.startswith("_"):
+                continue
+            payload[key] = value
+
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+
+        if record.stack_info:
+            payload["stack_info"] = self.formatStack(record.stack_info)
+
+        return json.dumps(payload, default=str, ensure_ascii=False)
+
+
+def bind_log_context(**kwargs: Any) -> Token:
+    """Add request-scoped values to all subsequent log records.
+
+    The returned token can be passed to :func:`reset_log_context` to restore the
+    previous context.
+    """
+    current = _context_snapshot()
+    current.update(kwargs)
+    return _LOG_CONTEXT.set(current)
+
+
+def reset_log_context(token: Token) -> None:
+    """Restore the logging context to the state represented by ``token``."""
+    _LOG_CONTEXT.reset(token)
+
+
+def clear_log_context() -> None:
+    """Remove all values from the current logging context."""
+    _LOG_CONTEXT.set({})
+
+
+@contextmanager
+def log_context(**kwargs: Any) -> Iterator[None]:
+    """Temporarily bind logging context for the duration of a block."""
+    token = bind_log_context(**kwargs)
+    try:
+        yield
+    finally:
+        reset_log_context(token)
+
+
+def configure_logging(
+    level: Union[int, str] = "INFO",
+    service_name: Optional[str] = None,
+    environment: Optional[str] = None,
+    stream: Optional[Any] = None,
+    force: bool = False,
+    capture_warnings: bool = True,
+) -> logging.Logger:
+    """Configure structured logging on the root logger.
+
+    The function is idempotent: repeated calls without ``force=True`` will not
+    add duplicate handlers.
+
+    Args:
+        level: Logging level as a name or numeric value.
+        service_name: Service name included in every JSON log entry.
+        environment: Deployment environment included in every log entry.
+        stream: Optional output stream. Defaults to ``sys.stdout``.
+        force: Remove existing handlers before installing the new handler.
+        capture_warnings: Route Python warnings through the logging system.
+
+    Returns:
+        The configured root logger.
+    """
+    root = logging.getLogger()
+
+    if force:
+        for handler in list(root.handlers):
+            root.removeHandler(handler)
+            try:
+                handler.close()
+            except Exception:
+                pass
+
+    already_configured = any(
+        getattr(handler, "_structured_logging_handler", False)
+        for handler in root.handlers
+    )
+
+    if already_configured:
+        return root
+
+    resolved_service_name = (
+        service_name or os.getenv("SERVICE_NAME") or _DEFAULT_SERVICE_NAME
+    )
+    resolved_environment = (
+        environment or os.getenv("ENVIRONMENT") or _DEFAULT_ENVIRONMENT
+    )
+
+    handler = logging.StreamHandler(stream or sys.stdout)
+    handler.setFormatter(
+        JsonFormatter(
+            service_name=resolved_service_name,
+            environment=resolved_environment,
+        )
+    )
+    handler._structured_logging_handler = True  # type: ignore[attr-defined]
+
+    root.setLevel(level)
+    root.addHandler(handler)
+
+    logging.captureWarnings(capture_warnings)
+
+    return root
+
+
+def get_logger(name: Optional[str] = None) -> logging.Logger:
+    """Return a logger suitable for structured logging."""
+    return logging.getLogger(name)
+```

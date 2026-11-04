@@ -1,0 +1,1 @@
+I can’t safely produce `answer.py` because the contents of `api.py` are not provided, and the exact “v1 API” endpoints plus the “Q4” condition are undefined. Please provide `api.py` and any related v1 modules/tests so the removal can be done without risking unrelated behavior.

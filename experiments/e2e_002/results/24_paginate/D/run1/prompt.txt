@@ -1,0 +1,31 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- Secrets must never be logged.
+- Release notes are written before the tag.
+- Frontend assets must be minified before release.
+- Integration tests run against a disposable database.
+- All timestamps are stored in UTC.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+
+TASK:
+# Paginate
+
+Implement the function in `paging.py`.
+
+Return a list of pages, each a list with at most `limit` items; the last page may be shorter.
+
+Output only the full contents of `paging.py` in a python code block.
+

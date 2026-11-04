@@ -1,0 +1,1 @@
+I cannot safely implement the analytics storage layer because MEMORY directly contradicts itself: it requires all services to use PostgreSQL for storage, while explicitly banning PostgreSQL for the analytics service. A human decision is needed to resolve which rule governs analytics storage before code can be written.

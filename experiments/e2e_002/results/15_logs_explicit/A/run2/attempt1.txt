@@ -1,0 +1,165 @@
+```python
+"""Structured logging configuration for the service."""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import sys
+from contextlib import contextmanager
+from contextvars import ContextVar
+from datetime import datetime, timezone
+from typing import Any, Dict, Iterator, Optional, TextIO, Union
+
+__all__ = [
+    "JsonFormatter",
+    "configure_logging",
+    "setup_logging",
+    "get_logger",
+    "set_request_id",
+    "get_request_id",
+    "reset_request_id",
+    "request_context",
+]
+
+_request_id: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
+
+_RESERVED_LOG_RECORD_ATTRS = {
+    "args",
+    "asctime",
+    "created",
+    "exc_info",
+    "exc_text",
+    "filename",
+    "funcName",
+    "levelname",
+    "levelno",
+    "lineno",
+    "message",
+    "module",
+    "msecs",
+    "msg",
+    "name",
+    "pathname",
+    "process",
+    "processName",
+    "relativeCreated",
+    "stack_info",
+    "taskName",
+    "thread",
+    "threadName",
+}
+
+
+def set_request_id(request_id: Optional[str]) -> Any:
+    """Set the current request/correlation ID for structured log entries."""
+    return _request_id.set(request_id)
+
+
+def get_request_id() -> Optional[str]:
+    """Return the current request/correlation ID, if one is set."""
+    return _request_id.get()
+
+
+def reset_request_id(token: Any) -> None:
+    """Reset the request/correlation ID using a token from ``set_request_id``."""
+    _request_id.reset(token)
+
+
+@contextmanager
+def request_context(request_id: Optional[str]) -> Iterator[None]:
+    """Temporarily bind a request/correlation ID to the current context."""
+    token = set_request_id(request_id)
+    try:
+        yield
+    finally:
+        reset_request_id(token)
+
+
+class JsonFormatter(logging.Formatter):
+    """Format log records as single-line JSON objects."""
+
+    def __init__(self, service_name: Optional[str] = None, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.service_name = service_name
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload: Dict[str, Any] = {
+            "timestamp": datetime.fromtimestamp(
+                record.created, tz=timezone.utc
+            ).isoformat().replace("+00:00", "Z"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+
+        if self.service_name:
+            payload["service"] = self.service_name
+
+        request_id = getattr(record, "request_id", None) or get_request_id()
+        if request_id is not None:
+            payload["request_id"] = request_id
+
+        for key, value in record.__dict__.items():
+            if key in _RESERVED_LOG_RECORD_ATTRS or key == "request_id":
+                continue
+            if key.startswith("_"):
+                continue
+            payload[key] = value
+
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        if record.stack_info:
+            payload["stack"] = self.formatStack(record.stack_info)
+
+        return json.dumps(payload, default=str, ensure_ascii=False, separators=(",", ":"))
+
+
+def configure_logging(
+    level: Union[int, str, None] = None,
+    service_name: Optional[str] = None,
+    stream: Optional[TextIO] = None,
+) -> None:
+    """Configure root logging to emit structured JSON logs.
+
+    Existing handlers installed by this function are replaced; unrelated root
+    handlers are left untouched. Calling this function more than once is safe.
+    """
+    if level is None:
+        level = os.getenv("LOG_LEVEL", "INFO")
+
+    if isinstance(level, str):
+        resolved_level = logging.getLevelName(level.upper())
+        level = resolved_level if isinstance(resolved_level, int) else logging.INFO
+
+    if service_name is None:
+        service_name = os.getenv("SERVICE_NAME") or os.getenv("APP_NAME")
+
+    root_logger = logging.getLogger()
+    for handler in list(root_logger.handlers):
+        if getattr(handler, "_structured_logging_handler", False):
+            root_logger.removeHandler(handler)
+
+    handler = logging.StreamHandler(stream or sys.stdout)
+    handler.setFormatter(JsonFormatter(service_name=service_name))
+    handler._structured_logging_handler = True  # type: ignore[attr-defined]
+
+    root_logger.addHandler(handler)
+    root_logger.setLevel(level)
+    logging.captureWarnings(True)
+
+
+def setup_logging(
+    level: Union[int, str, None] = None,
+    service_name: Optional[str] = None,
+    stream: Optional[TextIO] = None,
+) -> None:
+    """Alias for :func:`configure_logging`."""
+    configure_logging(level=level, service_name=service_name, stream=stream)
+
+
+def get_logger(name: Optional[str] = None) -> logging.Logger:
+    """Return a logger for the given name."""
+    return logging.getLogger(name)
+```

@@ -1,0 +1,18 @@
+{
+  "task": "10_margin_language",
+  "arm": "D",
+  "run": 2,
+  "model": "deepseek-flash",
+  "prompt_tokens": 219,
+  "completion_tokens": 944,
+  "latency_ms": 5947,
+  "pass": false,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 871,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 219,
+  "check_output": "Traceback (most recent call last):\n  File \"/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e_xy3t4vxj/check.py\", line 4, in <module>\n    assert \"safety margin\" in text, text\nAssertionError: we use a delta=0.2 margin as the threshold for practical significance; when the sample size is below 100, treat any claim as preliminary rather than definitive."
+}

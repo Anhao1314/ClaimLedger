@@ -1,0 +1,1 @@
+I can’t safely generate `answer.py` because the contents of `api.py`, the specific v1 endpoints to remove, and what “in Q4” means (deadline, feature flag, or environment) are not provided. Removing an API also requires knowing which tests, clients, and compatibility guarantees depend on it.

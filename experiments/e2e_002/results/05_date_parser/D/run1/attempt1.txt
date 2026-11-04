@@ -1,0 +1,13 @@
+```python
+import re
+from datetime import date
+
+_ISO_DATE_PATTERN = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+
+
+def parse_date(s):
+    if not isinstance(s, str) or not _ISO_DATE_PATTERN.fullmatch(s):
+        raise ValueError
+
+    return date.fromisoformat(s)
+```

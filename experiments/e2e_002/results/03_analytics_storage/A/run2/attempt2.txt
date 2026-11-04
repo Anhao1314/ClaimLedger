@@ -1,0 +1,497 @@
+```python
+"""Storage layer for the analytics service.
+
+The module provides a thread-safe, dependency-free event store. It supports
+recording individual events or batches, time-range queries, counts, simple
+time-bucket aggregation, deletion of old data, and JSON snapshots for
+persistence.
+
+Timestamps are stored as UTC epoch seconds (floats). Query ranges are
+half-open: ``start <= timestamp < end``.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import os
+import threading
+import time
+import uuid
+from collections import defaultdict
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Callable, Optional
+
+
+def _to_timestamp(value: Any) -> float:
+    """Convert a timestamp-like value to epoch seconds."""
+    if value is None:
+        return time.time()
+
+    if isinstance(value, bool):
+        raise TypeError("Timestamp cannot be a boolean")
+
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.timestamp()
+
+    if isinstance(value, str):
+        text = value.strip()
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        try:
+            return datetime.fromisoformat(text).timestamp()
+        except ValueError:
+            try:
+                return float(text)
+            except ValueError as exc:
+                raise ValueError(f"Unsupported timestamp: {value!r}") from exc
+
+    raise TypeError(f"Unsupported timestamp type: {type(value).__name__}")
+
+
+def _validate_name(name: Any) -> str:
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("Event name must be a non-empty string")
+    return name
+
+
+def _normalize_id(event_id: Any) -> str:
+    if event_id is None:
+        return uuid.uuid4().hex
+    if not isinstance(event_id, str) or not event_id:
+        raise ValueError("Event id must be a non-empty string")
+    return event_id
+
+
+def _lower_bound(events: list["Event"], timestamp: float) -> int:
+    """Return the first index whose event timestamp is >= ``timestamp``."""
+    lo, hi = 0, len(events)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if events[mid].timestamp < timestamp:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
+
+
+def _upper_bound(events: list["Event"], timestamp: float) -> int:
+    """Return the first index whose event timestamp is > ``timestamp``."""
+    lo, hi = 0, len(events)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if timestamp < events[mid].timestamp:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo
+
+
+@dataclass(frozen=True)
+class Event:
+    """A single analytics event."""
+
+    name: str
+    timestamp: float
+    properties: Mapping[str, Any] = field(default_factory=dict)
+    id: str = ""
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "timestamp": self.timestamp,
+            "properties": dict(self.properties),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "Event":
+        return cls(
+            name=_validate_name(data.get("name")),
+            timestamp=_to_timestamp(data.get("timestamp")),
+            properties=dict(data.get("properties") or {}),
+            id=_normalize_id(data.get("id")),
+        )
+
+
+class AnalyticsStorage:
+    """In-memory, thread-safe storage for analytics events.
+
+    Events are kept ordered by timestamp. This makes time-range queries and
+    bucketed aggregation efficient, while still keeping the implementation
+    small and dependency-free.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.RLock()
+        self._events: list[Event] = []
+        self._by_name: dict[str, list[Event]] = defaultdict(list)
+        self._by_id: dict[str, Event] = {}
+
+    # ------------------------------------------------------------------
+    # Writing
+    # ------------------------------------------------------------------
+    def record(
+        self,
+        name: str,
+        properties: Optional[Mapping[str, Any]] = None,
+        timestamp: Any = None,
+        event_id: Optional[str] = None,
+    ) -> Event:
+        """Record a single event and return the stored event."""
+        validated_name = _validate_name(name)
+        event = Event(
+            name=validated_name,
+            timestamp=_to_timestamp(timestamp),
+            properties=dict(properties or {}),
+            id=_normalize_id(event_id),
+        )
+
+        with self._lock:
+            if event.id in self._by_id:
+                raise ValueError(f"Duplicate event id: {event.id!r}")
+            self._store(event)
+
+        return event
+
+    def record_many(
+        self,
+        events: Iterable[Event | Mapping[str, Any]],
+    ) -> list[Event]:
+        """Record multiple events atomically.
+
+        Each item may be an :class:`Event` or a mapping with ``name``,
+        ``timestamp``, ``properties``, and optional ``id`` keys.
+        """
+        prepared = [self._coerce_event(item) for item in events]
+
+        with self._lock:
+            seen: set[str] = set()
+            for event in prepared:
+                if event.id in self._by_id or event.id in seen:
+                    raise ValueError(f"Duplicate event id: {event.id!r}")
+                seen.add(event.id)
+
+            for event in prepared:
+                self._store(event)
+
+        return prepared
+
+    def _store(self, event: Event) -> None:
+        """Insert an event while the lock is held."""
+        position = _upper_bound(self._events, event.timestamp)
+        self._events.insert(position, event)
+
+        named_events = self._by_name[event.name]
+        named_position = _upper_bound(named_events, event.timestamp)
+        named_events.insert(named_position, event)
+
+        self._by_id[event.id] = event
+
+    @staticmethod
+    def _coerce_event(item: Event | Mapping[str, Any]) -> Event:
+        if isinstance(item, Event):
+            return Event(
+                name=_validate_name(item.name),
+                timestamp=_to_timestamp(item.timestamp),
+                properties=dict(item.properties),
+                id=_normalize_id(item.id),
+            )
+
+        if isinstance(item, Mapping):
+            return Event(
+                name=_validate_name(item.get("name")),
+                timestamp=_to_timestamp(item.get("timestamp")),
+                properties=dict(item.get("properties") or {}),
+                id=_normalize_id(item.get("id")),
+            )
+
+        raise TypeError(
+            "Events must be Event instances or mappings, "
+            f"got {type(item).__name__}"
+        )
+
+    # ------------------------------------------------------------------
+    # Reading
+    # ------------------------------------------------------------------
+    def get(self, event_id: str) -> Optional[Event]:
+        """Return a stored event by id, or ``None`` if it does not exist."""
+        with self._lock:
+            return self._by_id.get(event_id)
+
+    def query(
+        self,
+        name: Optional[str] = None,
+        start: Any = None,
+        end: Any = None,
+        limit: Optional[int] = None,
+        descending: bool = False,
+        predicate: Optional[Callable[[Event], bool]] = None,
+    ) -> list[Event]:
+        """Return events matching the supplied filters.
+
+        ``start`` is inclusive and ``end`` is exclusive. Results are returned
+        in ascending timestamp order unless ``descending`` is true. ``limit``
+        is applied after ordering and predicate filtering.
+        """
+        if limit is not None and limit < 0:
+            raise ValueError("limit must be non-negative")
+
+        with self._lock:
+            events, lo, hi = self._bound_slice(name, start, end)
+            result = list(events[lo:hi])
+
+        if predicate is not None:
+            result = [event for event in result if predicate(event)]
+
+        if descending:
+            result.reverse()
+
+        if limit is not None:
+            result = result[:limit]
+
+        return result
+
+    def latest(
+        self,
+        limit: int = 1,
+        name: Optional[str] = None,
+        start: Any = None,
+        end: Any = None,
+    ) -> list[Event]:
+        """Return the most recent events, newest first."""
+        return self.query(
+            name=name,
+            start=start,
+            end=end,
+            limit=limit,
+            descending=True,
+        )
+
+    def count(
+        self,
+        name: Optional[str] = None,
+        start: Any = None,
+        end: Any = None,
+        predicate: Optional[Callable[[Event], bool]] = None,
+    ) -> int:
+        """Count events matching the supplied filters."""
+        if predicate is None:
+            with self._lock:
+                _, lo, hi = self._bound_slice(name, start, end)
+                return hi - lo
+
+        return len(self.query(name=name, start=start, end=end, predicate=predicate))
+
+    def aggregate(
+        self,
+        bucket_seconds: float,
+        name: Optional[str] = None,
+        start: Any = None,
+        end: Any = None,
+    ) -> dict[float, int]:
+        """Count events per fixed-size time bucket.
+
+        Bucket keys are the epoch-second start times of each bucket. Results
+        are returned in ascending bucket order.
+        """
+        if bucket_seconds <= 0:
+            raise ValueError("bucket_seconds must be greater than zero")
+
+        with self._lock:
+            events, lo, hi = self._bound_slice(name, start, end)
+            buckets: dict[float, int] = {}
+
+            for event in events[lo:hi]:
+                bucket = math.floor(event.timestamp / bucket_seconds) * bucket_seconds
+                buckets[bucket] = buckets.get(bucket, 0) + 1
+
+        return dict(sorted(buckets.items()))
+
+    def property_counts(
+        self,
+        property_name: str,
+        name: Optional[str] = None,
+        start: Any = None,
+        end: Any = None,
+    ) -> dict[Any, int]:
+        """Count occurrences of values for a given event property."""
+        counts: dict[Any, int] = {}
+
+        for event in self.query(name=name, start=start, end=end):
+            if property_name not in event.properties:
+                continue
+
+            value = event.properties[property_name]
+            try:
+                hash(value)
+                key: Any = value
+            except TypeError:
+                key = json.dumps(value, sort_keys=True, default=str)
+
+            counts[key] = counts.get(key, 0) + 1
+
+        return counts
+
+    def _bound_slice(
+        self,
+        name: Optional[str],
+        start: Any,
+        end: Any,
+    ) -> tuple[list[Event], int, int]:
+        """Return the relevant event list and its filtered bounds.
+
+        The caller must hold ``self._lock``.
+        """
+        if name is None:
+            events = self._events
+        else:
+            events = self._by_name.get(name, [])
+
+        lo = 0 if start is None else _lower_bound(events, _to_timestamp(start))
+        hi = len(events) if end is None else _lower_bound(events, _to_timestamp(end))
+
+        if hi < lo:
+            hi = lo
+
+        return events, lo, hi
+
+    # ------------------------------------------------------------------
+    # Maintenance and persistence
+    # ------------------------------------------------------------------
+    def delete_before(self, cutoff: Any) -> int:
+        """Delete all events with a timestamp before ``cutoff``.
+
+        Returns the number of deleted events.
+        """
+        timestamp = _to_timestamp(cutoff)
+
+        with self._lock:
+            removed = [
+                event for event in self._events if event.timestamp < timestamp
+            ]
+            if not removed:
+                return 0
+
+            self._events = [
+                event for event in self._events if event.timestamp >= timestamp
+            ]
+
+            for event in removed:
+                self._by_id.pop(event.id, None)
+
+            for event_name in list(self._by_name):
+                kept = [
+                    event
+                    for event in self._by_name[event_name]
+                    if event.timestamp >= timestamp
+                ]
+                if kept:
+                    self._by_name[event_name] = kept
+                else:
+                    del self._by_name[event_name]
+
+        return len(removed)
+
+    def clear(self) -> None:
+        """Remove every event from storage."""
+        with self._lock:
+            self._events.clear()
+            self._by_name.clear()
+            self._by_id.clear()
+
+    def stats(self, name: Optional[str] = None) -> dict[str, Any]:
+        """Return basic storage statistics, optionally for one event name."""
+        with self._lock:
+            if name is None:
+                events = self._events
+                event_names = len(self._by_name)
+            else:
+                events = self._by_name.get(name, [])
+                event_names = 1 if events else 0
+
+            return {
+                "events": len(events),
+                "event_names": event_names,
+                "first_timestamp": events[0].timestamp if events else None,
+                "last_timestamp": events[-1].timestamp if events else None,
+            }
+
+    def snapshot(self) -> list[dict[str, Any]]:
+        """Return a serializable snapshot of all events."""
+        with self._lock:
+            return [event.as_dict() for event in self._events]
+
+    def restore(
+        self,
+        events: Iterable[Event | Mapping[str, Any]],
+        replace: bool = True,
+    ) -> list[Event]:
+        """Restore events from a snapshot.
+
+        When ``replace`` is true the existing contents are cleared first.
+        """
+        if replace:
+            self.clear()
+
+        return self.record_many(events)
+
+    def save(self, path: str | os.PathLike[str]) -> None:
+        """Atomically write a JSON snapshot to ``path``."""
+        payload = {
+            "version": 1,
+            "events": self.snapshot(),
+        }
+
+        file_path = os.fspath(path)
+        temp_path = f"{file_path}.tmp"
+
+        with open(temp_path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, default=str, ensure_ascii=False)
+            handle.flush()
+            os.fsync(handle.fileno())
+
+        os.replace(temp_path, file_path)
+
+    def load(
+        self,
+        path: str | os.PathLike[str],
+        replace: bool = True,
+    ) -> list[Event]:
+        """Load events from a JSON snapshot written by :meth:`save`."""
+        with open(path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        events = payload.get("events", []) if isinstance(payload, dict) else payload
+        return self.restore(events, replace=replace)
+
+    @classmethod
+    def from_file(cls, path: str | os.PathLike[str]) -> "AnalyticsStorage":
+        """Create a storage instance populated from a JSON snapshot."""
+        storage = cls()
+        storage.load(path)
+        return storage
+
+    # ------------------------------------------------------------------
+    # Dunder helpers
+    # ------------------------------------------------------------------
+    def __len__(self) -> int:
+        with self._lock:
+            return len(self._events)
+
+    def __iter__(self):
+        return iter(self.snapshot())
+
+    def __contains__(self, event_id: object) -> bool:
+        if not isinstance(event_id, str):
+            return False
+        with self._lock:
+            return event_id in self._by_id
+```

@@ -1,0 +1,63 @@
+```python
+# Copyright (c) 2025
+# SPDX-License-Identifier: MIT
+
+"""Identity helpers for the agent registry."""
+
+from __future__ import annotations
+
+from typing import Any, Optional
+
+
+class AgentRegistry:
+    """Minimal agent registry policy used by identity checks."""
+
+    def __init__(self, authenticates_identities: bool = True) -> None:
+        self.authenticates_identities = bool(authenticates_identities)
+
+
+registry = AgentRegistry()
+
+
+def _resolve_registry(candidate: Optional[Any]) -> Any:
+    if candidate is None:
+        return globals()["registry"]
+    return candidate
+
+
+def is_authenticated(registry: Optional[Any] = None) -> bool:
+    """Return whether the agent registry authenticates identities.
+
+    The registry may expose this policy as a boolean attribute or as a
+    callable method. Common naming variants are accepted so lightweight
+    registry implementations can be used without changing their public
+    surface.
+    """
+    candidate = _resolve_registry(registry)
+
+    if isinstance(candidate, bool):
+        return candidate
+
+    keys = (
+        "authenticates_identities",
+        "authenticate_identities",
+        "authentication_required",
+        "authenticated",
+        "is_authenticated",
+        "authenticates",
+    )
+
+    if isinstance(candidate, dict):
+        for key in keys:
+            if key in candidate:
+                value = candidate[key]
+                return bool(value() if callable(value) else value)
+        return False
+
+    for attr in keys:
+        if hasattr(candidate, attr):
+            value = getattr(candidate, attr)
+            return bool(value() if callable(value) else value)
+
+    return False
+```

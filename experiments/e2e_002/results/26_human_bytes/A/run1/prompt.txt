@@ -1,0 +1,26 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+(none)
+
+TASK:
+# Human bytes
+
+Implement the function in `bytesize.py`.
+
+Format a byte count with base 1000: `1000 -> '1.0 KB'`, `1500 -> '1.5 KB'`, `2000000 -> '2.0 MB'`.
+
+Output only the full contents of `bytesize.py` in a python code block.
+

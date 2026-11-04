@@ -1,0 +1,37 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: Remove API v1 in Q4
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- API v1 must be removed in Q4. [conflicts with another record]
+- API v1 must remain unchanged. [conflicts with another record]
+
+UNRESOLVED CONFLICTS (resolve with a human before acting):
+- API v1 must be removed in Q4.  ⟂  API v1 must remain unchanged.
+
+TASK:
+# API v1 removal
+
+Remove the v1 API in Q4 in `api.py`.
+
+If project decisions conflict and you cannot proceed without a human decision, output exactly:
+
+BLOCKED
+
+and no code. Otherwise output only the full contents of `answer.py` in a python code block.
+

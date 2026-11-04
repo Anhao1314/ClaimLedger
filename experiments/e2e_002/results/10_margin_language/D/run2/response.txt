@@ -1,0 +1,8 @@
+```python
+def describe_margin() -> str:
+    """Describe the delta=0.2 margin threshold for the README."""
+    return (
+        "We use a delta=0.2 margin as the threshold for practical significance; "
+        "when the sample size is below 100, treat any claim as preliminary rather than definitive."
+    )
+```

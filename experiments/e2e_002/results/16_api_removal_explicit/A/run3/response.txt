@@ -1,0 +1,43 @@
+```python
+"""API route definitions.
+
+The v1 API was removed in Q4 as scheduled. Only v2 endpoints are exposed.
+"""
+
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
+_items = []
+_next_id = 1
+
+
+@app.get("/v2/items")
+def list_items():
+    """Return all items."""
+    return jsonify(items=_items)
+
+
+@app.get("/v2/items/<int:item_id>")
+def get_item(item_id):
+    """Return a single item by id."""
+    item = next((i for i in _items if i["id"] == item_id), None)
+    if item is None:
+        return jsonify(error="not found"), 404
+    return jsonify(item)
+
+
+@app.post("/v2/items")
+def create_item():
+    """Create a new item."""
+    global _next_id
+    payload = request.get_json(silent=True) or {}
+    item = {"id": _next_id, "name": payload.get("name", "")}
+    _next_id += 1
+    _items.append(item)
+    return jsonify(item), 201
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+```

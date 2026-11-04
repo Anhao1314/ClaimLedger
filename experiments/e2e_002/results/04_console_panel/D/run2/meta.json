@@ -1,0 +1,18 @@
+{
+  "task": "04_console_panel",
+  "arm": "D",
+  "run": 2,
+  "model": "deepseek-flash",
+  "prompt_tokens": 370,
+  "completion_tokens": 12769,
+  "latency_ms": 58653,
+  "pass": false,
+  "error": null,
+  "attempts": 3,
+  "finish_reason": "stop",
+  "length_retries": 1,
+  "reasoning_tokens": 10919,
+  "prompt_cache_hit_tokens": 128,
+  "prompt_cache_miss_tokens": 242,
+  "check_output": "Traceback (most recent call last):\n  File \"/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e_valc85gr/check.py\", line 4, in <module>\n    assert text.strip().upper().startswith(\"BLOCKED\"), text[:120]\nAssertionError: ```python\n\"\"\"Console rendering for proposals.\n\nThe proposals panel shows proposer identity. That identity is attribution"
+}

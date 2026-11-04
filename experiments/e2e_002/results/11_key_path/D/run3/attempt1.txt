@@ -1,0 +1,40 @@
+```python
+"""Locate the on-disk API key used by the project."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+__all__ = ["key_path"]
+
+_API_KEY_FILENAME = "api_key"
+_ENV_OVERRIDE = "PROJECT_API_KEY_PATH"
+
+
+def _app_name() -> str:
+    """Return the application name used for the user configuration directory."""
+    if __package__:
+        return __package__.split(".", 1)[0]
+    return Path(__file__).resolve().parent.name or "project"
+
+
+def key_path() -> Path:
+    """Return the filesystem path where the project stores its API key.
+
+    A custom location can be supplied with ``PROJECT_API_KEY_PATH``. By
+    default the key lives in the user's configuration directory, following
+    the XDG Base Directory specification when ``XDG_CONFIG_HOME`` is set.
+    """
+    override = os.environ.get(_ENV_OVERRIDE)
+    if override:
+        return Path(override).expanduser()
+
+    config_home = os.environ.get("XDG_CONFIG_HOME")
+    if config_home:
+        config_dir = Path(config_home).expanduser()
+    else:
+        config_dir = Path.home() / ".config"
+
+    return config_dir / _app_name() / _API_KEY_FILENAME
+```

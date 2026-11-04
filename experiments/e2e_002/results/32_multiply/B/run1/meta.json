@@ -1,0 +1,18 @@
+{
+  "task": "32_multiply",
+  "arm": "B",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 751,
+  "completion_tokens": 313,
+  "latency_ms": 3544,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 296,
+  "prompt_cache_hit_tokens": 512,
+  "prompt_cache_miss_tokens": 239,
+  "check_output": ""
+}

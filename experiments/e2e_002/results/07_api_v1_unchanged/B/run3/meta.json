@@ -1,0 +1,18 @@
+{
+  "task": "07_api_v1_unchanged",
+  "arm": "B",
+  "run": 3,
+  "model": "deepseek-flash",
+  "prompt_tokens": 792,
+  "completion_tokens": 1969,
+  "latency_ms": 10937,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 1914,
+  "prompt_cache_hit_tokens": 640,
+  "prompt_cache_miss_tokens": 152,
+  "check_output": ""
+}

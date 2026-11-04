@@ -1,0 +1,15 @@
+```python
+"""Utilities for locating the project's stored API key."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+
+def key_path() -> Path:
+    """Return the filesystem path where the project stores its API key."""
+    config_home = os.environ.get("XDG_CONFIG_HOME")
+    config_dir = Path(config_home) if config_home else Path.home() / ".config"
+    return config_dir / "secrets" / "api_key"
+```

@@ -1,0 +1,11 @@
+```python
+def chunk(sequence, size):
+    """Split a sequence into consecutive lists of at most size items."""
+    if size <= 0:
+        raise ValueError("size must be greater than zero")
+
+    return [
+        list(sequence[index:index + size])
+        for index in range(0, len(sequence), size)
+    ]
+```

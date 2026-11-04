@@ -1,0 +1,30 @@
+```python
+"""Storage backend helpers."""
+
+BACKEND = "postgresql"
+
+_DSN_SCHEMES = {
+    "postgresql": ("postgresql://", "postgres://"),
+    "postgres": ("postgresql://", "postgres://"),
+}
+
+
+def connect(dsn: str) -> str:
+    """Return *dsn* unchanged when it matches the configured backend.
+
+    No connection is opened. A mismatched DSN scheme raises ``ValueError``.
+    """
+    if not isinstance(dsn, str):
+        raise ValueError("DSN must be a string")
+
+    schemes = _DSN_SCHEMES.get(BACKEND)
+    if schemes is None:
+        raise ValueError(f"Unsupported storage backend: {BACKEND}")
+
+    if any(dsn.startswith(scheme) for scheme in schemes):
+        return dsn
+
+    raise ValueError(
+        f"DSN scheme does not match storage backend {BACKEND!r}: {dsn!r}"
+    )
+```

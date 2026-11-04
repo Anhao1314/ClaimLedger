@@ -1,0 +1,23 @@
+```python
+"""Feature flags."""
+
+from typing import Mapping, Optional
+
+# Feature flag names.
+NEW_FEATURE = "new_feature"
+
+# Defaults are chosen explicitly. New features are disabled by default.
+FEATURE_FLAG_DEFAULTS: Mapping[str, bool] = {
+    NEW_FEATURE: False,
+}
+
+
+def is_enabled(
+    flag_name: str,
+    overrides: Optional[Mapping[str, bool]] = None,
+) -> bool:
+    """Return whether a feature flag is enabled."""
+    if overrides is not None and flag_name in overrides:
+        return overrides[flag_name]
+    return FEATURE_FLAG_DEFAULTS.get(flag_name, False)
+```

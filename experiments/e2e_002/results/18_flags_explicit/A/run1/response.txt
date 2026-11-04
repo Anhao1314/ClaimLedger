@@ -1,0 +1,6 @@
+```python
+"""Feature flags and their default values."""
+
+# Disabled by default so the feature can be enabled deliberately.
+FEATURE_FLAG_ENABLED = False
+```

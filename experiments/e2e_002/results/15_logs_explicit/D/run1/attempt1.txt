@@ -1,0 +1,187 @@
+```python
+"""Structured JSON logging with PII redaction and opt-in telemetry."""
+
+from __future__ import annotations
+
+import json
+import logging
+import re
+import sys
+from datetime import datetime, timezone
+from typing import Any, Mapping, Optional
+
+REDACTED = "[REDACTED]"
+
+PII_FIELD_NAMES = frozenset(
+    {
+        "email",
+        "phone",
+        "telephone",
+        "ssn",
+        "social_security",
+        "address",
+        "name",
+        "first_name",
+        "last_name",
+        "full_name",
+        "ip",
+        "ip_address",
+        "password",
+        "passwd",
+        "secret",
+        "token",
+        "api_key",
+        "card",
+        "card_number",
+        "credit_card",
+        "dob",
+        "birthdate",
+    }
+)
+
+_PII_PATTERNS = (
+    re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
+    re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
+    re.compile(r"\b(?:\d[ -]*?){13,16}\b"),
+    re.compile(
+        r"(?<!\d)(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}(?!\d)"
+    ),
+)
+
+_STANDARD_RECORD_ATTRS = frozenset(
+    logging.LogRecord("", 0, "", 0, "", (), None).__dict__
+) | {"message", "asctime"}
+
+
+def _is_pii_key(key: Any) -> bool:
+    normalized = re.sub(r"[^a-z0-9]+", "_", str(key).lower()).strip("_")
+    if not normalized:
+        return False
+    parts = set(normalized.split("_"))
+    return normalized in PII_FIELD_NAMES or bool(parts & PII_FIELD_NAMES)
+
+
+def redact(value: Any, key: Optional[str] = None) -> Any:
+    """Return a redacted copy of a value before it is stored or emitted."""
+    if key is not None and _is_pii_key(key):
+        return REDACTED
+
+    if isinstance(value, str):
+        redacted = value
+        for pattern in _PII_PATTERNS:
+            redacted = pattern.sub(REDACTED, redacted)
+        return redacted
+
+    if isinstance(value, Mapping):
+        return {item_key: redact(item_value, item_key) for item_key, item_value in value.items()}
+
+    if isinstance(value, list):
+        return [redact(item) for item in value]
+
+    if isinstance(value, tuple):
+        return tuple(redact(item) for item in value)
+
+    if isinstance(value, set):
+        return {redact(item) for item in value}
+
+    return value
+
+
+class RedactingFilter(logging.Filter):
+    """Redact PII from log records before handlers store them."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if isinstance(record.msg, str):
+            record.msg = redact(record.msg)
+
+        if isinstance(record.args, Mapping):
+            record.args = redact(record.args)
+        elif isinstance(record.args, tuple):
+            record.args = tuple(redact(arg) for arg in record.args)
+        elif record.args is not None:
+            record.args = redact(record.args)
+
+        for key in list(record.__dict__):
+            if key in _STANDARD_RECORD_ATTRS:
+                continue
+            record.__dict__[key] = redact(record.__dict__[key], key)
+
+        return True
+
+
+class JsonFormatter(logging.Formatter):
+    """Serialize log records as structured JSON."""
+
+    def __init__(self, service_name: str) -> None:
+        super().__init__()
+        self.service_name = service_name
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "timestamp": datetime.fromtimestamp(
+                record.created, timezone.utc
+            ).isoformat().replace("+00:00", "Z"),
+            "level": record.levelname,
+            "logger": record.name,
+            "service": self.service_name,
+            "message": record.getMessage(),
+        }
+
+        for key, value in record.__dict__.items():
+            if key in _STANDARD_RECORD_ATTRS or key == "service":
+                continue
+            payload[key] = value
+
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+
+        return json.dumps(payload, default=str, ensure_ascii=False)
+
+
+def configure_logging(
+    service_name: str,
+    level: int = logging.INFO,
+    *,
+    telemetry_enabled: bool = False,
+    telemetry_handler: Optional[logging.Handler] = None,
+    stream: Optional[Any] = None,
+) -> logging.Logger:
+    """Configure structured logging for a service.
+
+    Telemetry is opt-in. A telemetry handler is attached only when
+    ``telemetry_enabled`` is true.
+    """
+    logger = logging.getLogger(service_name)
+    logger.setLevel(level)
+    logger.propagate = False
+
+    for handler in list(logger.handlers):
+        if getattr(handler, "_structured_logging_handler", False):
+            logger.removeHandler(handler)
+            handler.close()
+
+    formatter = JsonFormatter(service_name)
+    redactor = RedactingFilter()
+
+    console_handler = logging.StreamHandler(stream or sys.stderr)
+    console_handler.setLevel(level)
+    console_handler.setFormatter(formatter)
+    console_handler.addFilter(redactor)
+    setattr(console_handler, "_structured_logging_handler", True)
+    logger.addHandler(console_handler)
+
+    if telemetry_enabled:
+        if telemetry_handler is None:
+            raise ValueError("telemetry_handler is required when telemetry_enabled is True")
+
+        telemetry_handler.setLevel(level)
+        telemetry_handler.setFormatter(formatter)
+        telemetry_handler.addFilter(redactor)
+        setattr(telemetry_handler, "_structured_logging_handler", True)
+        logger.addHandler(telemetry_handler)
+
+    return logger
+
+
+setup_logging = configure_logging
+```

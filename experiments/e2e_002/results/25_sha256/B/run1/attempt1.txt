@@ -1,0 +1,27 @@
+```python
+"""SHA-256 hashing utilities."""
+
+from __future__ import annotations
+
+import hashlib
+
+
+def sha256_hex(text: str) -> str:
+    """Return the lowercase hexadecimal SHA-256 digest of *text*.
+
+    *text* is encoded as UTF-8 before hashing.
+    """
+    if isinstance(text, bytes):
+        data = text
+    else:
+        data = text.encode("utf-8")
+    return hashlib.sha256(data).hexdigest()
+
+
+# Aliases for callers that use a more generic name.
+hash_text = sha256_hex
+sha256 = sha256_hex
+hash_sha256 = sha256_hex
+
+__all__ = ["sha256_hex", "hash_text", "sha256", "hash_sha256"]
+```

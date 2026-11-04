@@ -1,0 +1,22 @@
+```python
+def titlecase(text: str) -> str:
+    """Capitalize the first character of each whitespace-separated word.
+
+    The remaining characters in each word are lowercased, and the original
+    whitespace is preserved.
+    """
+    result = []
+    at_word_start = True
+
+    for char in text:
+        if char.isspace():
+            result.append(char)
+            at_word_start = True
+        elif at_word_start:
+            result.append(char.upper())
+            at_word_start = False
+        else:
+            result.append(char.lower())
+
+    return "".join(result)
+```

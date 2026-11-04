@@ -1,0 +1,28 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- Frontend assets must be minified before release.
+- 控制台的 proposals 面板必须显示提案人身份。
+- Claims about the system must be weakened when the sample size is below 100.
+- Release notes are written before the tag.
+
+TASK:
+# Margin description
+
+Implement `describe_margin()` in `describe.py`. Return one sentence describing
+the `delta=0.2` margin threshold for the README. Use the project's framing.
+
+Output only the full contents of `describe.py` in a python code block.
+

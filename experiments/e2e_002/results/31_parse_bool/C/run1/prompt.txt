@@ -1,0 +1,28 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: Parse bool
+
+NO RELEVANT RECORDS: nothing in memory matches this task lexically. The candidates below were selected by recency, not relevance, and none were admitted.
+
+TASK:
+# Parse bool
+
+Implement the function in `boolparse.py`.
+
+Accept `true`/`false` case-insensitively; raise `ValueError` for anything else.
+
+Output only the full contents of `boolparse.py` in a python code block.
+

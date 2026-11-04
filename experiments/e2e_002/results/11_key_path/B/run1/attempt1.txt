@@ -1,0 +1,10 @@
+```python
+"""Helpers for locating local secret files."""
+
+from pathlib import Path
+
+
+def key_path() -> Path:
+    """Return the filesystem path to the project's API key file."""
+    return Path.home() / ".config" / "claimledger" / "api.env"
+```

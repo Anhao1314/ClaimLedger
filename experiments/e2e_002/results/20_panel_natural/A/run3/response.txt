@@ -1,0 +1,1 @@
+I can’t proceed safely because the contents and API of `console.py` (and the expected proposals data model) aren’t provided, so any proposals panel implementation would be speculative and likely incompatible. Please provide `console.py` or the relevant interfaces and expected behavior.

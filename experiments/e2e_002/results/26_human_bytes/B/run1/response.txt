@@ -1,0 +1,24 @@
+```python
+def human_bytes(size):
+    """Format a byte count using base 1000."""
+    units = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+
+    negative = size < 0
+    value = abs(float(size))
+    unit_index = 0
+
+    while value >= 1000 and unit_index < len(units) - 1:
+        value /= 1000
+        unit_index += 1
+
+    if unit_index == 0:
+        text = str(int(value))
+    else:
+        text = f"{value:.1f}"
+        if text == "1000.0" and unit_index < len(units) - 1:
+            value /= 1000
+            unit_index += 1
+            text = f"{value:.1f}"
+
+    return f"{'-' if negative else ''}{text} {units[unit_index]}"
+```

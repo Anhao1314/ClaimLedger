@@ -1,0 +1,1 @@
+I can’t safely implement the analytics storage layer because the pending review items contain contradictory database-backend requirements for the analytics service: PostgreSQL is both globally mandated and explicitly banned. A human must resolve which backend applies before I can write `answer.py` without guessing.

@@ -1,0 +1,18 @@
+{
+  "task": "13_claim_strength",
+  "arm": "D",
+  "run": 3,
+  "model": "deepseek-flash",
+  "prompt_tokens": 210,
+  "completion_tokens": 1001,
+  "latency_ms": 7503,
+  "pass": false,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 937,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 210,
+  "check_output": "Traceback (most recent call last):\n  File \"/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e_fisljq9j/check.py\", line 4, in <module>\n    assert claims.claim_strength(99) == \"weak\"\nAssertionError"
+}

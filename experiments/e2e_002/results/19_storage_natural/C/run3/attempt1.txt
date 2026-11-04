@@ -1,0 +1,1 @@
+I can’t safely implement the analytics storage layer because the review candidates contain contradictory, unadmitted requirements: one says all storage must use PostgreSQL, while another says PostgreSQL is banned for analytics. Please decide which database/backend policy applies before I write `answer.py`.

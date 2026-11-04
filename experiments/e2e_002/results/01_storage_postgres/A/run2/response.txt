@@ -1,0 +1,17 @@
+```python
+"""Storage backend configuration and DSN handling."""
+
+BACKEND = "sqlite"
+
+_DSN_SCHEME = {
+    "sqlite": "sqlite",
+}
+
+
+def connect(dsn: str) -> str:
+    """Validate a DSN against the configured storage backend."""
+    scheme = dsn.split("://", 1)[0].lower() if "://" in dsn else ""
+    if _DSN_SCHEME.get(BACKEND) == scheme:
+        return dsn
+    raise ValueError(f"Unsupported DSN scheme for backend {BACKEND!r}: {dsn!r}")
+```

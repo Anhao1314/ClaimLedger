@@ -1,0 +1,18 @@
+```python
+def dedupe(items):
+    """Return a list with duplicates removed, preserving first-seen order."""
+    result = []
+    seen = set()
+
+    for item in items:
+        try:
+            if item in seen:
+                continue
+            seen.add(item)
+        except TypeError:
+            if item in result:
+                continue
+        result.append(item)
+
+    return result
+```

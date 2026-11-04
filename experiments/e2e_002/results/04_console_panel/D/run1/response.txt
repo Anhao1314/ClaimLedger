@@ -1,0 +1,245 @@
+```python
+"""Console proposals panel.
+
+The panel displays proposer identity as unverified attribution. It does not
+perform authentication, and the registry carries no keys or signatures.
+"""
+from __future__ import annotations
+
+import json
+import os
+import sys
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Optional
+
+DEFAULT_LOCALE = "en-US"
+
+_STRINGS: Mapping[str, Mapping[str, str]] = {
+    "en-US": {
+        "panel.title": "Proposals",
+        "panel.empty": "No proposals.",
+        "panel.attribution_note": (
+            "Proposer identity is unverified attribution, not authentication; "
+            "the registry stores no keys or signatures."
+        ),
+        "proposal.proposer": "Proposer (unverified attribution)",
+        "proposal.status": "Status",
+        "proposal.created": "Created (UTC)",
+        "proposal.untitled": "Untitled proposal",
+        "proposal.unattributed": "Unattributed",
+        "status.open": "Open",
+        "status.accepted": "Accepted",
+        "status.rejected": "Rejected",
+        "status.unknown": "Unknown",
+        "validation.missing_proposer": "Proposal {index} is missing proposer identity.",
+        "validation.bad_timestamp": "Proposal {index} has an invalid timestamp.",
+        "validation.payload_not_list": "The proposals payload must be a list.",
+        "validation.proposal_entry": "Each proposal must be an object.",
+        "cli.usage": "Usage: console.py [proposals.json]",
+        "cli.read_error": "Could not read proposals: {error}",
+        "cli.parse_error": "Could not parse proposals: {error}",
+        "cli.validation_error": "Validation failed: {error}",
+    }
+}
+
+
+class ProposalValidationError(ValueError):
+    """Raised when a proposal cannot be displayed or validated."""
+
+
+def _resolve_locale(locale: Optional[str] = None) -> str:
+    candidate = locale or os.environ.get("CONSOLE_LOCALE", DEFAULT_LOCALE)
+    return candidate if candidate in _STRINGS else DEFAULT_LOCALE
+
+
+def _t(key: str, *, locale: Optional[str] = None, **values: Any) -> str:
+    catalog = _STRINGS[_resolve_locale(locale)]
+    template = catalog.get(key, _STRINGS[DEFAULT_LOCALE].get(key, key))
+    return template.format(**values)
+
+
+def _parse_timestamp(value: str) -> datetime:
+    text = value.strip()
+    if not text:
+        raise ValueError("empty timestamp")
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    parsed = datetime.fromisoformat(text)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _to_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _format_utc(value: datetime) -> str:
+    return _to_utc(value).isoformat().replace("+00:00", "Z")
+
+
+def _status_label(status: str, *, locale: Optional[str] = None) -> str:
+    normalized = status.strip().lower()
+    if not normalized:
+        return _t("status.unknown", locale=locale)
+    key = f"status.{normalized}"
+    catalog = _STRINGS[_resolve_locale(locale)]
+    return catalog.get(key, status.strip())
+
+
+@dataclass(frozen=True)
+class Proposal:
+    title: str
+    proposer: str
+    status: str = "open"
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "Proposal":
+        if not isinstance(data, Mapping):
+            raise ProposalValidationError("Each proposal must be an object.")
+
+        created_value = data.get("created_at")
+        if created_value is None:
+            created_at = datetime.now(timezone.utc)
+        elif isinstance(created_value, datetime):
+            created_at = created_value
+        else:
+            created_at = _parse_timestamp(str(created_value))
+
+        proposer = data.get("proposer")
+        if proposer is None:
+            proposer = data.get("proposer_identity")
+        if proposer is None:
+            proposer = data.get("proposer_id")
+
+        return cls(
+            title=str(data.get("title") or "").strip(),
+            proposer=str(proposer or "").strip(),
+            status=str(data.get("status") or "open").strip(),
+            created_at=created_at,
+        )
+
+    def validate(self, index: int, *, locale: Optional[str] = None) -> None:
+        if not self.proposer or not self.proposer.strip():
+            raise ProposalValidationError(
+                _t("validation.missing_proposer", locale=locale, index=index)
+            )
+        if not isinstance(self.created_at, datetime):
+            raise ProposalValidationError(
+                _t("validation.bad_timestamp", locale=locale, index=index)
+            )
+
+
+def _coerce_proposal(item: Any, *, locale: Optional[str] = None) -> Proposal:
+    if isinstance(item, Proposal):
+        return item
+    if isinstance(item, Mapping):
+        return Proposal.from_mapping(item)
+    raise ProposalValidationError(_t("validation.proposal_entry", locale=locale))
+
+
+def _coerce_proposals(payload: Any, *, locale: Optional[str] = None) -> list[Proposal]:
+    if isinstance(payload, Mapping):
+        payload = payload.get("proposals", [])
+    if not isinstance(payload, list):
+        raise ProposalValidationError(
+            _t("validation.payload_not_list", locale=locale)
+        )
+    return [_coerce_proposal(item, locale=locale) for item in payload]
+
+
+def render_proposals_panel(
+    proposals: Iterable[Any],
+    *,
+    locale: Optional[str] = None,
+    width: int = 78,
+) -> str:
+    """Render the proposals panel, including proposer attribution."""
+    normalized = [_coerce_proposal(item, locale=locale) for item in proposals]
+    for index, proposal in enumerate(normalized, start=1):
+        proposal.validate(index, locale=locale)
+
+    heading = _t("panel.title", locale=locale)
+    lines = [heading, "=" * max(len(heading), min(width, 40))]
+
+    if not normalized:
+        lines.append(_t("panel.empty", locale=locale))
+    else:
+        for index, proposal in enumerate(normalized, start=1):
+            title = proposal.title.strip() or _t("proposal.untitled", locale=locale)
+            proposer = proposal.proposer.strip() or _t(
+                "proposal.unattributed", locale=locale
+            )
+            lines.append(f"{index}. {title}")
+            lines.append(f"   {_t('proposal.proposer', locale=locale)}: {proposer}")
+            lines.append(
+                f"   {_t('proposal.status', locale=locale)}: "
+                f"{_status_label(proposal.status, locale=locale)}"
+            )
+            lines.append(
+                f"   {_t('proposal.created', locale=locale)}: "
+                f"{_format_utc(proposal.created_at)}"
+            )
+            if index != len(normalized):
+                lines.append("")
+
+    lines.append("")
+    lines.append(_t("panel.attribution_note", locale=locale))
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def show_proposals(
+    proposals: Iterable[Any],
+    *,
+    locale: Optional[str] = None,
+    stream: Optional[Any] = None,
+) -> int:
+    output = stream if stream is not None else sys.stdout
+    try:
+        rendered = render_proposals_panel(proposals, locale=locale)
+    except ProposalValidationError as exc:
+        print(_t("cli.validation_error", locale=locale, error=exc), file=sys.stderr)
+        return 1
+
+    print(rendered, file=output, end="")
+    return 0
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    locale = _resolve_locale()
+
+    if len(args) > 1:
+        print(_t("cli.usage", locale=locale), file=sys.stderr)
+        return 2
+
+    try:
+        if args:
+            with open(args[0], "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+        else:
+            payload = json.load(sys.stdin)
+    except OSError as exc:
+        print(_t("cli.read_error", locale=locale, error=exc), file=sys.stderr)
+        return 1
+    except (json.JSONDecodeError, ValueError, TypeError) as exc:
+        print(_t("cli.parse_error", locale=locale, error=exc), file=sys.stderr)
+        return 1
+
+    try:
+        proposals = _coerce_proposals(payload, locale=locale)
+    except (ProposalValidationError, ValueError, TypeError) as exc:
+        print(_t("cli.parse_error", locale=locale, error=exc), file=sys.stderr)
+        return 1
+
+    return show_proposals(proposals, locale=locale)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```

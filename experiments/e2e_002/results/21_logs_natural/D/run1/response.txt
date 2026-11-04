@@ -1,0 +1,330 @@
+```python
+"""Structured JSON logging for the service.
+
+Call ``setup_logging`` once during process startup, then use ``log_event`` and
+``log_error`` for consistent, machine-readable log records.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import sys
+from collections.abc import Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
+from datetime import date, datetime, timezone
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+
+# Deployment must configure log retention to this value.
+LOG_RETENTION_DAYS = 30
+
+# Fallback code so error-level records always include a stable code.
+UNSPECIFIED_ERROR_CODE = "UNSPECIFIED_ERROR"
+
+_request_id: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
+_correlation_id: ContextVar[Optional[str]] = ContextVar("correlation_id", default=None)
+_trace_id: ContextVar[Optional[str]] = ContextVar("trace_id", default=None)
+
+_RESERVED_PAYLOAD_KEYS = frozenset(
+    {
+        "timestamp",
+        "level",
+        "logger",
+        "message",
+        "service",
+        "environment",
+        "context",
+        "exception",
+        "stack_info",
+    }
+)
+
+
+def _utc_isoformat(value: datetime) -> str:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    else:
+        value = value.astimezone(timezone.utc)
+    return value.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+def _json_default(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return _utc_isoformat(value)
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, BaseException):
+        return {"type": type(value).__name__, "message": str(value)}
+    return str(value)
+
+
+def _current_context() -> Dict[str, str]:
+    context: Dict[str, str] = {}
+    for key, variable in (
+        ("request_id", _request_id),
+        ("correlation_id", _correlation_id),
+        ("trace_id", _trace_id),
+    ):
+        value = variable.get()
+        if value is not None:
+            context[key] = value
+    return context
+
+
+class JsonFormatter(logging.Formatter):
+    """Render log records as single-line JSON objects."""
+
+    def __init__(self, service_name: str, *, environment: Optional[str] = None) -> None:
+        super().__init__()
+        self.service_name = service_name
+        self.environment = environment
+
+    def format(self, record: logging.LogRecord) -> str:
+        raw_structured = getattr(record, "structured", None)
+        structured: Mapping[str, Any]
+        if isinstance(raw_structured, Mapping):
+            structured = raw_structured
+        else:
+            structured = {}
+
+        payload: Dict[str, Any] = {
+            "timestamp": _utc_isoformat(
+                datetime.fromtimestamp(record.created, tz=timezone.utc)
+            ),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "service": self.service_name,
+        }
+
+        if self.environment:
+            payload["environment"] = self.environment
+
+        context = _current_context()
+        structured_context = structured.get("context")
+        if isinstance(structured_context, Mapping):
+            context.update(structured_context)
+        if context:
+            payload["context"] = context
+
+        for key, value in structured.items():
+            if key == "context":
+                continue
+            if key not in _RESERVED_PAYLOAD_KEYS:
+                payload[key] = value
+
+        if record.exc_info:
+            exc_type, exc_value, _ = record.exc_info
+            payload["exception"] = {
+                "type": getattr(exc_type, "__name__", "Exception"),
+                "message": str(exc_value) if exc_value is not None else "",
+                "stack": self.formatException(record.exc_info),
+            }
+
+        if record.stack_info:
+            payload["stack_info"] = self.formatStack(record.stack_info)
+
+        if record.levelno >= logging.ERROR and "error_code" not in payload:
+            payload["error_code"] = UNSPECIFIED_ERROR_CODE
+
+        return json.dumps(
+            payload,
+            ensure_ascii=False,
+            default=_json_default,
+            separators=(",", ":"),
+        )
+
+
+def _coerce_level(level: Union[int, str]) -> int:
+    if isinstance(level, int):
+        return level
+
+    if isinstance(level, str):
+        value = logging.getLevelName(level.upper())
+        if isinstance(value, int):
+            return value
+
+    raise ValueError(f"Invalid log level: {level!r}")
+
+
+def setup_logging(
+    service_name: str,
+    *,
+    level: Union[int, str] = logging.INFO,
+    stream: Optional[Any] = None,
+    environment: Optional[str] = None,
+    force: bool = False,
+) -> logging.Logger:
+    """Configure root logging to emit structured JSON records.
+
+    Args:
+        service_name: Stable service identifier included in every record.
+        level: Minimum log level as an integer or name such as ``"INFO"``.
+        stream: Optional output stream. Defaults to stdout.
+        environment: Optional deployment environment name.
+        force: Remove all existing root handlers before installing this handler.
+    """
+
+    if not isinstance(service_name, str) or not service_name:
+        raise ValueError("service_name must be a non-empty string")
+
+    log_level = _coerce_level(level)
+    resolved_environment = (
+        environment
+        or os.environ.get("SERVICE_ENVIRONMENT")
+        or os.environ.get("ENVIRONMENT")
+    )
+
+    root = logging.getLogger()
+
+    if force:
+        for existing_handler in list(root.handlers):
+            root.removeHandler(existing_handler)
+    else:
+        for existing_handler in list(root.handlers):
+            if getattr(existing_handler, "_structured_logging_handler", False):
+                root.removeHandler(existing_handler)
+
+    handler = logging.StreamHandler(stream if stream is not None else sys.stdout)
+    setattr(handler, "_structured_logging_handler", True)
+    handler.setFormatter(
+        JsonFormatter(service_name, environment=resolved_environment)
+    )
+
+    root.addHandler(handler)
+    root.setLevel(log_level)
+    logging.captureWarnings(True)
+
+    return root
+
+
+configure_logging = setup_logging
+
+
+def get_logger(name: Optional[str] = None) -> logging.Logger:
+    """Return a service logger."""
+
+    return logging.getLogger(name)
+
+
+def log_event(
+    logger: logging.Logger,
+    event: str,
+    *,
+    level: Union[int, str] = logging.INFO,
+    message: Optional[str] = None,
+    error_code: Optional[str] = None,
+    exc_info: Any = None,
+    **fields: Any,
+) -> None:
+    """Emit a structured event."""
+
+    if not isinstance(event, str) or not event:
+        raise ValueError("event must be a non-empty string")
+
+    if error_code is not None and (
+        not isinstance(error_code, str) or not error_code
+    ):
+        raise ValueError("error_code must be a non-empty string")
+
+    structured: Dict[str, Any] = dict(fields)
+    structured["event"] = event
+
+    if error_code is not None:
+        structured["error_code"] = error_code
+
+    logger.log(
+        _coerce_level(level),
+        message if message is not None else event,
+        extra={"structured": structured},
+        exc_info=exc_info,
+    )
+
+
+def log_error(
+    logger: logging.Logger,
+    error_code: str,
+    message: str,
+    *,
+    event: str = "error",
+    level: Union[int, str] = logging.ERROR,
+    exc_info: Any = None,
+    **fields: Any,
+) -> None:
+    """Emit an error with a stable, machine-readable error code."""
+
+    if not isinstance(error_code, str) or not error_code:
+        raise ValueError(
+            "error_code must be a non-empty, stable machine-readable string"
+        )
+
+    log_event(
+        logger,
+        event,
+        level=level,
+        message=message,
+        error_code=error_code,
+        exc_info=exc_info,
+        **fields,
+    )
+
+
+def log_exception(
+    logger: logging.Logger,
+    error_code: str,
+    message: str,
+    *,
+    event: str = "exception",
+    **fields: Any,
+) -> None:
+    """Emit the current exception with a stable error code."""
+
+    log_error(
+        logger,
+        error_code,
+        message,
+        event=event,
+        exc_info=True,
+        **fields,
+    )
+
+
+@contextmanager
+def log_context(
+    *,
+    request_id: Optional[str] = None,
+    correlation_id: Optional[str] = None,
+    trace_id: Optional[str] = None,
+) -> Iterator[None]:
+    """Attach request/correlation context to logs emitted inside the block."""
+
+    tokens: List[Tuple[ContextVar[Optional[str]], Any]] = []
+
+    if request_id is not None:
+        tokens.append((_request_id, _request_id.set(request_id)))
+    if correlation_id is not None:
+        tokens.append((_correlation_id, _correlation_id.set(correlation_id)))
+    if trace_id is not None:
+        tokens.append((_trace_id, _trace_id.set(trace_id)))
+
+    try:
+        yield
+    finally:
+        for variable, token in reversed(tokens):
+            variable.reset(token)
+
+
+__all__ = [
+    "JsonFormatter",
+    "LOG_RETENTION_DAYS",
+    "configure_logging",
+    "get_logger",
+    "log_context",
+    "log_error",
+    "log_event",
+    "log_exception",
+    "setup_logging",
+]
+```

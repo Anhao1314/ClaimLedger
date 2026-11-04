@@ -1,0 +1,29 @@
+```python
+"""Q4 API v1 removal.
+
+Importing this module applies the v1 API removal to the existing API app.
+"""
+
+import api
+
+app = getattr(api, "app", None) or getattr(api, "application", None)
+if app is None:
+    raise RuntimeError("api module does not expose an application")
+
+
+def _remove_v1_routes(application) -> None:
+    """Drop every route that contains a ``v1`` path segment."""
+    routes = application.router.routes
+    routes[:] = [
+        route
+        for route in routes
+        if "v1" not in getattr(route, "path", "").strip("/").split("/")
+    ]
+
+    # Ensure FastAPI rebuilds the OpenAPI schema without the removed routes.
+    if hasattr(application, "openapi_schema"):
+        application.openapi_schema = None
+
+
+_remove_v1_routes(app)
+```

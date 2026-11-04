@@ -1,0 +1,275 @@
+```python
+"""Interactive console with a proposals panel.
+
+This module provides a small, dependency-free terminal console. Panels render
+their own content and handle commands. The built-in :class:`ProposalsPanel`
+lets users list, create, vote on, open, close, and delete proposals.
+"""
+
+from __future__ import annotations
+
+import textwrap
+from dataclasses import dataclass
+from typing import List, Optional
+
+
+@dataclass
+class Proposal:
+    """A single proposal."""
+
+    id: int
+    title: str
+    description: str = ""
+    status: str = "open"
+    votes: int = 0
+
+    def summary(self) -> str:
+        vote_word = "vote" if self.votes == 1 else "votes"
+        return f"#{self.id} {self.title} [{self.status}] ({self.votes} {vote_word})"
+
+
+class Panel:
+    """Base class for console panels."""
+
+    name = "Panel"
+
+    def render(self, console: "Console") -> List[str]:
+        raise NotImplementedError
+
+    def handle(self, console: "Console", command: str) -> bool:
+        """Handle *command*. Return True if the command was consumed."""
+        return False
+
+
+class ProposalsPanel(Panel):
+    """Panel for browsing and managing proposals."""
+
+    name = "Proposals"
+    help_text = (
+        "new <title> | describe <id> <text> | vote <id> | open <id> | "
+        "close <id> | delete <id> | select <index> | clear"
+    )
+
+    def __init__(self) -> None:
+        self.selected = 0
+
+    def render(self, console: "Console") -> List[str]:
+        lines = [self.name, "=" * len(self.name)]
+
+        if not console.proposals:
+            lines.append("(no proposals yet)")
+        else:
+            for index, proposal in enumerate(console.proposals):
+                marker = ">" if index == self.selected else " "
+                lines.append(f"{marker} {proposal.summary()}")
+
+                if proposal.description:
+                    for wrapped in textwrap.wrap(proposal.description, width=72):
+                        lines.append(f"    {wrapped}")
+
+        lines.append("")
+        lines.append(f"Commands: {self.help_text}")
+        return lines
+
+    def handle(self, console: "Console", command: str) -> bool:
+        if not command:
+            return False
+
+        parts = command.split(maxsplit=1)
+        action = parts[0].lower()
+        argument = parts[1].strip() if len(parts) > 1 else ""
+
+        if action in {"help", "?"}:
+            console.write(self.help_text)
+            return True
+
+        if action == "new":
+            if not argument:
+                console.write("Usage: new <title>")
+                return True
+            proposal = console.add_proposal(argument)
+            self.selected = len(console.proposals) - 1
+            console.write(f"Created proposal #{proposal.id}.")
+            return True
+
+        if action == "describe":
+            proposal, description = self._split_id_and_text(console, argument)
+            if proposal is None:
+                return True
+            proposal.description = description
+            console.write(f"Updated description for #{proposal.id}.")
+            return True
+
+        if action == "select":
+            try:
+                index = int(argument)
+            except ValueError:
+                console.write("Usage: select <index>")
+                return True
+
+            if 0 <= index < len(console.proposals):
+                self.selected = index
+            else:
+                console.write("No proposal at that index.")
+            return True
+
+        if action == "vote":
+            proposal = self._find(console, argument)
+            if proposal is None:
+                return True
+            proposal.votes += 1
+            console.write(f"Voted for #{proposal.id}.")
+            return True
+
+        if action in {"open", "close"}:
+            proposal = self._find(console, argument)
+            if proposal is None:
+                return True
+            proposal.status = "open" if action == "open" else "closed"
+            console.write(f"Proposal #{proposal.id} is now {proposal.status}.")
+            return True
+
+        if action == "delete":
+            proposal = self._find(console, argument)
+            if proposal is None:
+                return True
+            console.proposals.remove(proposal)
+            if self.selected >= len(console.proposals):
+                self.selected = max(0, len(console.proposals) - 1)
+            console.write(f"Deleted proposal #{proposal.id}.")
+            return True
+
+        if action == "clear":
+            console.proposals.clear()
+            self.selected = 0
+            console.write("Cleared all proposals.")
+            return True
+
+        return False
+
+    def _find(self, console: "Console", argument: str) -> Optional[Proposal]:
+        try:
+            proposal_id = int(argument.lstrip("#"))
+        except ValueError:
+            console.write("Usage: <command> <proposal-id>")
+            return None
+
+        for proposal in console.proposals:
+            if proposal.id == proposal_id:
+                return proposal
+
+        console.write(f"No proposal with id #{proposal_id}.")
+        return None
+
+    def _split_id_and_text(
+        self,
+        console: "Console",
+        argument: str,
+    ) -> tuple[Optional[Proposal], str]:
+        pieces = argument.split(maxsplit=1)
+        if len(pieces) != 2:
+            console.write("Usage: describe <proposal-id> <text>")
+            return None, ""
+
+        proposal = self._find(console, pieces[0])
+        if proposal is None:
+            return None, ""
+
+        return proposal, pieces[1].strip()
+
+
+class Console:
+    """A small panel-based interactive console."""
+
+    def __init__(self) -> None:
+        self.proposals: List[Proposal] = []
+        self.panels: List[Panel] = []
+        self.active_panel = 0
+        self.running = False
+        self.next_proposal_id = 1
+        self._messages: List[str] = []
+        self.add_panel(ProposalsPanel())
+
+    @property
+    def panel(self) -> Panel:
+        return self.panels[self.active_panel]
+
+    def add_panel(self, panel: Panel) -> None:
+        self.panels.append(panel)
+
+    def add_proposal(self, title: str, description: str = "") -> Proposal:
+        proposal = Proposal(
+            id=self.next_proposal_id,
+            title=title,
+            description=description,
+        )
+        self.next_proposal_id += 1
+        self.proposals.append(proposal)
+        return proposal
+
+    def write(self, message: str) -> None:
+        self._messages.append(message)
+
+    def render(self) -> str:
+        lines: List[str] = []
+
+        if self._messages:
+            lines.extend(self._messages)
+            lines.append("")
+            self._messages.clear()
+
+        lines.extend(self.panel.render(self))
+        return "\n".join(lines)
+
+    def execute(self, line: str) -> None:
+        command = line.strip()
+        if not command:
+            return
+
+        lowered = command.lower()
+
+        if lowered in {"quit", "exit"}:
+            self.running = False
+            return
+
+        if lowered in {"panels", "tabs"}:
+            names = ", ".join(panel.name for panel in self.panels)
+            self.write(f"Panels: {names}")
+            return
+
+        if lowered.startswith("panel "):
+            target = command.split(maxsplit=1)[1].strip().lower()
+            for index, panel in enumerate(self.panels):
+                if panel.name.lower() == target:
+                    self.active_panel = index
+                    return
+            self.write(f"Unknown panel: {target}")
+            return
+
+        if self.panel.handle(self, command):
+            return
+
+        self.write(f"Unknown command: {command}")
+
+    def run(self) -> None:
+        self.running = True
+        self.write("Type 'help' for Proposals commands, or 'quit' to exit.")
+
+        while self.running:
+            print(self.render())
+            try:
+                line = input("> ")
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
+
+            self.execute(line)
+
+
+def main() -> None:
+    Console().run()
+
+
+if __name__ == "__main__":
+    main()
+```

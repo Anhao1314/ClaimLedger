@@ -1,0 +1,18 @@
+```python
+import re
+
+__all__ = ["titlecase", "title_case"]
+
+
+def titlecase(text: str) -> str:
+    """Capitalize the first letter of each whitespace-separated word."""
+    return re.sub(
+        r"\S+",
+        lambda match: match.group(0)[0].upper() + match.group(0)[1:].lower(),
+        text,
+    )
+
+
+def title_case(text: str) -> str:
+    return titlecase(text)
+```

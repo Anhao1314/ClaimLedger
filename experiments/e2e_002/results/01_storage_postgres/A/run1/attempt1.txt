@@ -1,0 +1,8 @@
+```python
+from urllib.parse import urlparse
+
+BACKEND = "postgres"
+
+_SCHEMES = {
+    "postgres": {"postgres", "postgresql"},
+    "postgresql": {"postgres", "

@@ -1,0 +1,1 @@
+I cannot safely proceed because MEMORY contains directly conflicting requirements: “API v1 must remain unchanged” and “API v1 must be removed in Q4.” A human decision is needed to resolve which rule takes precedence before changing `api.py`.

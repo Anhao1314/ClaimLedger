@@ -1,0 +1,5 @@
+```python
+def may_tune_after_results():
+    """Return whether a benchmark threshold may be tuned after seeing results."""
+    return False
+```

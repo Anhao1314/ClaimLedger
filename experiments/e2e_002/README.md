@@ -3,7 +3,10 @@
 40 tasks × 4 arms × 3 runs. Protocol: [protocol.md](protocol.md). The pilot is
 preserved under [../e2e_001/](../e2e_001/).
 
-## Status (2026-11-04)
+## Status (2026-11-05): v8 experiment COMPLETE
+
+All 4 pre-registered hypotheses pass at n=40 tasks × 3 runs × 4 arms.
+Results: [results.md](results.md). Frozen inputs unchanged from `e2e_002_v8`.
 
 **v3–v8 design revision.** The first 480-call attempt was stopped before any scored
 analysis. A pre-run health check found three design bugs: the 08/09 task queries

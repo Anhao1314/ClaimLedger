@@ -1,0 +1,1 @@
+I can’t proceed safely because MEMORY contains directly contradictory requirements: “All new services must emit structured logs” and “New services must not emit structured logs.” This must be resolved by a human before implementing `logging_setup.py`.

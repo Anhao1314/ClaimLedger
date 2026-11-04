@@ -1,0 +1,1 @@
+I can’t safely implement `storage.py` because the repository context does not define the required API, event schema, or persistence backend for the analytics storage layer. Please provide the existing interfaces or expected behavior.

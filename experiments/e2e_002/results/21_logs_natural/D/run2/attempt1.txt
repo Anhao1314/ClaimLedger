@@ -1,0 +1,150 @@
+```python
+"""Structured logging setup for the service.
+
+Emits newline-delimited JSON to stdout, one object per log record, so log
+processors can consume fields without parsing free-form text.
+
+Decisions reflected here:
+
+* Timestamps are always UTC (RFC 3339 / ISO 8601 with a ``Z`` suffix).
+* Log retention is 30 days and is enforced by the log platform; this module
+  never creates unbounded local log files.
+* Setup performs no network or disk I/O, keeping the two-second startup
+  budget intact.
+* Telemetry export is opt-in: a telemetry handler is attached only when the
+  caller explicitly passes ``telemetry_enabled=True``.
+* Error records carry a stable, machine-readable ``code`` via ``log_error``.
+* Log ``event`` values are stable identifiers, not user-facing strings;
+  user-facing text remains in the externalized string catalog.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import sys
+from datetime import datetime, timezone
+from typing import Any, IO
+
+__all__ = [
+    "LOG_RETENTION_DAYS",
+    "ContextAdapter",
+    "JsonFormatter",
+    "configure_logging",
+    "get_logger",
+    "log_error",
+    "log_event",
+]
+
+# Log records are retained for 30 days by the platform.
+LOG_RETENTION_DAYS = 30
+
+# Stable default event name for records that do not provide one.
+DEFAULT_EVENT = "log"
+
+_RESERVED_ATTRS = frozenset(
+    vars(logging.LogRecord("", 0, "", 0, "", (), None)).keys()
+) | {"asctime", "message", "taskName"}
+
+
+def _isoformat_utc(value: datetime) -> str:
+    """Render a datetime as UTC ISO 8601 with a ``Z`` suffix."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return (
+        value.astimezone(timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z")
+    )
+
+
+def _json_default(value: Any) -> Any:
+    """Serialize values that ``json`` does not handle natively."""
+    if isinstance(value, datetime):
+        return _isoformat_utc(value)
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value).decode("utf-8", errors="replace")
+    if isinstance(value, (set, frozenset)):
+        return sorted(value, key=repr)
+    if isinstance(value, BaseException):
+        return {"type": type(value).__name__, "message": str(value)}
+    return repr(value)
+
+
+class JsonFormatter(logging.Formatter):
+    """Render a :class:`logging.LogRecord` as a single JSON object."""
+
+    def __init__(
+        self,
+        *,
+        service: str,
+        environment: str,
+        version: str | None = None,
+    ) -> None:
+        super().__init__()
+        self._service = service
+        self._environment = environment
+        self._version = version
+
+    def format(self, record: logging.LogRecord) -> str:  # noqa: A003
+        payload: dict[str, Any] = {
+            "timestamp": _isoformat_utc(
+                datetime.fromtimestamp(record.created, tz=timezone.utc)
+            ),
+            "level": record.levelname,
+            "logger": record.name,
+            "event": getattr(record, "event", DEFAULT_EVENT),
+            "message": record.getMessage(),
+            "service": self._service,
+            "environment": self._environment,
+        }
+
+        if self._version is not None:
+            payload["version"] = self._version
+
+        code = getattr(record, "code", None)
+        if code is not None:
+            payload["code"] = code
+
+        # Promote any custom ``extra`` fields to top-level JSON members.
+        for key, value in record.__dict__.items():
+            if key in _RESERVED_ATTRS or key in payload or key in {"event", "code"}:
+                continue
+            payload[key] = value
+
+        if record.exc_info and record.exc_info[0] is not None:
+            exc_type, exc_value, _ = record.exc_info
+            payload["exception"] = {
+                "type": getattr(exc_type, "__name__", None),
+                "message": None if exc_value is None else str(exc_value),
+                "stack": self.formatException(record.exc_info),
+            }
+
+        if record.stack_info:
+            payload["stack"] = record.stack_info
+
+        return json.dumps(
+            payload,
+            default=_json_default,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+
+
+class ContextAdapter(logging.LoggerAdapter):
+    """Logger adapter that merges bound context into every record."""
+
+    def process(
+        self, msg: str, kwargs: dict[str, Any]
+    ) -> tuple[str, dict[str, Any]]:
+        extra: dict[str, Any] = dict(self.extra or {})
+        extra.update(kwargs.get("extra") or {})
+        kwargs["extra"] = extra
+        return msg, kwargs
+
+
+def configure_logging(
+    *,
+    service: str,
+    environment:

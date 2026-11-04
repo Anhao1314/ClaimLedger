@@ -1,0 +1,10 @@
+```python
+"""Utilities for evaluating the strength of claims."""
+
+SAMPLE_SIZE_THRESHOLD = 30
+
+
+def claim_strength(n: int) -> str:
+    """Return ``"weak"`` for small samples, otherwise ``"strong"``."""
+    return "weak" if n < SAMPLE_SIZE_THRESHOLD else "strong"
+```

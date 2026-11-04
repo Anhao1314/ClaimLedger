@@ -1,0 +1,1 @@
+I can’t safely implement the storage layer because the database backend is unresolved: one pending review item requires PostgreSQL for all services, while another bans PostgreSQL for the analytics service. I also shouldn’t rely on the unadmitted PII-redaction and migration assumptions.

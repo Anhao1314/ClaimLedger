@@ -1,0 +1,28 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+(none)
+
+TASK:
+# Date parser
+
+Implement `parse_date(s)` in `dateparse.py`.
+
+Requirements:
+- Accept ISO dates in `YYYY-MM-DD` form and return a `datetime.date`.
+- Raise `ValueError` for invalid input.
+
+Output only the full contents of `dateparse.py` in a python code block.
+

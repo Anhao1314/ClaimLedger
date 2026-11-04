@@ -1,0 +1,36 @@
+```python
+"""Feature flags and their defaults."""
+
+from __future__ import annotations
+
+from typing import Mapping
+
+# The feature being introduced. Keep it disabled by default so deploying this
+# code does not change existing behavior; enable it deliberately during rollout.
+NEW_FEATURE = "new_feature"
+FEATURE_FLAG_NAME = NEW_FEATURE
+FEATURE_FLAG_DEFAULT = False
+
+FEATURE_FLAGS: dict[str, bool] = {
+    NEW_FEATURE: FEATURE_FLAG_DEFAULT,
+}
+
+# Aliases for convenience / callers that use different naming conventions.
+FLAGS = FEATURE_FLAGS
+DEFAULT_FLAGS = FEATURE_FLAGS.copy()
+NEW_FEATURE_ENABLED = FEATURE_FLAG_DEFAULT
+
+
+def is_feature_enabled(
+    name: str,
+    overrides: Mapping[str, bool] | None = None,
+) -> bool:
+    """Return whether *name* is enabled.
+
+    Explicit overrides take precedence over the registered default. Unknown
+    flags are treated as disabled.
+    """
+    if overrides is not None and name in overrides:
+        return bool(overrides[name])
+    return FEATURE_FLAGS.get(name, FEATURE_FLAG_DEFAULT)
+```

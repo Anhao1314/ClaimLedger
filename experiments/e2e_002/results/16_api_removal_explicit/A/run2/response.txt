@@ -1,0 +1,129 @@
+```python
+#!/usr/bin/env python3
+"""Remove the deprecated v1 API from api.py.
+
+Scheduled for Q4. This script rewrites ``api.py`` in place, dropping v1
+imports, route handlers, routers, assignments, and registration calls while
+leaving v2+ code untouched. It is idempotent and does not require third-party
+packages.
+
+Usage:
+    python answer.py [path/to/api.py]
+"""
+
+from __future__ import annotations
+
+import ast
+import re
+import sys
+from pathlib import Path
+
+DEFAULT_API_PATH = Path("api.py")
+
+
+def _has_v1(text: str) -> bool:
+    return "v1" in text.lower()
+
+
+def _source_for(source: str, node: ast.AST) -> str:
+    return ast.get_source_segment(source, node) or ""
+
+
+def _target_names(node: ast.AST) -> list[str]:
+    names: list[str] = []
+    if isinstance(node, ast.Name):
+        names.append(node.id)
+    elif isinstance(node, ast.Attribute):
+        names.append(node.attr)
+        names.extend(_target_names(node.value))
+    elif isinstance(node, (ast.Tuple, ast.List)):
+        for elt in node.elts:
+            names.extend(_target_names(elt))
+    elif isinstance(node, ast.Subscript):
+        names.extend(_target_names(node.value))
+        names.extend(_target_names(node.slice))
+    elif isinstance(node, ast.Starred):
+        names.extend(_target_names(node.value))
+    return names
+
+
+def _mark(node: ast.AST, removals: set[int]) -> None:
+    start = getattr(node, "lineno", None)
+    if start is None:
+        return
+    end = getattr(node, "end_lineno", start) or start
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        for decorator in getattr(node, "decorator_list", ()):
+            dec_start = getattr(decorator, "lineno", start)
+            if dec_start < start:
+                start = dec_start
+    removals.update(range(start - 1, end))
+
+
+def _should_remove(node: ast.AST, source: str) -> bool:
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        decorators = " ".join(_source_for(source, d) for d in node.decorator_list)
+        return _has_v1(node.name) or _has_v1(decorators)
+    if isinstance(node, ast.ClassDef):
+        return _has_v1(node.name)
+    if isinstance(node, (ast.Import, ast.ImportFrom)):
+        return _has_v1(_source_for(source, node))
+    if isinstance(node, ast.Assign):
+        targets = " ".join(" ".join(_target_names(t)) for t in node.targets)
+        return _has_v1(targets)
+    if isinstance(node, ast.AnnAssign):
+        target = " ".join(_target_names(node.target))
+        return _has_v1(target)
+    if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+        return _has_v1(_source_for(source, node))
+    return False
+
+
+def remove_v1_api(source: str) -> str:
+    """Return *source* with v1 API definitions and registrations removed."""
+    tree = ast.parse(source)
+    removals: set[int] = set()
+
+    for node in ast.walk(tree):
+        if _should_remove(node, source):
+            _mark(node, removals)
+
+    lines = source.splitlines(keepends=True)
+    kept = [line for index, line in enumerate(lines) if index not in removals]
+    result = "".join(kept)
+
+    # Drop leftover v1 entries from simple route/version lists.
+    result = re.sub(
+        r'^[ \t]*[\'"]/v1(?:/[^\'"]*)?[\'"],?[ \t]*\n?',
+        "",
+        result,
+        flags=re.MULTILINE,
+    )
+
+    # Tidy up blank-line runs created by removed blocks.
+    result = re.sub(r"\n{3,}", "\n\n", result)
+    result = re.sub(r"\A\n+", "", result)
+    return result
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    path = Path(args[0]) if args else DEFAULT_API_PATH
+    if not path.exists():
+        print(f"error: {path} does not exist", file=sys.stderr)
+        return 1
+
+    original = path.read_text(encoding="utf-8")
+    updated = remove_v1_api(original)
+    if updated == original:
+        print(f"no v1 API references found in {path}")
+        return 0
+
+    path.write_text(updated, encoding="utf-8")
+    print(f"removed v1 API from {path}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```

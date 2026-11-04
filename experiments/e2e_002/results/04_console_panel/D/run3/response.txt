@@ -1,0 +1,336 @@
+```python
+"""Console proposals panel.
+
+The proposer shown in this panel is attribution only. Attribution is not
+authentication: the agent registry carries no keys or signatures.
+"""
+
+from __future__ import annotations
+
+import gettext
+import json
+import os
+import sys
+from collections.abc import Mapping as MappingABC
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Iterable, Mapping, Optional, Sequence, TextIO
+
+DEFAULT_LOCALE = "en-US"
+
+
+def _get_translations() -> gettext.NullTranslations:
+    locale = (
+        os.environ.get("CONSOLE_LOCALE")
+        or os.environ.get("LANG")
+        or DEFAULT_LOCALE
+    )
+    locale = locale.split(".")[0].replace("_", "-") or DEFAULT_LOCALE
+    localedir = os.environ.get(
+        "CONSOLE_LOCALEDIR",
+        os.path.join(os.path.dirname(__file__), "locale"),
+    )
+    try:
+        return gettext.translation(
+            "console",
+            localedir=localedir,
+            languages=[locale],
+            fallback=True,
+        )
+    except Exception:
+        return gettext.NullTranslations()
+
+
+_ = _get_translations().gettext
+
+
+@dataclass(frozen=True)
+class Proposal:
+    """A proposal row displayed in the console panel."""
+
+    id: str
+    title: str
+    proposer: str = ""
+    status: str = "open"
+    created_at: Optional[datetime] = None
+    proposer_id: Optional[str] = None
+
+
+def _get_value(raw: Any, names: Sequence[str], default: Any = None) -> Any:
+    if isinstance(raw, MappingABC):
+        for name in names:
+            if name in raw:
+                value = raw[name]
+                if value is not None and value != "":
+                    return value
+    else:
+        for name in names:
+            if hasattr(raw, name):
+                value = getattr(raw, name)
+                if value is not None and value != "":
+                    return value
+    return default
+
+
+def _identity_label(name: Any, identifier: Any) -> str:
+    name_text = "" if name is None else str(name).strip()
+    id_text = "" if identifier is None else str(identifier).strip()
+
+    if name_text and id_text and name_text != id_text:
+        return f"{name_text} ({id_text})"
+    return name_text or id_text or _("Unknown proposer")
+
+
+def _proposer_label(raw: Any, proposer_id: Any = None) -> str:
+    if isinstance(raw, MappingABC) or (
+        raw is not None and not isinstance(raw, str) and hasattr(raw, "id")
+    ):
+        name = _get_value(raw, ("name", "display_name", "proposer"), "")
+        identifier = _get_value(
+            raw,
+            ("id", "proposer_id", "agent_id"),
+            proposer_id,
+        )
+        return _identity_label(name, identifier)
+    return _identity_label(raw, proposer_id)
+
+
+def _extract_proposal(raw: Any) -> tuple[str, str, str, str, Any]:
+    proposal_id = _get_value(raw, ("id", "proposal_id"), "")
+    title = _get_value(raw, ("title", "summary", "name"), "")
+    proposer_raw = _get_value(
+        raw,
+        (
+            "proposer",
+            "proposer_identity",
+            "author",
+            "submitted_by",
+            "identity",
+        ),
+        "",
+    )
+    proposer_id = _get_value(raw, ("proposer_id", "agent_id", "author_id"), "")
+    status = _get_value(raw, ("status", "state"), "open")
+    created_at = _get_value(
+        raw,
+        ("created_at", "created", "submitted_at"),
+        None,
+    )
+
+    return (
+        str(proposal_id or ""),
+        str(title or ""),
+        _proposer_label(proposer_raw, proposer_id),
+        str(status or ""),
+        created_at,
+    )
+
+
+def _has_proposer(raw: Any) -> bool:
+    proposer_raw = _get_value(
+        raw,
+        (
+            "proposer",
+            "proposer_identity",
+            "author",
+            "submitted_by",
+            "identity",
+        ),
+        None,
+    )
+    proposer_id = _get_value(raw, ("proposer_id", "agent_id", "author_id"), None)
+    return bool(proposer_raw or proposer_id)
+
+
+def _format_timestamp(value: Any) -> str:
+    if value is None or value == "":
+        return ""
+
+    if isinstance(value, str):
+        text = value.strip()
+        try:
+            value = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except ValueError:
+            return text
+
+    if not isinstance(value, datetime):
+        return str(value)
+
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
+def _format_table(rows: Sequence[Sequence[str]], headers: Sequence[str]) -> str:
+    widths = [len(header) for header in headers]
+    for row in rows:
+        for index, cell in enumerate(row):
+            widths[index] = max(widths[index], len(cell))
+
+    def format_row(row: Sequence[str]) -> str:
+        return "  ".join(
+            cell.ljust(widths[index]) for index, cell in enumerate(row)
+        ).rstrip()
+
+    separator = tuple("-" * width for width in widths)
+    lines = [format_row(headers), format_row(separator)]
+    lines.extend(format_row(row) for row in rows)
+    return "\n".join(lines)
+
+
+def render_proposals_panel(
+    proposals: Iterable[Any],
+    *,
+    title: Optional[str] = None,
+) -> str:
+    """Render the console proposals panel.
+
+    Every proposal row includes proposer attribution. This is display-only and
+    does not authenticate the proposer.
+    """
+
+    rows = []
+    for raw in proposals:
+        proposal_id, proposal_title, proposer, status, created_at = (
+            _extract_proposal(raw)
+        )
+        rows.append(
+            (
+                proposal_id,
+                proposal_title,
+                status,
+                proposer,
+                _format_timestamp(created_at),
+            )
+        )
+
+    heading = title if title is not None else _("Proposals")
+    if not rows:
+        return f"{heading}\n{_('No proposals.')}"
+
+    headers = (
+        _("ID"),
+        _("Title"),
+        _("Status"),
+        _("Proposer"),
+        _("Created (UTC)"),
+    )
+    return f"{heading}\n{_format_table(rows, headers)}"
+
+
+def proposals_panel(
+    proposals: Iterable[Any],
+    *,
+    title: Optional[str] = None,
+) -> str:
+    return render_proposals_panel(proposals, title=title)
+
+
+def show_proposals(
+    proposals: Iterable[Any],
+    *,
+    title: Optional[str] = None,
+    file: Optional[TextIO] = None,
+) -> None:
+    stream = file if file is not None else sys.stdout
+    print(render_proposals_panel(proposals, title=title), file=stream)
+
+
+display_proposals = show_proposals
+
+
+def validate_proposals(proposals: Iterable[Any]) -> list[str]:
+    errors: list[str] = []
+    for index, raw in enumerate(proposals):
+        proposal_id, title, _proposer, _status, _created_at = _extract_proposal(raw)
+
+        if not proposal_id:
+            errors.append(
+                _("Proposal {index} is missing an id.").format(index=index)
+            )
+        if not title:
+            errors.append(
+                _("Proposal {index} is missing a title.").format(index=index)
+            )
+        if not _has_proposer(raw):
+            errors.append(
+                _("Proposal {index} is missing a proposer.").format(index=index)
+            )
+
+    return errors
+
+
+class ProposalsPanel:
+    """Reusable proposals panel for console output."""
+
+    def __init__(self, title: Optional[str] = None) -> None:
+        self.title = title
+
+    def render(self, proposals: Iterable[Any]) -> str:
+        return render_proposals_panel(proposals, title=self.title)
+
+    def show(self, proposals: Iterable[Any], file: Optional[TextIO] = None) -> None:
+        show_proposals(proposals, title=self.title, file=file)
+
+
+class Console:
+    """Small console facade with a proposals panel."""
+
+    def __init__(self, stream: Optional[TextIO] = None) -> None:
+        self.stream = stream if stream is not None else sys.stdout
+
+    def render_proposals_panel(
+        self,
+        proposals: Iterable[Any],
+        *,
+        title: Optional[str] = None,
+    ) -> str:
+        return render_proposals_panel(proposals, title=title)
+
+    def show_proposals(
+        self,
+        proposals: Iterable[Any],
+        *,
+        title: Optional[str] = None,
+    ) -> None:
+        show_proposals(proposals, title=title, file=self.stream)
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+
+    if not args:
+        print(_("Usage: console.py <proposals.json>"), file=sys.stderr)
+        return 2
+
+    try:
+        with open(args[0], "r", encoding="utf-8") as handle:
+            proposals = json.load(handle)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(
+            _("Unable to read proposals: {error}").format(error=exc),
+            file=sys.stderr,
+        )
+        return 2
+
+    if isinstance(proposals, MappingABC) and "proposals" in proposals:
+        proposals = proposals["proposals"]
+
+    if not isinstance(proposals, list):
+        print(_("Proposals file must contain a list."), file=sys.stderr)
+        return 2
+
+    errors = validate_proposals(proposals)
+    if errors:
+        for error in errors:
+            print(error, file=sys.stderr)
+        return 2
+
+    print(render_proposals_panel(proposals))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```

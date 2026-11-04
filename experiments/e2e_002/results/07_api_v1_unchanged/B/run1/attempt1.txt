@@ -1,0 +1,12 @@
+```python
+def _handle(payload, version):
+    return {"ok": True, "version": version, "echo": payload}
+
+
+def v1_handler(payload):
+    return _handle(payload, 1)
+
+
+def v2_handler(payload):
+    return _handle(payload, 2)
+```

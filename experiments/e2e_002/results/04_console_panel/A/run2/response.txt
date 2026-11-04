@@ -1,0 +1,460 @@
+```python
+"""Console application with a proposals panel.
+
+This module is dependency-free and can be used either as a small library or
+as an interactive console.  A ``Console`` owns a ``ProposalsPanel`` and any
+number of additional panels that expose a ``render(width=...)`` method.
+"""
+
+from __future__ import annotations
+
+import json
+import shlex
+import sys
+import textwrap
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
+
+__all__ = [
+    "Proposal",
+    "ProposalsPanel",
+    "ProposalPanel",
+    "Console",
+    "render_proposals",
+    "proposals_panel",
+    "main",
+]
+
+
+class Proposal:
+    """A single proposal displayed by :class:`ProposalsPanel`.
+
+    The constructor is deliberately flexible so callers can use either
+    ``Proposal(title="...")`` or positional forms such as
+    ``Proposal("id", "title", "description")``.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        id_value = kwargs.pop("id", None)
+        title_value = kwargs.pop("title", None)
+        description = kwargs.pop("description", "")
+        status = kwargs.pop("status", "pending")
+        author = kwargs.pop("author", "")
+        created_at = kwargs.pop("created_at", None)
+        metadata = kwargs.pop("metadata", None)
+
+        positional = list(args)
+        if positional:
+            if len(positional) == 1:
+                # Proposal("title") or Proposal("id", title="title")
+                if title_value is None:
+                    title_value = positional[0]
+                elif id_value is None:
+                    id_value = positional[0]
+            else:
+                # Proposal("id", "title", "description", ...)
+                if id_value is None:
+                    id_value = positional[0]
+                if title_value is None and len(positional) > 1:
+                    title_value = positional[1]
+                if len(positional) > 2 and not description:
+                    description = positional[2]
+                if len(positional) > 3 and status == "pending":
+                    status = positional[3]
+                if len(positional) > 4 and not author:
+                    author = positional[4]
+                if len(positional) > 5 and created_at is None:
+                    created_at = positional[5]
+
+        self.id = str(id_value) if id_value not in (None, "") else uuid.uuid4().hex[:8]
+        self.title = "" if title_value is None else str(title_value)
+        self.description = "" if description is None else str(description)
+        self.status = str(status or "pending")
+        self.author = "" if author is None else str(author)
+
+        if created_at is None:
+            created_at = datetime.now(timezone.utc).isoformat()
+        elif isinstance(created_at, datetime):
+            created_at = created_at.isoformat()
+        else:
+            created_at = str(created_at)
+        self.created_at = created_at
+
+        self.metadata: Dict[str, Any] = dict(metadata or {})
+        self.extra: Dict[str, Any] = {}
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+            self.extra[key] = value
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Return a JSON-serialisable representation of the proposal."""
+        data: Dict[str, Any] = {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "status": self.status,
+            "author": self.author,
+            "created_at": self.created_at,
+            "metadata": dict(self.metadata),
+        }
+        data.update(self.extra)
+        return data
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict(), sort_keys=True)
+
+    def __repr__(self) -> str:
+        return (
+            f"Proposal(id={self.id!r}, title={self.title!r}, "
+            f"status={self.status!r})"
+        )
+
+
+class ProposalsPanel:
+    """A console panel that lists and manages proposals."""
+
+    def __init__(
+        self,
+        proposals: Optional[Iterable[Any]] = None,
+        title: str = "Proposals",
+        max_description_width: int = 64,
+    ) -> None:
+        self.title = title
+        self.max_description_width = max_description_width
+        self.proposals: List[Proposal] = []
+        self.selected_id: Optional[str] = None
+        if proposals:
+            self.extend(proposals)
+
+    # ------------------------------------------------------------------
+    # Mutation helpers
+    # ------------------------------------------------------------------
+    def _coerce(self, proposal: Any, *args: Any, **kwargs: Any) -> Proposal:
+        if args or kwargs:
+            if isinstance(proposal, dict):
+                data = dict(proposal)
+                data.update(kwargs)
+                return Proposal(*args, **data)
+            if proposal is None:
+                return Proposal(*args, **kwargs)
+            return Proposal(proposal, *args, **kwargs)
+
+        if isinstance(proposal, Proposal):
+            return proposal
+        if isinstance(proposal, dict):
+            return Proposal(**proposal)
+        if proposal is None:
+            return Proposal()
+        return Proposal(title=str(proposal))
+
+    def add(self, proposal: Any = None, *args: Any, **kwargs: Any) -> Proposal:
+        """Add a proposal and return it.
+
+        Accepts a :class:`Proposal`, a mapping, a title string, or keyword
+        arguments suitable for :class:`Proposal`.
+        """
+        item = self._coerce(proposal, *args, **kwargs)
+        self.proposals.append(item)
+        return item
+
+    add_proposal = add
+
+    def extend(self, proposals: Iterable[Any]) -> None:
+        for proposal in proposals:
+            if isinstance(proposal, dict):
+                self.add(**proposal)
+            else:
+                self.add(proposal)
+
+    add_many = extend
+
+    def remove(self, target: Union[int, str, Proposal]) -> bool:
+        """Remove a proposal by index, id, or object."""
+        removed: Optional[Proposal] = None
+
+        if isinstance(target, int):
+            try:
+                removed = self.proposals.pop(target)
+            except IndexError:
+                return False
+        else:
+            target_id = target.id if isinstance(target, Proposal) else str(target)
+            for index, proposal in enumerate(self.proposals):
+                if proposal.id == target_id:
+                    removed = self.proposals.pop(index)
+                    break
+            if removed is None:
+                return False
+
+        if self.selected_id == removed.id:
+            self.selected_id = None
+        return True
+
+    remove_proposal = remove
+
+    def clear(self) -> None:
+        self.proposals.clear()
+        self.selected_id = None
+
+    # ------------------------------------------------------------------
+    # Lookup and selection
+    # ------------------------------------------------------------------
+    def get(self, target: Union[int, str, Proposal]) -> Optional[Proposal]:
+        if isinstance(target, int):
+            try:
+                return self.proposals[target]
+            except IndexError:
+                return None
+
+        target_id = target.id if isinstance(target, Proposal) else str(target)
+        for proposal in self.proposals:
+            if proposal.id == target_id:
+                return proposal
+        return None
+
+    def select(self, target: Union[int, str, Proposal]) -> Optional[Proposal]:
+        proposal = self.get(target)
+        if proposal is not None:
+            self.selected_id = proposal.id
+        return proposal
+
+    select_proposal = select
+
+    @property
+    def selected(self) -> Optional[Proposal]:
+        if self.selected_id is None:
+            return None
+        return self.get(self.selected_id)
+
+    def list_proposals(self) -> List[Proposal]:
+        return list(self.proposals)
+
+    # ------------------------------------------------------------------
+    # Rendering
+    # ------------------------------------------------------------------
+    def render(self, width: int = 80, show_descriptions: bool = True) -> str:
+        width = max(int(width), 20)
+        lines: List[str] = [
+            self.title,
+            "=" * min(max(len(self.title), 1), width),
+        ]
+
+        if not self.proposals:
+            lines.append("(no proposals)")
+            return "\n".join(lines)
+
+        for index, proposal in enumerate(self.proposals, start=1):
+            marker = ">" if proposal.id == self.selected_id else " "
+            header = (
+                f"{marker} {index}. [{proposal.status}] "
+                f"{proposal.title} ({proposal.id})"
+            )
+            lines.append(textwrap.shorten(header, width=width, placeholder="..."))
+
+            if show_descriptions and proposal.description:
+                description_width = max(10, width - 4)
+                for line in textwrap.wrap(
+                    proposal.description, width=description_width
+                ):
+                    lines.append("    " + line)
+
+        return "\n".join(lines)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "title": self.title,
+            "selected_id": self.selected_id,
+            "proposals": [proposal.to_dict() for proposal in self.proposals],
+        }
+
+    def __str__(self) -> str:
+        return self.render()
+
+    def __len__(self) -> int:
+        return len(self.proposals)
+
+    def __iter__(self):
+        return iter(self.proposals)
+
+    def __getitem__(self, index: int) -> Proposal:
+        return self.proposals[index]
+
+
+# Common singular spelling alias.
+ProposalPanel = ProposalsPanel
+
+
+class Console:
+    """A small console composed of renderable panels."""
+
+    def __init__(
+        self,
+        proposals: Optional[Iterable[Any]] = None,
+        panels: Optional[Iterable[Any]] = None,
+    ) -> None:
+        self.proposals_panel = ProposalsPanel(proposals)
+        self.panels: List[Any] = []
+        self.running = False
+
+        self.add_panel(self.proposals_panel)
+        if panels:
+            for panel in panels:
+                if panel is not self.proposals_panel:
+                    self.add_panel(panel)
+
+    # ------------------------------------------------------------------
+    # Panel management
+    # ------------------------------------------------------------------
+    def add_panel(self, panel: Any) -> Any:
+        if panel is None:
+            return panel
+        if panel not in self.panels:
+            self.panels.append(panel)
+        return panel
+
+    @property
+    def proposals(self) -> List[Proposal]:
+        return self.proposals_panel.proposals
+
+    # ------------------------------------------------------------------
+    # Proposal helpers
+    # ------------------------------------------------------------------
+    def add_proposal(self, *args: Any, **kwargs: Any) -> Proposal:
+        return self.proposals_panel.add(*args, **kwargs)
+
+    def remove_proposal(self, target: Union[int, str, Proposal]) -> bool:
+        return self.proposals_panel.remove(target)
+
+    def select_proposal(self, target: Union[int, str, Proposal]) -> Optional[Proposal]:
+        return self.proposals_panel.select(target)
+
+    def show_proposals(self, print_output: bool = True) -> str:
+        text = self.proposals_panel.render()
+        if print_output:
+            print(text)
+        return text
+
+    # ------------------------------------------------------------------
+    # Rendering and interaction
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _render_panel(panel: Any, width: int) -> str:
+        render = getattr(panel, "render", None)
+        if callable(render):
+            try:
+                return render(width=width)
+            except TypeError:
+                try:
+                    return render()
+                except TypeError:
+                    return str(panel)
+        return str(panel)
+
+    def render(self, width: int = 80) -> str:
+        if not self.panels:
+            return ""
+        return "\n\n".join(
+            self._render_panel(panel, width=width) for panel in self.panels
+        )
+
+    def print_help(self) -> None:
+        print("Commands:")
+        print("  proposals              Show the proposals panel")
+        print("  add <title>            Add a proposal")
+        print("  remove <id>            Remove a proposal")
+        print("  select <id>            Select a proposal")
+        print("  help                   Show this help")
+        print("  quit                   Exit the console")
+
+    def handle_command(self, line: str) -> bool:
+        """Process one console command.  Returns False when the console exits."""
+        line = line.strip()
+        if not line:
+            return True
+
+        try:
+            parts = shlex.split(line)
+        except ValueError:
+            parts = line.split()
+
+        command = parts[0].lower()
+
+        if command in {"proposals", "list", "ls"}:
+            self.show_proposals()
+        elif command == "add":
+            title = " ".join(parts[1:]).strip() or "Untitled proposal"
+            proposal = self.add_proposal(title=title)
+            print(f"Added proposal: {proposal.id}")
+        elif command in {"remove", "rm", "delete"}:
+            if len(parts) < 2:
+                print("Usage: remove <id>")
+            elif self.remove_proposal(parts[1]):
+                print("Proposal removed.")
+            else:
+                print("Proposal not found.")
+        elif command == "select":
+            if len(parts) < 2:
+                print("Usage: select <id>")
+            else:
+                proposal = self.select_proposal(parts[1])
+                if proposal is None:
+                    print("Proposal not found.")
+                else:
+                    print(f"Selected: {proposal.title}")
+        elif command in {"help", "?"}:
+            self.print_help()
+        elif command in {"quit", "exit"}:
+            return False
+        else:
+            print(f"Unknown command: {command}")
+
+        return True
+
+    def run(self) -> None:
+        """Run the console interactively until the user exits."""
+        self.running = True
+        try:
+            print(self.render())
+            while self.running:
+                try:
+                    line = input("console> ")
+                except (EOFError, KeyboardInterrupt):
+                    print()
+                    break
+                if not self.handle_command(line):
+                    break
+        finally:
+            self.running = False
+
+
+def render_proposals(
+    proposals: Optional[Iterable[Any]] = None,
+    title: str = "Proposals",
+    width: int = 80,
+) -> str:
+    """Convenience function for rendering a standalone proposals panel."""
+    return ProposalsPanel(proposals=proposals, title=title).render(width=width)
+
+
+def proposals_panel(
+    proposals: Optional[Iterable[Any]] = None,
+    title: str = "Proposals",
+    width: int = 80,
+) -> str:
+    """Alias for :func:`render_proposals`."""
+    return render_proposals(proposals=proposals, title=title, width=width)
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    console = Console()
+    for arg in args:
+        console.add_proposal(title=arg)
+    console.run()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```

@@ -1,0 +1,29 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- The build must be reproducible from a clean checkout.
+- User-facing strings must be externalized.
+- Configuration is read from environment variables only.
+- Every pull request must update the changelog.
+
+TASK:
+# SHA-256 hex
+
+Implement the function in `hashing.py`.
+
+Return the lowercase hex SHA-256 digest of the UTF-8 encoded text.
+
+Output only the full contents of `hashing.py` in a python code block.
+

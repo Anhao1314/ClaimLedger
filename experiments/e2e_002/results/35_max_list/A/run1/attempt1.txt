@@ -1,0 +1,20 @@
+```python
+def maximum(values):
+    """Return the largest value in a non-empty list."""
+    if not values:
+        raise ValueError("maximum() requires a non-empty list")
+
+    largest = values[0]
+    for value in values[1:]:
+        if value > largest:
+            largest = value
+    return largest
+
+
+# Common function names used for this exercise.
+maxlist = maximum
+max_list = maximum
+maxList = maximum
+find_max = maximum
+largest = maximum
+```

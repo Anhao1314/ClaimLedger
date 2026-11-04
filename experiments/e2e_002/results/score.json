@@ -1,0 +1,1043 @@
+{
+  "tasks": {
+    "01_storage_postgres": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 5140.3
+      },
+      "B": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 1739.7
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 2843.3
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 8679.7
+      }
+    },
+    "02_retry_cap": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 1578.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 3036.7
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1598.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 1796.7
+      }
+    },
+    "03_analytics_storage": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 9870.7
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 851.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1712.3
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 9423.3
+      }
+    },
+    "04_console_panel": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 8945.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1026.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 512.3
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 12236.7
+      }
+    },
+    "05_date_parser": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 593.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1801.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 682.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 866.0
+      }
+    },
+    "06_control_math": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 211.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1120.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 231.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 257.0
+      }
+    },
+    "07_api_v1_unchanged": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 1596.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 3392.0
+      },
+      "C": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 900.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1727.7
+      }
+    },
+    "08_log_retention": {
+      "A": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 3359.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1471.7
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 389.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 3130.3
+      }
+    },
+    "09_error_code": {
+      "A": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 2179.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 2957.7
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 2256.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 4160.0
+      }
+    },
+    "10_margin_language": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 2802.7
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1436.3
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 530.3
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 1568.0
+      }
+    },
+    "11_key_path": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 5462.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 4113.3
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 987.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 6409.7
+      }
+    },
+    "12_preregister": {
+      "A": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 455.7
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1068.3
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 415.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1195.3
+      }
+    },
+    "13_claim_strength": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 423.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1144.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 345.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 1786.3
+      }
+    },
+    "14_attribution": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 6765.7
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 2105.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1834.3
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 5499.7
+      }
+    },
+    "15_logs_explicit": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 4931.7
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 936.3
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 387.3
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 8387.0
+      }
+    },
+    "16_api_removal_explicit": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 5431.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 927.7
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 328.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 4499.0
+      }
+    },
+    "17_dependencies_explicit": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 8175.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 906.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 348.7
+      },
+      "D": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1180.7
+      }
+    },
+    "18_flags_explicit": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 2661.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 934.3
+      },
+      "C": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 2195.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 3075.3
+      }
+    },
+    "19_storage_natural": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 941.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1000.3
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 891.3
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 1475.0
+      }
+    },
+    "20_panel_natural": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 1353.3
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1249.3
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 559.7
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 716.7
+      }
+    },
+    "21_logs_natural": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 1145.3
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1138.3
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 440.7
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 8283.7
+      }
+    },
+    "22_api_natural": {
+      "A": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 572.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 1198.3
+      },
+      "C": {
+        "pass": true,
+        "runs": 3,
+        "tokens": 413.3
+      },
+      "D": {
+        "pass": false,
+        "runs": 3,
+        "tokens": 1770.7
+      }
+    },
+    "23_slugify": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 457.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1231.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1015.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 847.0
+      }
+    },
+    "24_paginate": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 895.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1546.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 729.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 736.0
+      }
+    },
+    "25_sha256": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 682.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 2444.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 978.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 448.0
+      }
+    },
+    "26_human_bytes": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 3057.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 2581.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 6909.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 5611.0
+      }
+    },
+    "27_clamp": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 300.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1148.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 322.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 451.0
+      }
+    },
+    "28_chunks": {
+      "A": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 680.0
+      },
+      "B": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 2272.0
+      },
+      "C": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 1338.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 2811.0
+      }
+    },
+    "29_collapse_spaces": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 597.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 2878.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1425.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1083.0
+      }
+    },
+    "30_median": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 348.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1135.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 450.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 362.0
+      }
+    },
+    "31_parse_bool": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 598.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1782.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 595.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 613.0
+      }
+    },
+    "32_multiply": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 214.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1064.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 248.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 291.0
+      }
+    },
+    "33_is_even": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 299.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1243.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 504.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 655.0
+      }
+    },
+    "34_reverse": {
+      "A": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 233.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1367.0
+      },
+      "C": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 425.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 366.0
+      }
+    },
+    "35_max_list": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1157.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 2889.0
+      },
+      "C": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 943.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1266.0
+      }
+    },
+    "36_factorial": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 559.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1426.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 447.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 586.0
+      }
+    },
+    "37_count_vowels": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 331.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1202.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 331.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 568.0
+      }
+    },
+    "38_title_case": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 4296.0
+      },
+      "B": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 2175.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 2359.0
+      },
+      "D": {
+        "pass": false,
+        "runs": 1,
+        "tokens": 1583.0
+      }
+    },
+    "39_flatten": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 521.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1339.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 420.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 518.0
+      }
+    },
+    "40_dedupe": {
+      "A": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 4071.0
+      },
+      "B": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1338.0
+      },
+      "C": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 2532.0
+      },
+      "D": {
+        "pass": true,
+        "runs": 1,
+        "tokens": 1789.0
+      }
+    }
+  },
+  "summary": {
+    "A": {
+      "passes": 21,
+      "n": 40,
+      "rate": 0.525,
+      "wilson": [
+        0.375,
+        0.671
+      ]
+    },
+    "B": {
+      "passes": 37,
+      "n": 40,
+      "rate": 0.925,
+      "wilson": [
+        0.801,
+        0.974
+      ]
+    },
+    "C": {
+      "passes": 35,
+      "n": 40,
+      "rate": 0.875,
+      "wilson": [
+        0.739,
+        0.945
+      ]
+    },
+    "D": {
+      "passes": 21,
+      "n": 40,
+      "rate": 0.525,
+      "wilson": [
+        0.375,
+        0.671
+      ]
+    }
+  },
+  "strata": {
+    "constraint": {
+      "n": 10,
+      "A": {
+        "passes": 3,
+        "n": 10
+      },
+      "B": {
+        "passes": 9,
+        "n": 10
+      },
+      "C": {
+        "passes": 9,
+        "n": 10
+      },
+      "D": {
+        "passes": 3,
+        "n": 10
+      }
+    },
+    "conflict_explicit": {
+      "n": 6,
+      "A": {
+        "passes": 0,
+        "n": 6
+      },
+      "B": {
+        "passes": 6,
+        "n": 6
+      },
+      "C": {
+        "passes": 5,
+        "n": 6
+      },
+      "D": {
+        "passes": 1,
+        "n": 6
+      }
+    },
+    "conflict_natural": {
+      "n": 4,
+      "A": {
+        "passes": 0,
+        "n": 4
+      },
+      "B": {
+        "passes": 4,
+        "n": 4
+      },
+      "C": {
+        "passes": 4,
+        "n": 4
+      },
+      "D": {
+        "passes": 0,
+        "n": 4
+      }
+    },
+    "irrelevant": {
+      "n": 10,
+      "A": {
+        "passes": 9,
+        "n": 10
+      },
+      "B": {
+        "passes": 9,
+        "n": 10
+      },
+      "C": {
+        "passes": 9,
+        "n": 10
+      },
+      "D": {
+        "passes": 9,
+        "n": 10
+      }
+    },
+    "control": {
+      "n": 10,
+      "A": {
+        "passes": 9,
+        "n": 10
+      },
+      "B": {
+        "passes": 9,
+        "n": 10
+      },
+      "C": {
+        "passes": 8,
+        "n": 10
+      },
+      "D": {
+        "passes": 8,
+        "n": 10
+      }
+    }
+  },
+  "prompt_means": {
+    "A": 167.9,
+    "B": 763.9,
+    "C": 236.8,
+    "D": 234.4
+  },
+  "comparisons": {
+    "C_vs_A": {
+      "C_only": 15,
+      "A_only": 1,
+      "p": 0.0005
+    },
+    "C_vs_B": {
+      "C_only": 2,
+      "B_only": 4,
+      "p": 0.6875
+    },
+    "C_vs_D": {
+      "C_only": 16,
+      "D_only": 2,
+      "p": 0.0013
+    }
+  },
+  "runs": 3
+}

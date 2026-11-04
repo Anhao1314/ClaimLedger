@@ -1,0 +1,17 @@
+{
+  "task": "17_dependencies_explicit",
+  "arm": "A",
+  "run": 2,
+  "model": "deepseek-flash",
+  "prompt_tokens": 175,
+  "completion_tokens": 8000,
+  "latency_ms": 46369,
+  "pass": false,
+  "error": "RuntimeError: API failed after retries: IncompleteRead(0 bytes read)",
+  "attempts": 1,
+  "finish_reason": "length",
+  "length_retries": 1,
+  "reasoning_tokens": 8000,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 175
+}

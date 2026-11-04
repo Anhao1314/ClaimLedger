@@ -1,0 +1,15 @@
+```python
+"""Storage backend configuration and connection helpers."""
+
+BACKEND = "postgresql"
+
+
+def connect(dsn):
+    """Return the DSN unchanged when it uses the configured backend scheme."""
+    scheme = f"{BACKEND}://"
+    if dsn.startswith(scheme):
+        return dsn
+    raise ValueError(
+        f"Unsupported DSN scheme for backend {BACKEND!r}: {dsn!r}"
+    )
+```

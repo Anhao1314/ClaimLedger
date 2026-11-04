@@ -1,0 +1,12 @@
+```python
+"""Claim strength helpers."""
+
+MIN_SAMPLE_SIZE = 100
+
+
+def claim_strength(n: int) -> str:
+    """Return "weak" for sample sizes below 100, otherwise "strong"."""
+    if n < MIN_SAMPLE_SIZE:
+        return "weak"
+    return "strong"
+```

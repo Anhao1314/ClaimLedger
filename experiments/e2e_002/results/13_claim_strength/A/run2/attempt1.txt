@@ -1,0 +1,8 @@
+```python
+MIN_SAMPLE_SIZE = 30
+
+
+def claim_strength(n):
+    """Return the strength of a claim based on its sample size."""
+    return "weak" if n < MIN_SAMPLE_SIZE else "strong"
+```

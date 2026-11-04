@@ -1,0 +1,9 @@
+```python
+def describe_margin() -> str:
+    """Return a README-ready sentence describing the delta=0.2 margin threshold."""
+    return (
+        "A prediction is considered confident only when the margin between the "
+        "top two class probabilities is at least delta=0.2; otherwise it is "
+        "treated as uncertain."
+    )
+```

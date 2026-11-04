@@ -1,0 +1,8 @@
+```python
+"""Text normalization helpers."""
+
+
+def collapse_spaces(text: str) -> str:
+    """Collapse each run of whitespace to a single space and strip ends."""
+    return " ".join(text.split())
+```

@@ -1,0 +1,194 @@
+```python
+"""Backend-agnostic storage layer for the analytics service.
+
+This module defines the storage contract and provides a thread-safe in-memory
+implementation. A durable backend can implement the same protocol without
+requiring changes to callers.
+"""
+
+from __future__ import annotations
+
+import threading
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Iterable, Mapping, Protocol, runtime_checkable
+
+
+def utcnow() -> datetime:
+    """Return the current time as a timezone-aware UTC datetime."""
+    return datetime.now(timezone.utc)
+
+
+@dataclass(frozen=True)
+class AnalyticsEvent:
+    """A single immutable analytics event."""
+
+    name: str
+    timestamp: datetime
+    event_id: str = field(default_factory=lambda: uuid.uuid4().hex)
+    properties: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.name, str) or not self.name:
+            raise ValueError("event name must be a non-empty string")
+        if not isinstance(self.timestamp, datetime):
+            raise TypeError("timestamp must be a datetime")
+        if self.timestamp.tzinfo is None:
+            raise ValueError("timestamp must be timezone-aware")
+        if not isinstance(self.event_id, str) or not self.event_id:
+            raise ValueError("event_id must be a non-empty string")
+        if not hasattr(self.properties, "items"):
+            raise TypeError("properties must be a mapping")
+        object.__setattr__(self, "properties", dict(self.properties))
+
+
+@dataclass(frozen=True)
+class EventQuery:
+    """Filters used when listing or counting events."""
+
+    name: str | None = None
+    since: datetime | None = None
+    until: datetime | None = None
+    limit: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.limit is not None and self.limit < 0:
+            raise ValueError("limit must be non-negative")
+
+        for field_name in ("since", "until"):
+            value = getattr(self, field_name)
+            if value is not None and value.tzinfo is None:
+                raise ValueError(f"{field_name} must be timezone-aware")
+
+        if self.since is not None and self.until is not None and self.since > self.until:
+            raise ValueError("since must be less than or equal to until")
+
+
+@runtime_checkable
+class AnalyticsStorage(Protocol):
+    """Interface implemented by analytics storage backends."""
+
+    def record(self, event: AnalyticsEvent) -> None:
+        ...
+
+    def record_many(self, events: Iterable[AnalyticsEvent]) -> None:
+        ...
+
+    def get(self, event_id: str) -> AnalyticsEvent | None:
+        ...
+
+    def list_events(self, query: EventQuery | None = None) -> list[AnalyticsEvent]:
+        ...
+
+    def count(self, query: EventQuery | None = None) -> int:
+        ...
+
+    def delete(self, event_id: str) -> bool:
+        ...
+
+    def clear(self) -> None:
+        ...
+
+
+class InMemoryAnalyticsStorage:
+    """Thread-safe in-memory implementation of :class:`AnalyticsStorage`."""
+
+    def __init__(self) -> None:
+        self._events: dict[str, AnalyticsEvent] = {}
+        self._lock = threading.RLock()
+
+    def record(self, event: AnalyticsEvent) -> None:
+        if not isinstance(event, AnalyticsEvent):
+            raise TypeError("event must be an AnalyticsEvent")
+
+        with self._lock:
+            existing = self._events.get(event.event_id)
+            if existing is not None:
+                if existing != event:
+                    raise ValueError(
+                        "event_id already exists with different data: "
+                        f"{event.event_id}"
+                    )
+                return
+            self._events[event.event_id] = event
+
+    def record_many(self, events: Iterable[AnalyticsEvent]) -> None:
+        for event in events:
+            self.record(event)
+
+    def get(self, event_id: str) -> AnalyticsEvent | None:
+        with self._lock:
+            return self._events.get(event_id)
+
+    def list_events(self, query: EventQuery | None = None) -> list[AnalyticsEvent]:
+        query = query or EventQuery()
+
+        with self._lock:
+            events = [
+                event
+                for event in self._events.values()
+                if self._matches(event, query)
+            ]
+
+        events.sort(key=lambda event: (event.timestamp, event.event_id))
+
+        if query.limit is not None:
+            events = events[: query.limit]
+
+        return events
+
+    def count(self, query: EventQuery | None = None) -> int:
+        query = query or EventQuery()
+
+        with self._lock:
+            return sum(
+                1
+                for event in self._events.values()
+                if self._matches(event, query)
+            )
+
+    def delete(self, event_id: str) -> bool:
+        with self._lock:
+            return self._events.pop(event_id, None) is not None
+
+    def clear(self) -> None:
+        with self._lock:
+            self._events.clear()
+
+    @staticmethod
+    def _matches(event: AnalyticsEvent, query: EventQuery) -> bool:
+        if query.name is not None and event.name != query.name:
+            return False
+        if query.since is not None and event.timestamp < query.since:
+            return False
+        if query.until is not None and event.timestamp > query.until:
+            return False
+        return True
+
+
+def create_event(
+    name: str,
+    *,
+    timestamp: datetime | None = None,
+    event_id: str | None = None,
+    properties: Mapping[str, Any] | None = None,
+) -> AnalyticsEvent:
+    """Convenience factory for creating an :class:`AnalyticsEvent`."""
+    return AnalyticsEvent(
+        name=name,
+        timestamp=timestamp or utcnow(),
+        event_id=event_id or uuid.uuid4().hex,
+        properties=properties or {},
+    )
+
+
+__all__ = [
+    "AnalyticsEvent",
+    "AnalyticsStorage",
+    "EventQuery",
+    "InMemoryAnalyticsStorage",
+    "create_event",
+    "utcnow",
+]
+```

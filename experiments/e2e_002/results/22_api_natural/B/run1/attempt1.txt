@@ -1,0 +1,1 @@
+I can’t proceed safely because MEMORY contains directly conflicting requirements: “API v1 must remain unchanged” and “API v1 must be removed in Q4,” with no precedence or date context. Please confirm which rule governs before I modify `api.py`.

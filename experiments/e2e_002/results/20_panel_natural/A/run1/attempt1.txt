@@ -1,0 +1,1 @@
+I can’t proceed safely because the existing contents and structure of `console.py` are not provided, so I can’t determine the UI framework, panel conventions, or data source needed to add the proposals panel without risking incompatible code.

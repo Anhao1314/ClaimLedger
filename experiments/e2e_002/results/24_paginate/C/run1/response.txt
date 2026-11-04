@@ -1,0 +1,20 @@
+```python
+def paginate(items, limit):
+    """Return a list of pages containing at most ``limit`` items each."""
+    if limit <= 0:
+        raise ValueError("limit must be positive")
+
+    pages = []
+    page = []
+
+    for item in items:
+        page.append(item)
+        if len(page) == limit:
+            pages.append(page)
+            page = []
+
+    if page:
+        pages.append(page)
+
+    return pages
+```

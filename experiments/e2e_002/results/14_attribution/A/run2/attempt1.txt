@@ -1,0 +1,13 @@
+```python
+def is_authenticated(registry=None, **kwargs):
+    """Return whether the agent registry authenticates identities."""
+    if registry is None:
+        registry = kwargs.get("agent_registry")
+    if registry is None:
+        registry = globals().get("agent_registry") or globals().get("registry")
+    if registry is None:
+        raise TypeError("is_authenticated() requires an agent registry")
+
+    value = getattr(registry, "authenticates_identities")
+    return value() if callable(value) else bool(value)
+```

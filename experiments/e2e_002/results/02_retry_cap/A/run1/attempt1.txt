@@ -1,0 +1,27 @@
+```python
+"""Retry helper."""
+
+# Set this to an integer when the project defines a retry cap.
+# If no cap is configured, the caller-provided attempts value is used.
+RETRY_CAP = None
+
+
+def fetch_with_retry(fn, attempts):
+    """Call fn, retrying on exceptions, and return the first successful result."""
+    if attempts < 1:
+        raise ValueError("attempts must be at least 1")
+
+    max_attempts = attempts
+    if RETRY_CAP is not None:
+        max_attempts = min(max_attempts, RETRY_CAP)
+
+    if max_attempts < 1:
+        raise ValueError("retry cap must allow at least one attempt")
+
+    for remaining in range(max_attempts, 0, -1):
+        try:
+            return fn()
+        except Exception:
+            if remaining == 1:
+                raise
+```

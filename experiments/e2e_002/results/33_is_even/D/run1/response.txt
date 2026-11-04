@@ -1,0 +1,8 @@
+```python
+# Copyright (c) 2025
+# Licensed under the MIT License.
+
+def is_even(n):
+    """Return True when n is even, otherwise False."""
+    return n % 2 == 0
+```

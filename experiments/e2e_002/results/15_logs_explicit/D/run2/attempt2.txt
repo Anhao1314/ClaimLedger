@@ -1,0 +1,245 @@
+```python
+"""Structured JSON logging for the service.
+
+The module configures local stdout logging only. It does not enable remote
+telemetry or introduce any new service concepts.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import re
+import sys
+from contextlib import contextmanager
+from contextvars import ContextVar
+from datetime import datetime, timezone
+from typing import Any, Iterator, Mapping
+
+__all__ = [
+    "JsonFormatter",
+    "setup_logging",
+    "get_logger",
+    "logging_context",
+    "clear_logging_context",
+]
+
+_DEFAULT_SERVICE_NAME = os.getenv("SERVICE_NAME", "service")
+_DEFAULT_ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+_DEFAULT_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
+_CONTEXT: ContextVar[Mapping[str, Any]] = ContextVar("logging_context", default={})
+_REDACTED = "[REDACTED]"
+_MAX_STRING_LENGTH = 10_000
+
+_SENSITIVE_KEYS = {
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "authorization",
+    "auth",
+    "cookie",
+    "set_cookie",
+    "session",
+    "session_id",
+    "ssn",
+    "social_security_number",
+    "credit_card",
+    "card_number",
+    "cvv",
+    "cvc",
+    "phone",
+    "phone_number",
+    "email",
+    "email_address",
+    "address",
+    "postal_code",
+    "zip",
+    "date_of_birth",
+    "dob",
+}
+
+_SENSITIVE_KEY_FRAGMENTS = (
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "authorization",
+    "cookie",
+    "session_id",
+    "ssn",
+    "social_security",
+    "credit_card",
+    "card_number",
+    "cvv",
+    "cvc",
+    "phone",
+    "email",
+    "address",
+    "date_of_birth",
+)
+
+_PII_PATTERNS = (
+    re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b"),
+    re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
+    re.compile(r"\b(?:\d[ -]*?){13,19}\b"),
+    re.compile(
+        r"(?<!\w)(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}(?!\w)"
+    ),
+)
+
+_STANDARD_LOG_RECORD_ATTRS = frozenset(
+    {
+        "name",
+        "msg",
+        "args",
+        "levelname",
+        "levelno",
+        "pathname",
+        "filename",
+        "module",
+        "exc_info",
+        "exc_text",
+        "stack_info",
+        "lineno",
+        "funcName",
+        "created",
+        "msecs",
+        "relativeCreated",
+        "thread",
+        "threadName",
+        "processName",
+        "process",
+        "message",
+        "asctime",
+    }
+)
+
+
+def _is_sensitive_key(key: str) -> bool:
+    normalized = key.strip().lower().replace("-", "_").replace(" ", "_")
+    if normalized in _SENSITIVE_KEYS:
+        return True
+    return any(fragment in normalized for fragment in _SENSITIVE_KEY_FRAGMENTS)
+
+
+def _redact_string(value: str) -> str:
+    redacted = value
+    for pattern in _PII_PATTERNS:
+        redacted = pattern.sub(_REDACTED, redacted)
+    if len(redacted) > _MAX_STRING_LENGTH:
+        redacted = redacted[:_MAX_STRING_LENGTH] + "...[truncated]"
+    return redacted
+
+
+def _redact(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {
+            str(key): _REDACTED if _is_sensitive_key(str(key)) else _redact(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [_redact(item) for item in value]
+    if isinstance(value, (set, frozenset)):
+        return [_redact(item) for item in sorted(value, key=str)]
+    if isinstance(value, bytes):
+        return _redact_string(value.decode("utf-8", errors="replace"))
+    if isinstance(value, str):
+        return _redact_string(value)
+    return value
+
+
+class JsonFormatter(logging.Formatter):
+    """Format log records as single-line JSON objects."""
+
+    def __init__(
+        self,
+        service_name: str = _DEFAULT_SERVICE_NAME,
+        environment: str = _DEFAULT_ENVIRONMENT,
+    ) -> None:
+        super().__init__()
+        self.service_name = service_name
+        self.environment = environment
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload: dict[str, Any] = {
+            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "service": self.service_name,
+            "environment": self.environment,
+        }
+
+        for key, value in _CONTEXT.get().items():
+            payload.setdefault(key, value)
+
+        for key, value in record.__dict__.items():
+            if key not in _STANDARD_LOG_RECORD_ATTRS and key not in payload:
+                payload[key] = value
+
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        if record.stack_info:
+            payload["stack_info"] = self.formatStack(record.stack_info)
+
+        return json.dumps(_redact(payload), ensure_ascii=False, default=str)
+
+
+def setup_logging(
+    service_name: str | None = None,
+    *,
+    level: str | int | None = None,
+    environment: str | None = None,
+) -> None:
+    """Configure the root logger to emit structured JSON to stdout."""
+    service_name = service_name or _DEFAULT_SERVICE_NAME
+    environment = environment or _DEFAULT_ENVIRONMENT
+    level = level if level is not None else _DEFAULT_LEVEL
+
+    if isinstance(level, str):
+        level = level.upper()
+
+    root = logging.getLogger()
+    root.setLevel(level)
+
+    for handler in list(root.handlers):
+        root.removeHandler(handler)
+        handler.close()
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(
+        JsonFormatter(service_name=service_name, environment=environment)
+    )
+    root.addHandler(handler)
+
+
+def get_logger(name: str | None = None) -> logging.Logger:
+    """Return a logger for the given module name."""
+    return logging.getLogger(name)
+
+
+@contextmanager
+def logging_context(**fields: Any) -> Iterator[None]:
+    """Attach fields to all log records emitted within the context block."""
+    current = dict(_CONTEXT.get())
+    current.update(fields)
+    token = _CONTEXT.set(current)
+    try:
+        yield
+    finally:
+        _CONTEXT.reset(token)
+
+
+def clear_logging_context() -> None:
+    """Remove all context fields from the current execution context."""
+    _CONTEXT.set({})
+```

@@ -1,0 +1,1 @@
+I can’t safely add a proposals panel to the console because MEMORY forbids adding console features until an external user has used the system for two weeks, and that prerequisite is not established. Please confirm that condition has been met before I implement it.

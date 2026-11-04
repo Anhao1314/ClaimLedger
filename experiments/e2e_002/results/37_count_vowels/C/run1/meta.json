@@ -1,0 +1,18 @@
+{
+  "task": "37_count_vowels",
+  "arm": "C",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 195,
+  "completion_tokens": 136,
+  "latency_ms": 2177,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 75,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 195,
+  "check_output": ""
+}

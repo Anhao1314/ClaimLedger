@@ -1,0 +1,299 @@
+```python
+"""Storage layer for the analytics service.
+
+The layer persists analytics events in SQLite. It applies migrations before the
+service starts, redacts PII before anything is written, requires a request id on
+writes, and retries transient database failures at most ``MAX_RETRIES`` times.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import sqlite3
+import threading
+import time
+from dataclasses import dataclass
+from typing import Any, Callable, Mapping, TypeVar
+
+MAX_RETRIES = 3
+MIN_SAMPLE_SIZE = 100
+REDACTED = "[REDACTED]"
+
+PII_FIELD_NAMES = frozenset(
+    {
+        "address",
+        "card_number",
+        "credit_card",
+        "email",
+        "e_mail",
+        "first_name",
+        "full_name",
+        "ip",
+        "ip_address",
+        "last_name",
+        "name",
+        "phone",
+        "phone_number",
+        "social_security_number",
+        "ssn",
+        "street",
+        "user_agent",
+    }
+)
+
+_EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+_PHONE_RE = re.compile(
+    r"\b(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)?\d{3,4}[\s.-]?\d{4}\b"
+)
+
+T = TypeVar("T")
+
+
+@dataclass(frozen=True)
+class Event:
+    """An analytics event as stored by :class:`AnalyticsStorage`."""
+
+    id: int
+    request_id: str
+    event_type: str
+    payload: dict[str, Any]
+    sample_size: int | None
+    created_at: float
+
+
+def _redact_string(value: str) -> str:
+    value = _EMAIL_RE.sub(REDACTED, value)
+    value = _PHONE_RE.sub(REDACTED, value)
+    return value
+
+
+def redact_pii(value: Any) -> Any:
+    """Return a copy of ``value`` with PII removed.
+
+    PII is removed recursively for mappings and sequences before values are
+    serialized for storage.
+    """
+
+    if isinstance(value, Mapping):
+        cleaned: dict[Any, Any] = {}
+        for key, item in value.items():
+            if str(key).lower() in PII_FIELD_NAMES:
+                cleaned[key] = REDACTED
+            else:
+                cleaned[key] = redact_pii(item)
+        return cleaned
+
+    if isinstance(value, list):
+        return [redact_pii(item) for item in value]
+
+    if isinstance(value, tuple):
+        return tuple(redact_pii(item) for item in value)
+
+    if isinstance(value, str):
+        return _redact_string(value)
+
+    return value
+
+
+def _run_with_retries(operation: Callable[[], T]) -> T:
+    """Run ``operation``, retrying transient database failures at most 3 times."""
+
+    last_error: sqlite3.OperationalError | None = None
+
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            return operation()
+        except sqlite3.OperationalError as exc:
+            last_error = exc
+            if attempt >= MAX_RETRIES:
+                break
+            time.sleep(min(0.05 * (2**attempt), 0.5))
+
+    assert last_error is not None
+    raise last_error
+
+
+def migrate(connection: sqlite3.Connection) -> None:
+    """Apply all database migrations required by the storage layer."""
+
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS analytics_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            request_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            sample_size INTEGER,
+            created_at REAL NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_analytics_events_type_created
+        ON analytics_events(event_type, created_at)
+        """
+    )
+    connection.commit()
+
+
+def run_migrations(database: str) -> None:
+    """Run migrations before the service starts accepting traffic."""
+
+    connection = sqlite3.connect(database)
+    try:
+        migrate(connection)
+    finally:
+        connection.close()
+
+
+class AnalyticsStorage:
+    """SQLite-backed analytics storage."""
+
+    def __init__(self, database: str = ":memory:") -> None:
+        self._database = database
+        self._lock = threading.RLock()
+        self._closed = False
+        self._connection = sqlite3.connect(database, check_same_thread=False)
+        self._connection.row_factory = sqlite3.Row
+        migrate(self._connection)
+
+    def store_event(
+        self,
+        request_id: str,
+        event_type: str,
+        payload: Mapping[str, Any],
+        *,
+        sample_size: int | None = None,
+    ) -> int:
+        """Persist an event and return its storage id.
+
+        ``request_id`` is required so every stored request can be traced. PII is
+        redacted before the payload is serialized.
+        """
+
+        if not request_id:
+            raise ValueError("request_id is required")
+        if not event_type:
+            raise ValueError("event_type is required")
+        if sample_size is not None and sample_size < 0:
+            raise ValueError("sample_size must be non-negative")
+
+        cleaned_payload = redact_pii(payload)
+        encoded_payload = json.dumps(
+            cleaned_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
+        created_at = time.time()
+
+        def operation() -> int:
+            with self._lock:
+                cursor = self._connection.execute(
+                    """
+                    INSERT INTO analytics_events
+                        (request_id, event_type, payload, sample_size, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        request_id,
+                        event_type,
+                        encoded_payload,
+                        sample_size,
+                        created_at,
+                    ),
+                )
+                self._connection.commit()
+                return int(cursor.lastrowid)
+
+        return _run_with_retries(operation)
+
+    def get_event(self, event_id: int) -> Event | None:
+        """Return a stored event by id, or ``None`` if it does not exist."""
+
+        def operation() -> Event | None:
+            with self._lock:
+                row = self._connection.execute(
+                    """
+                    SELECT id, request_id, event_type, payload, sample_size, created_at
+                    FROM analytics_events
+                    WHERE id = ?
+                    """,
+                    (event_id,),
+                ).fetchone()
+
+                if row is None:
+                    return None
+
+                return Event(
+                    id=int(row["id"]),
+                    request_id=str(row["request_id"]),
+                    event_type=str(row["event_type"]),
+                    payload=json.loads(row["payload"]),
+                    sample_size=row["sample_size"],
+                    created_at=float(row["created_at"]),
+                )
+
+        return _run_with_retries(operation)
+
+    def summarize(self, event_type: str) -> dict[str, Any]:
+        """Summarize stored events for ``event_type``.
+
+        When the sample size is below 100, the returned confidence is lowered
+        and the claim is explicitly weakened.
+        """
+
+        def operation() -> dict[str, Any]:
+            with self._lock:
+                row = self._connection.execute(
+                    """
+                    SELECT
+                        COUNT(*) AS event_count,
+                        COALESCE(
+                            SUM(CASE WHEN sample_size IS NULL THEN 1 ELSE sample_size END),
+                            0
+                        ) AS sample_size
+                    FROM analytics_events
+                    WHERE event_type = ?
+                    """,
+                    (event_type,),
+                ).fetchone()
+
+                event_count = int(row["event_count"])
+                sample_size = int(row["sample_size"] or 0)
+                sufficient_sample = sample_size >= MIN_SAMPLE_SIZE
+
+                return {
+                    "event_type": event_type,
+                    "event_count": event_count,
+                    "sample_size": sample_size,
+                    "confidence": "normal" if sufficient_sample else "low",
+                    "claim": "supported" if sufficient_sample else "weakened",
+                }
+
+        return _run_with_retries(operation)
+
+    def flush(self) -> None:
+        """Commit any pending work."""
+
+        with self._lock:
+            self._connection.commit()
+
+    def close(self) -> None:
+        """Flush pending work and close the database connection."""
+
+        with self._lock:
+            if self._closed:
+                return
+            self._connection.commit()
+            self._connection.close()
+            self._closed = True
+
+    def __enter__(self) -> "AnalyticsStorage":
+        return self
+
+    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+        self.close()
+```

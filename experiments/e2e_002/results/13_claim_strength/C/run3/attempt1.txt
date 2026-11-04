@@ -1,0 +1,9 @@
+```python
+THRESHOLD = 100
+
+
+def claim_strength(n):
+    if n < THRESHOLD:
+        return "weak"
+    return "strong"
+```

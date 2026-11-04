@@ -1,0 +1,5 @@
+```python
+def collapse_spaces(text: str) -> str:
+    """Return *text* with each whitespace run collapsed to one space."""
+    return " ".join(text.split())
+```

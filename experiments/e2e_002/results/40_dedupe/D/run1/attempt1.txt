@@ -1,0 +1,23 @@
+```python
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2025
+
+"""Utilities for removing duplicates while preserving first-seen order."""
+
+from typing import Iterable, List, TypeVar
+
+T = TypeVar("T")
+
+
+def dedupe(items: Iterable[T]) -> List[T]:
+    """Return items with duplicates removed, preserving first-seen order."""
+    seen = set()
+    result = []
+
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            result.append(item)
+
+    return result
+```

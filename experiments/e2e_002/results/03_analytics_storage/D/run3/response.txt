@@ -1,0 +1,573 @@
+```python
+"""Analytics storage layer.
+
+The storage layer is responsible for:
+- applying schema migrations before the service starts,
+- redacting PII before anything is persisted,
+- recording the request id for every event,
+- retrying transient database failures with a hard cap, and
+- draining queued writes before shutdown.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import sqlite3
+import threading
+import time
+import uuid
+from collections.abc import Callable, Mapping, Sequence
+from datetime import datetime, timezone
+from typing import Any, Optional, TypeVar
+
+MAX_RETRIES = 3
+SAMPLE_SIZE_FOR_STRONG_CLAIMS = 100
+REDACTED = "[REDACTED]"
+
+T = TypeVar("T")
+
+_EMAIL_RE = re.compile(
+    r"\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b",
+    re.IGNORECASE,
+)
+_CREDIT_CARD_RE = re.compile(r"(?<!\d)(?:\d[ \-]*?){13,19}(?!\d)")
+_SSN_RE = re.compile(r"(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)")
+_PHONE_RE = re.compile(
+    r"(?<!\d)(?:\+?\d{1,3}[\s.\-]?)?"
+    r"(?:\(?\d{3}\)?[\s.\-]?)\d{3}[\s.\-]?\d{4}(?!\d)"
+)
+_IP_RE = re.compile(r"(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?!\d)")
+
+_PII_KEYS = frozenset(
+    {
+        "address",
+        "apikey",
+        "birthdate",
+        "cardnumber",
+        "creditcard",
+        "creditcardnumber",
+        "cvv",
+        "dateofbirth",
+        "dob",
+        "email",
+        "emailaddress",
+        "firstname",
+        "fullname",
+        "ip",
+        "ipaddress",
+        "lastname",
+        "mobile",
+        "name",
+        "password",
+        "passwd",
+        "phone",
+        "phonenumber",
+        "secret",
+        "socialsecurity",
+        "socialsecuritynumber",
+        "ssn",
+        "streetaddress",
+        "telephone",
+        "token",
+        "useremail",
+        "userip",
+    }
+)
+
+_PII_KEY_TOKENS = (
+    "address",
+    "apikey",
+    "cardnumber",
+    "creditcard",
+    "cvv",
+    "dateofbirth",
+    "dob",
+    "email",
+    "ipaddress",
+    "password",
+    "passwd",
+    "phone",
+    "secret",
+    "socialsecurity",
+    "ssn",
+    "token",
+)
+
+_MIGRATIONS: tuple[tuple[int, str], ...] = (
+    (
+        1,
+        """
+        CREATE TABLE IF NOT EXISTS analytics_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            request_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """,
+    ),
+    (
+        2,
+        """
+        CREATE INDEX IF NOT EXISTS idx_analytics_events_request_id
+        ON analytics_events (request_id)
+        """,
+    ),
+    (
+        3,
+        """
+        CREATE INDEX IF NOT EXISTS idx_analytics_events_event_type
+        ON analytics_events (event_type)
+        """,
+    ),
+    (
+        4,
+        """
+        CREATE INDEX IF NOT EXISTS idx_analytics_events_created_at
+        ON analytics_events (created_at)
+        """,
+    ),
+)
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _normalize_key(key: Any) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(key).lower())
+
+
+def _is_pii_key(key: Any) -> bool:
+    normalized = _normalize_key(key)
+    if normalized in _PII_KEYS:
+        return True
+    return any(
+        normalized == token
+        or normalized.startswith(token)
+        or normalized.endswith(token)
+        for token in _PII_KEY_TOKENS
+    )
+
+
+def _redact_text(value: str) -> str:
+    for pattern in (
+        _EMAIL_RE,
+        _CREDIT_CARD_RE,
+        _SSN_RE,
+        _PHONE_RE,
+        _IP_RE,
+    ):
+        value = pattern.sub(REDACTED, value)
+    return value
+
+
+def redact_pii(value: Any) -> Any:
+    """Return a copy of *value* with common PII removed.
+
+    Redaction is applied both to known-sensitive keys and to values that look
+    like emails, phone numbers, SSNs, credit cards, or IP addresses.
+    """
+
+    if isinstance(value, Mapping):
+        redacted: dict[Any, Any] = {}
+        for key, item in value.items():
+            if _is_pii_key(key):
+                redacted[key] = REDACTED
+            else:
+                redacted[key] = redact_pii(item)
+        return redacted
+
+    if isinstance(value, list):
+        return [redact_pii(item) for item in value]
+
+    if isinstance(value, tuple):
+        return tuple(redact_pii(item) for item in value)
+
+    if isinstance(value, set):
+        return {redact_pii(item) for item in value}
+
+    if isinstance(value, str):
+        return _redact_text(value)
+
+    return value
+
+
+def _extract_event_type(event: Mapping[Any, Any]) -> str:
+    for key in ("event", "event_type", "type"):
+        value = event.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return "unknown"
+
+
+def _prepare_event(
+    event: Mapping[Any, Any],
+    request_id: Optional[str] = None,
+) -> dict[str, Any]:
+    if not isinstance(event, Mapping):
+        raise TypeError("event must be a mapping")
+
+    rid = request_id or event.get("request_id") or event.get("requestId")
+    if not rid:
+        rid = str(uuid.uuid4())
+
+    event_type = _extract_event_type(event)
+    payload = redact_pii(dict(event))
+    payload.setdefault("request_id", str(rid))
+
+    return {
+        "request_id": str(rid),
+        "event_type": event_type,
+        "payload": payload,
+        "created_at": _utc_now(),
+    }
+
+
+def _retry_with_cap(
+    operation: Callable[[], T],
+    max_retries: int = MAX_RETRIES,
+) -> T:
+    """Run *operation*, retrying transient SQLite failures up to the cap."""
+
+    if max_retries < 0:
+        max_retries = 0
+
+    last_error: Optional[BaseException] = None
+    for attempt in range(max_retries + 1):
+        try:
+            return operation()
+        except sqlite3.OperationalError as exc:
+            last_error = exc
+            if attempt >= max_retries:
+                break
+            time.sleep(0.01 * (2**attempt))
+
+    assert last_error is not None
+    raise last_error
+
+
+def run_migrations(connection: sqlite3.Connection) -> None:
+    """Apply all pending storage migrations.
+
+    This is safe to call repeatedly and must complete before the service starts
+    accepting traffic.
+    """
+
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            version INTEGER PRIMARY KEY,
+            applied_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.commit()
+
+    applied = {
+        int(row[0])
+        for row in connection.execute("SELECT version FROM schema_migrations")
+    }
+
+    for version, statement in _MIGRATIONS:
+        if version in applied:
+            continue
+        with connection:
+            connection.execute(statement)
+            connection.execute(
+                "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+                (version, _utc_now()),
+            )
+
+
+class AnalyticsStorage:
+    """SQLite-backed analytics event storage.
+
+    Writes are synchronous by default. ``enqueue_event`` is available for
+    batching, and ``flush``/``close`` drain the queue before shutdown.
+    """
+
+    def __init__(
+        self,
+        db_path: str = "analytics.db",
+        *,
+        auto_migrate: bool = True,
+        max_retries: int = MAX_RETRIES,
+    ) -> None:
+        self.db_path = db_path
+        self.max_retries = max(0, int(max_retries))
+        self._lock = threading.RLock()
+        self._closed = False
+        self._pending: list[dict[str, Any]] = []
+        self._conn = sqlite3.connect(db_path, check_same_thread=False)
+
+        if auto_migrate:
+            self.migrate()
+
+    @property
+    def connection(self) -> sqlite3.Connection:
+        return self._conn
+
+    def _ensure_open(self) -> None:
+        if self._closed:
+            raise RuntimeError("storage is closed")
+
+    def migrate(self) -> None:
+        with self._lock:
+            run_migrations(self._conn)
+
+    def _insert_prepared(self, prepared: Mapping[str, Any]) -> int:
+        payload = json.dumps(
+            prepared["payload"],
+            sort_keys=True,
+            default=str,
+        )
+
+        def operation() -> int:
+            with self._lock:
+                self._ensure_open()
+                cursor = self._conn.execute(
+                    """
+                    INSERT INTO analytics_events
+                        (request_id, event_type, payload, created_at)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        prepared["request_id"],
+                        prepared["event_type"],
+                        payload,
+                        prepared["created_at"],
+                    ),
+                )
+                self._conn.commit()
+                return int(cursor.lastrowid)
+
+        return _retry_with_cap(operation, self.max_retries)
+
+    def record_event(
+        self,
+        event: Mapping[Any, Any],
+        request_id: Optional[str] = None,
+    ) -> int:
+        """Redact and persist one analytics event."""
+
+        self._ensure_open()
+        prepared = _prepare_event(event, request_id)
+        return self._insert_prepared(prepared)
+
+    def store_event(
+        self,
+        event: Mapping[Any, Any],
+        request_id: Optional[str] = None,
+    ) -> int:
+        return self.record_event(event, request_id)
+
+    def ingest(
+        self,
+        event: Mapping[Any, Any],
+        request_id: Optional[str] = None,
+    ) -> int:
+        return self.record_event(event, request_id)
+
+    def enqueue_event(
+        self,
+        event: Mapping[Any, Any],
+        request_id: Optional[str] = None,
+    ) -> str:
+        """Queue an event for later insertion and return its request id."""
+
+        self._ensure_open()
+        prepared = _prepare_event(event, request_id)
+        with self._lock:
+            self._pending.append(prepared)
+        return prepared["request_id"]
+
+    def flush(self) -> int:
+        """Drain queued writes. Returns the number of events persisted."""
+
+        self._ensure_open()
+
+        with self._lock:
+            pending = self._pending
+            self._pending = []
+
+        inserted = 0
+        for index, prepared in enumerate(pending):
+            try:
+                self._insert_prepared(prepared)
+                inserted += 1
+            except Exception:
+                with self._lock:
+                    self._pending = pending[index:] + self._pending
+                raise
+
+        return inserted
+
+    def drain_queue(self) -> int:
+        return self.flush()
+
+    def query_events(
+        self,
+        *,
+        request_id: Optional[str] = None,
+        event_type: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        self.flush()
+
+        clauses: list[str] = []
+        params: list[Any] = []
+
+        if request_id is not None:
+            clauses.append("request_id = ?")
+            params.append(str(request_id))
+
+        if event_type is not None:
+            clauses.append("event_type = ?")
+            params.append(str(event_type))
+
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        safe_limit = max(0, int(limit))
+        safe_offset = max(0, int(offset))
+
+        sql = (
+            f"""
+            SELECT id, request_id, event_type, payload, created_at
+            FROM analytics_events
+            {where}
+            ORDER BY id ASC
+            LIMIT ? OFFSET ?
+            """
+        )
+        params.extend([safe_limit, safe_offset])
+
+        with self._lock:
+            rows = self._conn.execute(sql, params).fetchall()
+
+        return [
+            {
+                "id": row[0],
+                "request_id": row[1],
+                "event_type": row[2],
+                "payload": json.loads(row[3]),
+                "created_at": row[4],
+            }
+            for row in rows
+        ]
+
+    def get_events(
+        self,
+        *,
+        request_id: Optional[str] = None,
+        event_type: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        return self.query_events(
+            request_id=request_id,
+            event_type=event_type,
+            limit=limit,
+            offset=offset,
+        )
+
+    def count_events(
+        self,
+        *,
+        request_id: Optional[str] = None,
+        event_type: Optional[str] = None,
+    ) -> int:
+        self.flush()
+
+        clauses: list[str] = []
+        params: list[Any] = []
+
+        if request_id is not None:
+            clauses.append("request_id = ?")
+            params.append(str(request_id))
+
+        if event_type is not None:
+            clauses.append("event_type = ?")
+            params.append(str(event_type))
+
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        with self._lock:
+            row = self._conn.execute(
+                f"SELECT COUNT(*) FROM analytics_events {where}",
+                params,
+            ).fetchone()
+        return int(row[0])
+
+    def summarize(self, *, event_type: Optional[str] = None) -> dict[str, Any]:
+        """Return a conservative summary of stored analytics.
+
+        Claims are weakened when the sample size is below 100.
+        """
+
+        sample_size = self.count_events(event_type=event_type)
+        strong = sample_size >= SAMPLE_SIZE_FOR_STRONG_CLAIMS
+
+        return {
+            "sample_size": sample_size,
+            "claim_strength": "strong" if strong else "weak",
+            "caveat": (
+                None
+                if strong
+                else (
+                    "Sample size is below 100; treat claims about the system "
+                    "as provisional."
+                )
+            ),
+        }
+
+    def close(self) -> None:
+        """Drain queued writes, then close the database connection."""
+
+        if self._closed:
+            return
+
+        self.flush()
+
+        with self._lock:
+            if not self._closed:
+                self._conn.close()
+                self._closed = True
+
+    def shutdown(self) -> None:
+        self.close()
+
+    def __enter__(self) -> "AnalyticsStorage":
+        return self
+
+    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+        self.close()
+
+
+Storage = AnalyticsStorage
+
+
+def create_storage(
+    db_path: str = "analytics.db",
+    *,
+    auto_migrate: bool = True,
+    max_retries: int = MAX_RETRIES,
+) -> AnalyticsStorage:
+    return AnalyticsStorage(
+        db_path,
+        auto_migrate=auto_migrate,
+        max_retries=max_retries,
+    )
+
+
+__all__ = [
+    "AnalyticsStorage",
+    "MAX_RETRIES",
+    "REDACTED",
+    "SAMPLE_SIZE_FOR_STRONG_CLAIMS",
+    "Storage",
+    "create_storage",
+    "redact_pii",
+    "run_migrations",
+]
+```

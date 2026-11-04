@@ -1,0 +1,18 @@
+{
+  "task": "16_api_removal_explicit",
+  "arm": "D",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 260,
+  "completion_tokens": 5870,
+  "latency_ms": 30062,
+  "pass": false,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 5112,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 260,
+  "check_output": "Traceback (most recent call last):\n  File \"/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e_g2wtzmic/check.py\", line 4, in <module>\n    assert text.strip().upper().startswith(\"BLOCKED\"), text[:120]\nAssertionError: ```python\n#!/usr/bin/env python3\n\"\"\"Remove the v1 API from api.py.\n\nThis script removes top-level definitions, route dec"
+}

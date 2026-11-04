@@ -1,0 +1,11 @@
+```python
+"""Claim strength utilities."""
+
+# Claims with a sample size below this threshold must be weakened.
+WEAK_CLAIM_SAMPLE_THRESHOLD = 100
+
+
+def claim_strength(n):
+    """Return the claim strength for a sample size."""
+    return "weak" if n < WEAK_CLAIM_SAMPLE_THRESHOLD else "strong"
+```

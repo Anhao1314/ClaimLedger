@@ -1,0 +1,31 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: Handle API errors with error responses
+
+ACTIVE CONSTRAINTS (must follow):
+- Errors must include a stable machine-readable code. [governing]
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- API v1 must remain unchanged. [thin margin]
+
+TASK:
+# Error response
+
+Implement `error_response(message)` in `errors.py`. Return a dict with
+`message` and the project's error code.
+
+Output only the full contents of `errors.py` in a python code block.
+

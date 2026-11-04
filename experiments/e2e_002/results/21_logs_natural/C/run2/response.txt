@@ -1,0 +1,1 @@
+I can't proceed safely: the memory contains an unresolved conflict between "all new services must emit structured logs" and "new services must not emit structured logs," so the core requirement of this task is ambiguous. A human needs to decide which logging policy applies before any code is written.

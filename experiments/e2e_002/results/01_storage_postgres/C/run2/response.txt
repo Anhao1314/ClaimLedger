@@ -1,0 +1,30 @@
+```python
+"""Storage backend configuration and connection helpers."""
+
+from urllib.parse import urlparse
+
+# Project decision: all storage uses PostgreSQL.
+BACKEND = "postgresql"
+
+_POSTGRES_SCHEMES = frozenset({"postgresql", "postgres"})
+
+
+def connect(dsn: str) -> str:
+    """Return the DSN unchanged when it targets PostgreSQL.
+
+    Raises:
+        ValueError: If the DSN uses any other scheme.
+    """
+    try:
+        scheme = urlparse(dsn).scheme
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid DSN: {dsn!r}") from exc
+
+    if scheme not in _POSTGRES_SCHEMES:
+        raise ValueError(
+            f"Unsupported storage backend scheme {scheme!r}; "
+            "expected PostgreSQL"
+        )
+
+    return dsn
+```

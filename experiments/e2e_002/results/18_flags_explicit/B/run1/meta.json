@@ -1,0 +1,18 @@
+{
+  "task": "18_flags_explicit",
+  "arm": "B",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 770,
+  "completion_tokens": 178,
+  "latency_ms": 5796,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 174,
+  "prompt_cache_hit_tokens": 512,
+  "prompt_cache_miss_tokens": 258,
+  "check_output": ""
+}

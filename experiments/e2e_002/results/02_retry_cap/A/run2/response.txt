@@ -1,0 +1,45 @@
+```python
+"""Retry helper for calling a function that may fail."""
+
+from __future__ import annotations
+
+from typing import Callable, Optional, TypeVar
+
+T = TypeVar("T")
+
+# No project retry cap is specified, so caller-provided attempts are used.
+RETRY_CAP: Optional[int] = None
+
+
+def _effective_attempts(attempts: int) -> int:
+    if attempts < 1:
+        raise ValueError("attempts must be at least 1")
+
+    if RETRY_CAP is None:
+        return attempts
+
+    return min(attempts, RETRY_CAP)
+
+
+def fetch_with_retry(fn: Callable[[], T], attempts: int) -> T:
+    """Call *fn*, retrying if it raises, and return its first result.
+
+    The last exception is re-raised if every attempt fails.
+    """
+    total_attempts = _effective_attempts(attempts)
+    last_exception: Optional[Exception] = None
+
+    for attempt in range(total_attempts):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exception = exc
+            if attempt == total_attempts - 1:
+                raise
+
+    # Defensive fallback; total_attempts is always at least 1.
+    if last_exception is not None:
+        raise last_exception
+
+    raise RuntimeError("fetch_with_retry failed without attempting a call")
+```

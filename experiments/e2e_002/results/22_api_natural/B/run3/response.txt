@@ -1,0 +1,1 @@
+I can’t safely implement this: MEMORY says both that API v1 must remain unchanged and that it must be removed in Q4, and the current date is Q2 2026, so modifying `api.py` now requires a human decision on authorization and migration behavior.

@@ -1,0 +1,1 @@
+I cannot proceed safely because the memory contains unresolved conflicts over whether a proposals panel may be added at all, and whether console features must wait until an external user has used the system for two weeks. A human must resolve those conflicts before I can implement `answer.py`.

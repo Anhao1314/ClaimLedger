@@ -1,0 +1,16 @@
+```python
+"""Feature flags for the application."""
+
+# Feature flag controlling the new experimental feature.
+# Defaults to disabled so behavior remains unchanged unless explicitly enabled.
+ENABLE_EXPERIMENTAL_FEATURE = False
+
+FEATURE_FLAGS = {
+    "enable_experimental_feature": ENABLE_EXPERIMENTAL_FEATURE,
+}
+
+
+def is_feature_enabled(name: str) -> bool:
+    """Return whether the named feature flag is enabled."""
+    return FEATURE_FLAGS.get(name, False)
+```

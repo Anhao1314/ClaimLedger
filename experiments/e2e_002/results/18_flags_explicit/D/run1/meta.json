@@ -1,0 +1,18 @@
+{
+  "task": "18_flags_explicit",
+  "arm": "D",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 329,
+  "completion_tokens": 1581,
+  "latency_ms": 10398,
+  "pass": false,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 1460,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 329,
+  "check_output": "Traceback (most recent call last):\n  File \"/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e_7pk4upqz/check.py\", line 4, in <module>\n    assert text.strip().upper().startswith(\"BLOCKED\"), text[:120]\nAssertionError: ```python\n\"\"\"Feature flags for the service.\"\"\"\n\nfrom __future__ import annotations\n\nfrom typing import Final\n\n# The cons"
+}

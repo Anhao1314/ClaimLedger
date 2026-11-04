@@ -1,0 +1,1 @@
+I can’t safely produce `answer.py` because the repository contents—especially the existing `api.py`—aren’t available, so there’s no way to know which v1 routes, handlers, or registrations to remove. Also, “in Q4” needs clarification: whether to delete v1 now or gate its removal on the Q4 date.

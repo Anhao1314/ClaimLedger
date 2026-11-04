@@ -1,0 +1,292 @@
+```python
+"""Structured JSON logging for the service.
+
+Log messages are event identifiers, not user-facing text. User-facing strings
+must remain in the application's externalized message catalog.
+
+This module performs no network I/O. Telemetry is opt-in and must be wired to
+an exporter separately. Log retention is configured at the log sink; the service
+target is 30 days.
+"""
+
+from __future__ import annotations
+
+import contextvars
+import json
+import logging
+import os
+import sys
+from collections.abc import Mapping
+from datetime import datetime, timezone
+from typing import Any
+
+LOG_RETENTION_DAYS = 30
+
+_DEFAULT_SERVICE_NAME = "service"
+
+_LOG_CONTEXT: contextvars.ContextVar[dict[str, Any]] = contextvars.ContextVar(
+    "log_context", default={}
+)
+
+_RESERVED_RECORD_KEYS = frozenset(vars(logging.makeLogRecord({})).keys()) | {
+    "message",
+    "timestamp",
+    "level",
+    "logger",
+    "service",
+    "telemetry_opt_in",
+}
+
+_SENSITIVE_KEYS = frozenset(
+    {
+        "api_key",
+        "apikey",
+        "x_api_key",
+        "authorization",
+        "password",
+        "passwd",
+        "secret",
+        "token",
+        "access_token",
+        "refresh_token",
+        "id_token",
+        "cookie",
+        "set_cookie",
+        "private_key",
+        "client_secret",
+        "session",
+        "session_id",
+        "credential",
+        "credentials",
+    }
+)
+
+_SENSITIVE_SUFFIXES = (
+    "_password",
+    "_passwd",
+    "_secret",
+    "_token",
+    "_private_key",
+    "_credential",
+    "_cookie",
+    "_authorization",
+    "_key",
+)
+
+
+def _format_utc_timestamp(created: float) -> str:
+    """Return an RFC 3339 UTC timestamp ending in Z."""
+    return (
+        datetime.fromtimestamp(created, tz=timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z")
+    )
+
+
+def _is_sensitive_key(key: str) -> bool:
+    normalized = key.strip().lower().replace("-", "_")
+    return normalized in _SENSITIVE_KEYS or normalized.endswith(_SENSITIVE_SUFFIXES)
+
+
+def _sanitize(key: str, value: Any) -> Any:
+    if _is_sensitive_key(key):
+        return "[REDACTED]"
+
+    if isinstance(value, Mapping):
+        return {str(k): _sanitize(str(k), v) for k, v in value.items()}
+
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return [_sanitize(key, item) for item in value]
+
+    return value
+
+
+def _coerce_level(level: int | str) -> int:
+    if isinstance(level, int):
+        return level
+
+    if isinstance(level, str):
+        normalized = level.strip().upper()
+        maybe_level = logging.getLevelName(normalized)
+        if isinstance(maybe_level, int):
+            return maybe_level
+        try:
+            return int(normalized)
+        except ValueError:
+            pass
+
+    raise ValueError(f"Invalid log level: {level!r}")
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+class _ContextFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        for key, value in _LOG_CONTEXT.get().items():
+            if not hasattr(record, key):
+                setattr(record, key, value)
+        return True
+
+
+class JsonFormatter(logging.Formatter):
+    """Emit one compact JSON object per log record."""
+
+    def __init__(self, service_name: str, *, telemetry_enabled: bool = False) -> None:
+        super().__init__()
+        self.service_name = service_name
+        self.telemetry_enabled = telemetry_enabled
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload: dict[str, Any] = {
+            "timestamp": _format_utc_timestamp(record.created),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "service": self.service_name,
+        }
+
+        for key, value in record.__dict__.items():
+            if key in _RESERVED_RECORD_KEYS or key.startswith("_"):
+                continue
+            payload[key] = _sanitize(key, value)
+
+        if "error_code" in record.__dict__:
+            payload["error_code"] = _sanitize("error_code", record.__dict__["error_code"])
+        elif record.levelno >= logging.ERROR:
+            payload["error_code"] = (
+                "UNHANDLED_EXCEPTION" if record.exc_info else "INTERNAL_ERROR"
+            )
+
+        if record.exc_info:
+            exception = record.exc_info[1]
+            payload["exception"] = {
+                "type": type(exception).__name__ if exception is not None else "Exception",
+                "message": str(exception) if exception is not None else "",
+                "stack": self.formatException(record.exc_info),
+            }
+            payload.setdefault("error_code", "UNHANDLED_EXCEPTION")
+
+        if self.telemetry_enabled:
+            payload["telemetry_opt_in"] = True
+
+        return json.dumps(
+            payload,
+            default=str,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+
+
+def bind_logging_context(**fields: Any) -> None:
+    """Add fields that will be attached to all log records in this context."""
+    context = dict(_LOG_CONTEXT.get())
+    context.update(fields)
+    _LOG_CONTEXT.set(context)
+
+
+def clear_logging_context() -> None:
+    """Remove all context-bound log fields."""
+    _LOG_CONTEXT.set({})
+
+
+def get_logging_context() -> dict[str, Any]:
+    """Return a copy of the current context-bound log fields."""
+    return dict(_LOG_CONTEXT.get())
+
+
+def setup_logging(
+    service_name: str | None = None,
+    level: int | str | None = None,
+    *,
+    stream: Any = None,
+    handler: logging.Handler | None = None,
+    telemetry_enabled: bool | None = None,
+) -> logging.Logger:
+    """Configure structured JSON logging and return the service logger.
+
+    The setup is synchronous and does not perform network I/O, keeping startup
+    fast. If telemetry is not explicitly enabled, it remains disabled.
+    """
+    resolved_service_name = service_name or os.getenv(
+        "SERVICE_NAME", _DEFAULT_SERVICE_NAME
+    )
+    resolved_level = _coerce_level(
+        level if level is not None else os.getenv("LOG_LEVEL", "INFO")
+    )
+    resolved_telemetry = (
+        _env_flag("TELEMETRY_ENABLED", False)
+        if telemetry_enabled is None
+        else bool(telemetry_enabled)
+    )
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(resolved_level)
+
+    if handler is None:
+        handler = logging.StreamHandler(stream if stream is not None else sys.stdout)
+
+    handler.setLevel(resolved_level)
+    handler.setFormatter(
+        JsonFormatter(
+            resolved_service_name,
+            telemetry_enabled=resolved_telemetry,
+        )
+    )
+    handler.addFilter(_ContextFilter())
+    setattr(handler, "_service_structured_logging_handler", True)
+
+    for existing_handler in list(root_logger.handlers):
+        if getattr(existing_handler, "_service_structured_logging_handler", False):
+            root_logger.removeHandler(existing_handler)
+            if existing_handler is not handler:
+                existing_handler.close()
+
+    root_logger.addHandler(handler)
+
+    return logging.getLogger(resolved_service_name)
+
+
+def get_logger(name: str | None = None) -> logging.Logger:
+    """Return a named logger, defaulting to the configured service name."""
+    return logging.getLogger(name or os.getenv("SERVICE_NAME", _DEFAULT_SERVICE_NAME))
+
+
+def log_error(
+    logger: logging.Logger,
+    error_code: str,
+    event: str,
+    *,
+    exc_info: Any = None,
+    **fields: Any,
+) -> None:
+    """Log an error with a required stable machine-readable error code."""
+    extra = dict(fields)
+    extra["error_code"] = error_code
+    logger.error(event, extra=extra, exc_info=exc_info)
+
+
+def shutdown_logging() -> None:
+    """Flush and close all logging handlers."""
+    logging.shutdown()
+
+
+configure_logging = setup_logging
+
+__all__ = [
+    "LOG_RETENTION_DAYS",
+    "JsonFormatter",
+    "bind_logging_context",
+    "clear_logging_context",
+    "configure_logging",
+    "get_logging_context",
+    "get_logger",
+    "log_error",
+    "setup_logging",
+    "shutdown_logging",
+]
+```

@@ -1,0 +1,28 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: Describe the delta=0.2 margin threshold for the README
+
+ACTIVE CONSTRAINTS (must follow):
+- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2.
+
+TASK:
+# Margin description
+
+Implement `describe_margin()` in `describe.py`. Return one sentence describing
+the `delta=0.2` margin threshold for the README. Use the project's framing.
+
+Output only the full contents of `describe.py` in a python code block.
+

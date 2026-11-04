@@ -1,0 +1,18 @@
+{
+  "task": "33_is_even",
+  "arm": "C",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 226,
+  "completion_tokens": 278,
+  "latency_ms": 2984,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 257,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 226,
+  "check_output": ""
+}

@@ -1,0 +1,11 @@
+```python
+"""Policy helpers for benchmark threshold tuning."""
+
+
+def may_tune_after_results() -> bool:
+    """Return whether the project allows tuning a benchmark threshold after results.
+
+    Post-hoc threshold tuning is not permitted by the project's recorded policy.
+    """
+    return False
+```

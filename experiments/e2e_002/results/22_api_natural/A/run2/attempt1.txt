@@ -1,0 +1,1 @@
+I can’t safely remove the v1 API without access to the current contents of `api.py`, since I can’t determine which routes or functions belong to v1 or what should replace them.

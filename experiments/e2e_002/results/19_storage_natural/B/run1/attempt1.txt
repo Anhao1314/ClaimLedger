@@ -1,0 +1,1 @@
+I cannot proceed safely because MEMORY contains a direct contradiction: all storage must use PostgreSQL, but PostgreSQL is explicitly banned for the analytics service. A human decision is needed to resolve which rule applies before I can implement `storage.py`.

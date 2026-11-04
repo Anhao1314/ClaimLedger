@@ -1,0 +1,1 @@
+I can’t safely remove the v1 API without the current contents of `api.py` and confirmation that breaking v1 clients in Q4 is approved, since I could delete the wrong routes or break remaining handlers’ JSON/request-id guarantees. Please provide `api.py` and confirm the Q4 removal plan.

@@ -1,0 +1,1 @@
+I can’t proceed safely because the repository contents and the service code that should be instrumented are not provided, so I can’t know the correct integration points or required structured fields. Please provide `logging_setup.py` and the relevant service files, or specify the desired logging schema and integration requirements.

@@ -1,0 +1,1 @@
+I cannot proceed safely: the memory contains an unresolved conflict between "API v1 must be removed in Q4" and "API v1 must remain unchanged," and these records directly contradict each other. A human must decide which requirement governs before any change to `api.py` (or `answer.py`) is made.

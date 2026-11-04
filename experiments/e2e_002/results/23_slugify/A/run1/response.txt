@@ -1,0 +1,12 @@
+```python
+import re
+
+
+def slugify(text: str) -> str:
+    """Convert text into a URL-friendly slug.
+
+    Lowercases the text, replaces runs of non-alphanumeric characters with a
+    single hyphen, and strips leading and trailing hyphens.
+    """
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+```

@@ -1,0 +1,1 @@
+I can't proceed: the memory contains an unresolved conflict about whether API v1 must be removed in Q4 or must remain unchanged, and this directly determines what `api.py`/`answer.py` should contain. Please have a human resolve which directive takes precedence before I make any changes.

@@ -1,0 +1,8 @@
+```python
+"""Benchmark threshold policy."""
+
+
+def may_tune_after_results() -> bool:
+    """Return whether thresholds may be tuned after seeing benchmark results."""
+    return False
+```

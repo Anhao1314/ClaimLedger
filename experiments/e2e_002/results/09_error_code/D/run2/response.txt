@@ -1,0 +1,9 @@
+```python
+"""Error response helpers."""
+
+ERROR_CODE = "ERROR"
+
+
+def error_response(message):
+    return {"message": message, "code": ERROR_CODE}
+```

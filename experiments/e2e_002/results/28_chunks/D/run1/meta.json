@@ -1,0 +1,18 @@
+{
+  "task": "28_chunks",
+  "arm": "D",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 255,
+  "completion_tokens": 2556,
+  "latency_ms": 15701,
+  "pass": false,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 2414,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 255,
+  "check_output": "Traceback (most recent call last):\n  File \"/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e__helq4lx/check.py\", line 2, in <module>\n    assert chunk.chunks([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4], [5]]\nAttributeError: module 'chunk' has no attribute 'chunks'"
+}

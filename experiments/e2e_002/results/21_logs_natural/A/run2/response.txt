@@ -1,0 +1,1 @@
+I can’t safely add structured logging because the contents of `logging_setup.py` and the new service are not provided, so I don’t know the existing logger/API or required fields. Please provide those files or confirm that a generic JSON logging setup is acceptable.

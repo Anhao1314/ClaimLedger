@@ -1,0 +1,463 @@
+```python
+"""Console application with a proposals panel.
+
+This module provides a small, dependency-free console application.  It can be
+used interactively, or driven from the command line:
+
+    python console.py
+    python console.py list
+    python console.py add "Add dark mode" "Support a dark colour scheme"
+    python console.py accept 1
+    python console.py reject 2
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import textwrap
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from pathlib import Path
+from typing import Iterable, List, Optional
+
+__all__ = [
+    "ProposalStatus",
+    "Proposal",
+    "ProposalStore",
+    "ProposalsPanel",
+    "Console",
+    "render_proposals_panel",
+    "proposals_panel",
+    "main",
+]
+
+DEFAULT_STORE_PATH = Path(
+    os.environ.get("CONSOLE_PROPOSALS_FILE", "proposals.json")
+)
+
+
+class ProposalStatus(str, Enum):
+    """The lifecycle states a proposal can be in."""
+
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+
+
+@dataclass
+class Proposal:
+    """A single proposal shown in the proposals panel."""
+
+    id: int
+    title: str
+    description: str = ""
+    author: str = ""
+    status: ProposalStatus = ProposalStatus.PENDING
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "author": self.author,
+            "status": self.status.value,
+            "created_at": self.created_at,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Proposal":
+        raw_status = data.get("status", ProposalStatus.PENDING.value)
+        try:
+            status = ProposalStatus(str(raw_status).lower())
+        except ValueError:
+            status = ProposalStatus.PENDING
+
+        return cls(
+            id=int(data["id"]),
+            title=str(data.get("title", "")),
+            description=str(data.get("description", "")),
+            author=str(data.get("author", "")),
+            status=status,
+            created_at=str(
+                data.get(
+                    "created_at",
+                    datetime.now(timezone.utc).isoformat(),
+                )
+            ),
+        )
+
+
+class ProposalStore:
+    """Load and persist proposals in a JSON file."""
+
+    def __init__(self, path: Optional[Path] = None) -> None:
+        self.path = Path(path) if path is not None else DEFAULT_STORE_PATH
+
+    def load(self) -> List[Proposal]:
+        if not self.path.exists():
+            return []
+
+        try:
+            raw = json.loads(self.path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return []
+
+        if isinstance(raw, dict):
+            items = raw.get("proposals", [])
+        elif isinstance(raw, list):
+            items = raw
+        else:
+            return []
+
+        proposals: List[Proposal] = []
+        for item in items:
+            if isinstance(item, Proposal):
+                proposals.append(item)
+            elif isinstance(item, dict):
+                try:
+                    proposals.append(Proposal.from_dict(item))
+                except (KeyError, TypeError, ValueError):
+                    continue
+        return proposals
+
+    def save(self, proposals: Iterable[Proposal]) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {"proposals": [proposal.to_dict() for proposal in proposals]}
+        temp_path = self.path.with_suffix(self.path.suffix + ".tmp")
+        temp_path.write_text(
+            json.dumps(payload, indent=2),
+            encoding="utf-8",
+        )
+        temp_path.replace(self.path)
+
+    def add(
+        self,
+        title: str,
+        description: str = "",
+        author: str = "",
+    ) -> Proposal:
+        title = title.strip()
+        if not title:
+            raise ValueError("Proposal title must not be empty.")
+
+        proposals = self.load()
+        next_id = max((proposal.id for proposal in proposals), default=0) + 1
+        proposal = Proposal(
+            id=next_id,
+            title=title,
+            description=description.strip(),
+            author=author.strip(),
+        )
+        proposals.append(proposal)
+        self.save(proposals)
+        return proposal
+
+    def update_status(
+        self,
+        proposal_id: int,
+        status: ProposalStatus | str,
+    ) -> Optional[Proposal]:
+        try:
+            normalized_status = ProposalStatus(status)
+        except ValueError:
+            raise ValueError(f"Unknown proposal status: {status!r}")
+
+        proposals = self.load()
+        for proposal in proposals:
+            if proposal.id == int(proposal_id):
+                proposal.status = normalized_status
+                self.save(proposals)
+                return proposal
+        return None
+
+    def get(self, proposal_id: int) -> Optional[Proposal]:
+        for proposal in self.load():
+            if proposal.id == int(proposal_id):
+                return proposal
+        return None
+
+
+class ProposalsPanel:
+    """Render proposals as a boxed console panel."""
+
+    def __init__(
+        self,
+        store: Optional[ProposalStore] = None,
+        width: int = 78,
+    ) -> None:
+        self.store = store if store is not None else ProposalStore()
+        self.width = max(int(width), 40)
+
+    def render(
+        self,
+        proposals: Optional[Iterable[Proposal]] = None,
+        selected_id: Optional[int] = None,
+    ) -> str:
+        if proposals is None:
+            proposals = self.store.load()
+        proposals = list(proposals)
+
+        inner_width = self.width - 2
+        title = " Proposals "
+        top = "┌" + title + "─" * max(0, inner_width - len(title)) + "┐"
+        bottom = "└" + "─" * inner_width + "┘"
+
+        lines = [top]
+
+        if not proposals:
+            lines.append("│" + "No proposals yet.".ljust(inner_width) + "│")
+        else:
+            counts = {
+                status: sum(1 for proposal in proposals if proposal.status == status)
+                for status in ProposalStatus
+            }
+            summary = (
+                f" {len(proposals)} total | "
+                f"{counts[ProposalStatus.PENDING]} pending | "
+                f"{counts[ProposalStatus.ACCEPTED]} accepted | "
+                f"{counts[ProposalStatus.REJECTED]} rejected "
+            )
+            lines.append("│" + summary[:inner_width].ljust(inner_width) + "│")
+            lines.append("├" + "─" * inner_width + "┤")
+
+            for proposal in proposals:
+                marker = "▶" if proposal.id == selected_id else " "
+                header = (
+                    f"{marker} #{proposal.id} "
+                    f"[{proposal.status.value.upper()}] {proposal.title}"
+                )
+                lines.append(
+                    "│" + header[:inner_width].ljust(inner_width) + "│"
+                )
+
+                if proposal.description:
+                    wrapped = textwrap.wrap(
+                        proposal.description,
+                        width=max(1, inner_width - 4),
+                    ) or [""]
+                    for line in wrapped:
+                        content = "  " + line
+                        lines.append(
+                            "│"
+                            + content[:inner_width].ljust(inner_width)
+                            + "│"
+                        )
+
+                if proposal.author:
+                    author_line = f"  by {proposal.author}"
+                    lines.append(
+                        "│"
+                        + author_line[:inner_width].ljust(inner_width)
+                        + "│"
+                    )
+
+                lines.append("├" + "─" * inner_width + "┤")
+
+            if len(lines) > 2 and lines[-1].startswith("├"):
+                lines[-1] = bottom
+
+        if lines[-1] != bottom:
+            lines.append(bottom)
+
+        return "\n".join(lines)
+
+
+def render_proposals_panel(
+    store: Optional[ProposalStore] = None,
+    proposals: Optional[Iterable[Proposal]] = None,
+    width: int = 78,
+    selected_id: Optional[int] = None,
+) -> str:
+    """Convenience wrapper around :class:`ProposalsPanel`."""
+
+    panel = ProposalsPanel(store=store, width=width)
+    return panel.render(proposals=proposals, selected_id=selected_id)
+
+
+def proposals_panel(
+    store: Optional[ProposalStore] = None,
+    proposals: Optional[Iterable[Proposal]] = None,
+    width: int = 78,
+    selected_id: Optional[int] = None,
+) -> str:
+    """Alias for :func:`render_proposals_panel`."""
+
+    return render_proposals_panel(
+        store=store,
+        proposals=proposals,
+        width=width,
+        selected_id=selected_id,
+    )
+
+
+class Console:
+    """Interactive console with a proposals panel."""
+
+    def __init__(
+        self,
+        store: Optional[ProposalStore] = None,
+        panel_width: int = 78,
+    ) -> None:
+        self.store = store if store is not None else ProposalStore()
+        self.proposals_panel = ProposalsPanel(
+            store=self.store,
+            width=panel_width,
+        )
+
+    def show_proposals(self) -> None:
+        print(self.proposals_panel.render())
+
+    def run(self) -> None:
+        while True:
+            print()
+            self.show_proposals()
+            print()
+            print("1) Add proposal")
+            print("2) Accept proposal")
+            print("3) Reject proposal")
+            print("q) Quit")
+
+            try:
+                choice = input("> ").strip().lower()
+            except EOFError:
+                print()
+                break
+
+            if choice in {"q", "quit", "exit"}:
+                break
+
+            if choice == "1":
+                try:
+                    title = input("Title: ").strip()
+                    description = input("Description: ").strip()
+                    author = input("Author: ").strip()
+                    proposal = self.store.add(title, description, author)
+                except EOFError:
+                    print()
+                    break
+                except ValueError as exc:
+                    print(exc)
+                    continue
+                print(f"Added proposal #{proposal.id}.")
+            elif choice in {"2", "3"}:
+                try:
+                    raw_id = input("Proposal id: ").strip()
+                    proposal_id = int(raw_id)
+                except EOFError:
+                    print()
+                    break
+                except ValueError:
+                    print("Please enter a numeric proposal id.")
+                    continue
+
+                status = (
+                    ProposalStatus.ACCEPTED
+                    if choice == "2"
+                    else ProposalStatus.REJECTED
+                )
+                proposal = self.store.update_status(proposal_id, status)
+                if proposal is None:
+                    print(f"Proposal #{proposal_id} was not found.")
+                else:
+                    print(
+                        f"Proposal #{proposal.id} is now "
+                        f"{proposal.status.value}."
+                    )
+            else:
+                print("Unknown choice.")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Console application with a proposals panel."
+    )
+    parser.add_argument(
+        "--store",
+        default=str(DEFAULT_STORE_PATH),
+        help="Path to the proposals JSON file.",
+    )
+
+    subparsers = parser.add_subparsers(dest="command")
+
+    subparsers.add_parser("list", help="Show the proposals panel.")
+
+    add_parser = subparsers.add_parser("add", help="Add a proposal.")
+    add_parser.add_argument("title", help="Proposal title.")
+    add_parser.add_argument(
+        "description",
+        nargs="?",
+        default="",
+        help="Optional proposal description.",
+    )
+    add_parser.add_argument(
+        "--author",
+        default="",
+        help="Optional proposal author.",
+    )
+
+    for command, help_text in (
+        ("accept", "Accept a proposal."),
+        ("reject", "Reject a proposal."),
+    ):
+        status_parser = subparsers.add_parser(command, help=help_text)
+        status_parser.add_argument("id", type=int, help="Proposal id.")
+
+    return parser
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    store = ProposalStore(Path(args.store))
+    console = Console(store=store)
+
+    if args.command == "list":
+        print(console.proposals_panel.render())
+        return 0
+
+    if args.command == "add":
+        try:
+            proposal = store.add(
+                args.title,
+                args.description,
+                args.author,
+            )
+        except ValueError as exc:
+            print(exc, file=sys.stderr)
+            return 1
+        print(f"Added proposal #{proposal.id}: {proposal.title}")
+        return 0
+
+    if args.command in {"accept", "reject"}:
+        status = (
+            ProposalStatus.ACCEPTED
+            if args.command == "accept"
+            else ProposalStatus.REJECTED
+        )
+        proposal = store.update_status(args.id, status)
+        if proposal is None:
+            print(f"Proposal #{args.id} was not found.", file=sys.stderr)
+            return 1
+        print(
+            f"Proposal #{proposal.id} is now {proposal.status.value}."
+        )
+        return 0
+
+    if sys.stdin.isatty():
+        console.run()
+    else:
+        print(console.proposals_panel.render())
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```

@@ -1,0 +1,100 @@
+```python
+#!/usr/bin/env python3
+"""Remove the v1 API from api.py.
+
+This script removes top-level definitions, route decorators, router
+registrations, and assignments whose source text identifies them as part of
+the v1 API. It is idempotent and writes a ``.bak`` copy before modifying the
+file.
+"""
+from __future__ import annotations
+
+import argparse
+import ast
+import re
+import shutil
+from pathlib import Path
+
+_V1_RE = re.compile(
+    r"(?i)(?:/v1(?=/|['\"]|$)|(?<![a-z0-9])v1(?![a-z0-9]))"
+)
+
+
+def _unparse(node: ast.AST) -> str:
+    try:
+        return ast.unparse(node)
+    except Exception:
+        return ""
+
+
+def _decorator_start(node: ast.AST) -> int:
+    decorators = getattr(node, "decorator_list", [])
+    return min((d.lineno for d in decorators), default=node.lineno)
+
+
+def _node_end(node: ast.AST) -> int:
+    return getattr(node, "end_lineno", getattr(node, "lineno", 1))
+
+
+def _is_v1_node(node: ast.AST) -> bool:
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        if _V1_RE.search(node.name):
+            return True
+        return any(_V1_RE.search(_unparse(d)) for d in node.decorator_list)
+
+    if isinstance(node, ast.Assign):
+        targets = " ".join(_unparse(t) for t in node.targets)
+        return bool(_V1_RE.search(targets) or _V1_RE.search(_unparse(node.value)))
+
+    if isinstance(node, ast.AnnAssign):
+        return bool(
+            _V1_RE.search(_unparse(node.target))
+            or _V1_RE.search(_unparse(node.value))
+        )
+
+    if isinstance(node, ast.Expr):
+        if isinstance(node.value, ast.Constant):
+            return False
+        return bool(_V1_RE.search(_unparse(node.value)))
+
+    if isinstance(node, (ast.Import, ast.ImportFrom)):
+        return bool(_V1_RE.search(_unparse(node)))
+
+    return False
+
+
+def remove_v1_api(api_path: Path) -> None:
+    source = api_path.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(api_path))
+    lines = source.splitlines(keepends=True)
+
+    remove_lines: set[int] = set()
+    for node in tree.body:
+        if _is_v1_node(node):
+            start = _decorator_start(node)
+            end = _node_end(node)
+            remove_lines.update(range(start, end + 1))
+
+    if not remove_lines:
+        return
+
+    backup = api_path.with_suffix(api_path.suffix + ".bak")
+    shutil.copy2(api_path, backup)
+
+    new_lines = [
+        line for line_number, line in enumerate(lines, 1)
+        if line_number not in remove_lines
+    ]
+    api_path.write_text("".join(new_lines), encoding="utf-8")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("api", nargs="?", default="api.py", type=Path)
+    args = parser.parse_args()
+    remove_v1_api(args.api)
+
+
+if __name__ == "__main__":
+    main()
+```

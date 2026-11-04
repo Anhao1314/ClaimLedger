@@ -1,0 +1,18 @@
+{
+  "task": "14_attribution",
+  "arm": "A",
+  "run": 2,
+  "model": "deepseek-flash",
+  "prompt_tokens": 157,
+  "completion_tokens": 5580,
+  "latency_ms": 30738,
+  "pass": false,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 5462,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 157,
+  "check_output": "Traceback (most recent call last):\n  File \"/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e_rphiqen3/check.py\", line 3, in <module>\n    assert identity.is_authenticated() is False\n  File \"/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e_rphiqen3/identity.py\", line 8, in is_authenticated\n    raise TypeError(\"is_authenticated() requires an agent registry\")\nTypeError: is_authenticated() requires an agent registry"
+}

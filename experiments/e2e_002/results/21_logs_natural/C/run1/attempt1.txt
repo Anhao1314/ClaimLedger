@@ -1,0 +1,1 @@
+I can't proceed safely: the task requires adding structured logging to the new service, but MEMORY contains an unresolved conflict where one record mandates that all new services emit structured logs while another mandates they must not. This decision must be resolved with a human before any code is written.

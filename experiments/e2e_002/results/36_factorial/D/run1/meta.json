@@ -1,0 +1,18 @@
+{
+  "task": "36_factorial",
+  "arm": "D",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 189,
+  "completion_tokens": 397,
+  "latency_ms": 3631,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 313,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 189,
+  "check_output": ""
+}

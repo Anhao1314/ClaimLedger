@@ -1,0 +1,18 @@
+{
+  "task": "01_storage_postgres",
+  "arm": "D",
+  "run": 3,
+  "model": "deepseek-flash",
+  "prompt_tokens": 306,
+  "completion_tokens": 8913,
+  "latency_ms": 50250,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 1,
+  "reasoning_tokens": 8700,
+  "prompt_cache_hit_tokens": 128,
+  "prompt_cache_miss_tokens": 178,
+  "check_output": ""
+}

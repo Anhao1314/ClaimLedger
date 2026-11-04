@@ -1,0 +1,17 @@
+{
+  "task": "03_analytics_storage",
+  "arm": "D",
+  "run": 2,
+  "model": "deepseek-flash",
+  "prompt_tokens": 292,
+  "completion_tokens": 8000,
+  "latency_ms": 43806,
+  "pass": false,
+  "error": "RuntimeError: API failed after retries: IncompleteRead(0 bytes read)",
+  "attempts": 1,
+  "finish_reason": "length",
+  "length_retries": 1,
+  "reasoning_tokens": 8000,
+  "prompt_cache_hit_tokens": 128,
+  "prompt_cache_miss_tokens": 164
+}

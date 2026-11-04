@@ -1,0 +1,37 @@
+```python
+from __future__ import annotations
+
+from typing import Callable, TypeVar
+
+T = TypeVar("T")
+
+
+class RetryConfigurationError(ValueError):
+    """Raised when retry arguments are invalid."""
+
+    code = "RETRY_INVALID_ATTEMPTS"
+
+
+def fetch_with_retry(fn: Callable[[], T], attempts: int) -> T:
+    """Call ``fn`` until it succeeds, up to ``attempts`` total calls.
+
+    No retry cap is specified in the task or MEMORY, so the requested number of
+    attempts is used as the effective cap.
+    """
+    if not isinstance(attempts, int) or isinstance(attempts, bool) or attempts < 1:
+        raise RetryConfigurationError(
+            "RETRY_INVALID_ATTEMPTS: attempts must be a positive integer"
+        )
+
+    effective_attempts = attempts
+
+    last_exception: Exception | None = None
+    for _ in range(effective_attempts):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exception = exc
+
+    assert last_exception is not None
+    raise last_exception
+```

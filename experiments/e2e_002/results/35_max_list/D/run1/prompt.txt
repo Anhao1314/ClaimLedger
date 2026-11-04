@@ -1,0 +1,31 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- The API must support cursor pagination.
+- 控制台的 proposals 面板必须显示提案人身份。
+- Health checks must not depend on the database.
+- Database migrations run before the service starts.
+- Retries must be capped at 3.
+
+TASK:
+# Maximum
+
+Implement the function in `maxlist.py`.
+
+Return the largest value in a non-empty list.
+
+Output only the full contents of `maxlist.py` in a python code block.
+

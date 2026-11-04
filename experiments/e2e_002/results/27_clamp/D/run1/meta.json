@@ -1,0 +1,18 @@
+{
+  "task": "27_clamp",
+  "arm": "D",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 199,
+  "completion_tokens": 252,
+  "latency_ms": 3307,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 200,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 199,
+  "check_output": ""
+}

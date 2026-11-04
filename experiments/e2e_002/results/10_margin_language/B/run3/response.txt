@@ -1,0 +1,11 @@
+```python
+"""README-facing descriptions for ClaimLedger."""
+
+
+def describe_margin() -> str:
+    """Return the project's framing of the delta=0.2 margin threshold."""
+    return (
+        "The delta=0.2 margin threshold is a safety margin, not a tuned optimum, "
+        "and the ablation cannot distinguish 0.0 to 0.2."
+    )
+```

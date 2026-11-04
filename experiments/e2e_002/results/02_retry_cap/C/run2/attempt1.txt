@@ -1,0 +1,20 @@
+```python
+MAX_ATTEMPTS = 3
+
+
+def fetch_with_retry(fn, attempts):
+    """Call fn with retries, capped at MAX_ATTEMPTS total attempts."""
+    max_attempts = min(attempts, MAX_ATTEMPTS)
+    if max_attempts < 1:
+        raise ValueError("attempts must be at least 1")
+
+    last_exception = None
+
+    for _ in range(max_attempts):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exception = exc
+
+    raise last_exception
+```

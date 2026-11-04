@@ -1,0 +1,29 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- 控制台的 proposals 面板必须显示提案人身份。
+- User-facing strings must be externalized.
+- Release notes are written before the tag.
+- Model-swap drift remains unmeasured until a second-generation model is available.
+
+TASK:
+# Slugify
+
+Implement the function in `slug.py`.
+
+Lowercase the text, replace runs of non-alphanumeric characters with a single hyphen, and strip leading and trailing hyphens.
+
+Output only the full contents of `slug.py` in a python code block.
+

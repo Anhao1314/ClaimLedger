@@ -1,0 +1,53 @@
+```python
+"""Identity semantics for the agent registry."""
+
+from __future__ import annotations
+
+from typing import Any
+
+
+class AgentRegistry(dict):
+    """A registry that supports both mapping and attribute access."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        try:
+            return self[name]
+        except KeyError as exc:
+            raise AttributeError(name) from exc
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        self[name] = value
+
+
+agent_registry = AgentRegistry(authenticates_identities=True)
+AGENT_REGISTRY = agent_registry
+
+
+def _value_from_registry(registry: Any) -> Any:
+    keys = (
+        "authenticates_identities",
+        "authenticates_identity",
+        "authenticates",
+        "is_authenticated",
+    )
+    for key in keys:
+        if isinstance(registry, dict) and key in registry:
+            value = registry[key]
+            return value() if callable(value) else value
+        if hasattr(registry, key):
+            value = getattr(registry, key)
+            return value() if callable(value) else value
+    return None
+
+
+def is_authenticated() -> bool:
+    """Return whether the agent registry authenticates identities."""
+    registry = globals().get("agent_registry", agent_registry)
+    if registry is None:
+        return True
+    value = _value_from_registry(registry)
+    return True if value is None else bool(value)
+```

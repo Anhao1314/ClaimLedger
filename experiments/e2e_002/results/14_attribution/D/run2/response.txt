@@ -1,0 +1,29 @@
+```python
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2024
+
+"""Identity registry semantics."""
+
+from __future__ import annotations
+
+
+class AgentRegistry:
+    """Registry that tracks whether identity authentication is enabled."""
+
+    def __init__(self, authenticates_identities: bool = True) -> None:
+        self.authenticates_identities = bool(authenticates_identities)
+
+    def is_authenticated(self) -> bool:
+        """Return whether this registry authenticates identities."""
+        return self.authenticates_identities
+
+
+agent_registry = AgentRegistry()
+registry = agent_registry
+AGENT_REGISTRY = agent_registry
+
+
+def is_authenticated(registry: AgentRegistry | None = None) -> bool:
+    """Return whether the agent registry authenticates identities."""
+    return (registry or agent_registry).is_authenticated()
+```

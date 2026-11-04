@@ -1,0 +1,13 @@
+```python
+def fetch_with_retry(fn, attempts):
+    """Call fn, retrying on exception, and return the first successful result."""
+    last_exception = None
+
+    for _ in range(attempts):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exception = exc
+
+    raise last_exception
+```

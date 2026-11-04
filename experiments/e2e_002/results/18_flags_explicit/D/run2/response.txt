@@ -1,0 +1,26 @@
+```python
+"""Feature flags for the service."""
+
+from __future__ import annotations
+
+from typing import Final
+
+# The console proposals panel must display the proposer's identity, so this
+# flag defaults to enabled.
+PROPOSALS_SHOW_PROPOSER: Final[bool] = True
+
+FEATURE_FLAGS: Final[dict[str, bool]] = {
+    "proposals_show_proposer": PROPOSALS_SHOW_PROPOSER,
+}
+
+
+def is_enabled(flag_name: str) -> bool:
+    """Return whether *flag_name* is enabled.
+
+    Unknown flags are treated as disabled.
+    """
+    return FEATURE_FLAGS.get(flag_name, False)
+
+
+__all__ = ["FEATURE_FLAGS", "PROPOSALS_SHOW_PROPOSER", "is_enabled"]
+```

@@ -1,0 +1,11 @@
+```python
+"""Error response helpers."""
+
+PROJECT_ERROR_CODE = "PROJECT_ERROR"
+ERROR_CODE = PROJECT_ERROR_CODE
+
+
+def error_response(message):
+    """Return a structured error response."""
+    return {"message": message, "code": PROJECT_ERROR_CODE}
+```

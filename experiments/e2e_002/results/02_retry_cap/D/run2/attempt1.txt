@@ -1,0 +1,27 @@
+```python
+"""Retry helpers."""
+
+def fetch_with_retry(fn, attempts):
+    """Call *fn* until it succeeds, retrying at most *attempts* times."""
+    try:
+        max_attempts = int(attempts)
+    except (TypeError, ValueError) as exc:
+        error = ValueError("attempts must be an integer")
+        error.code = "INVALID_ATTEMPTS"
+        raise error from exc
+
+    if max_attempts < 1:
+        error = ValueError("attempts must be at least 1")
+        error.code = "INVALID_ATTEMPTS"
+        raise error
+
+    last_exception = None
+
+    for _ in range(max_attempts):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exception = exc
+
+    raise last_exception
+```

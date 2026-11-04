@@ -1,0 +1,1 @@
+I can’t proceed safely because adding a proposals panel is a new console feature, and MEMORY says not to add console features until one external user has used the system for two weeks; there’s no evidence that this prerequisite has been met.

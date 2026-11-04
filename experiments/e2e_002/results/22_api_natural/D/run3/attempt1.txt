@@ -1,0 +1,1 @@
+I can’t safely remove the v1 API because I don’t have the current contents of `api.py` or the v1 route definitions, and the Q4 removal timing/scope requires a human decision.

@@ -1,0 +1,6 @@
+```python
+"""Feature flags for the project."""
+
+# New feature flag; off by default so the feature is opt-in.
+NEW_FEATURE_ENABLED = False
+```

@@ -1,0 +1,520 @@
+```python
+"""SQLite-backed storage layer for the analytics service."""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+import threading
+from collections.abc import Iterable, Mapping
+from datetime import date, datetime, timezone
+from typing import Any
+
+__all__ = ["AnalyticsStorage"]
+
+_INTERVALS = {
+    "minute": "%Y-%m-%dT%H:%M:00Z",
+    "hour": "%Y-%m-%dT%H:00:00Z",
+    "day": "%Y-%m-%d",
+    "week": "%Y-W%W",
+    "month": "%Y-%m",
+    "year": "%Y",
+}
+
+_METRIC_AGGREGATIONS = {
+    "count": "COUNT(*)",
+    "sum": "SUM(value)",
+    "avg": "AVG(value)",
+    "min": "MIN(value)",
+    "max": "MAX(value)",
+}
+
+
+def _normalize_timestamp(value: Any) -> str:
+    """Return an ISO-8601 UTC timestamp string."""
+    if value is None:
+        dt = datetime.now(timezone.utc)
+    elif isinstance(value, datetime):
+        dt = value
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        else:
+            dt = dt.astimezone(timezone.utc)
+    elif isinstance(value, date):
+        dt = datetime(value.year, value.month, value.day, tzinfo=timezone.utc)
+    elif isinstance(value, (int, float)) and not isinstance(value, bool):
+        dt = datetime.fromtimestamp(value, tz=timezone.utc)
+    elif isinstance(value, str):
+        text = value.strip()
+        if not text:
+            raise ValueError("timestamp must not be empty")
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        try:
+            dt = datetime.fromisoformat(text)
+        except ValueError:
+            try:
+                dt = datetime.strptime(text, "%Y-%m-%d")
+            except ValueError:
+                raise ValueError(f"invalid timestamp: {value!r}") from None
+            dt = dt.replace(tzinfo=timezone.utc)
+        else:
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            else:
+                dt = dt.astimezone(timezone.utc)
+    else:
+        raise TypeError(
+            "timestamp must be a datetime, date, epoch number, ISO string, or None"
+        )
+
+    return dt.astimezone(timezone.utc).isoformat(timespec="microseconds")
+
+
+def _encode_json(value: Mapping[str, Any] | None) -> str:
+    if value is None:
+        value = {}
+    if not isinstance(value, Mapping):
+        raise TypeError("properties/tags must be a mapping or None")
+
+    serializable = {str(key): item for key, item in value.items()}
+    return json.dumps(
+        serializable,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    )
+
+
+def _decode_json(value: str) -> dict[str, Any]:
+    try:
+        decoded = json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return {}
+    return decoded if isinstance(decoded, dict) else {}
+
+
+def _validate_name(name: Any) -> str:
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("name must be a non-empty string")
+    return name
+
+
+def _interval_format(interval: str) -> str:
+    try:
+        return _INTERVALS[interval]
+    except (KeyError, TypeError):
+        allowed = ", ".join(sorted(_INTERVALS))
+        raise ValueError(f"interval must be one of: {allowed}") from None
+
+
+class AnalyticsStorage:
+    """A thread-safe analytics event and metric store.
+
+    The store is backed by SQLite and can be used either in-memory or with a
+    file path for persistence.
+    """
+
+    def __init__(self, path: str = ":memory:", *, timeout: float = 5.0) -> None:
+        if not isinstance(path, str) or not path:
+            raise ValueError("path must be a non-empty string")
+
+        self.path = path
+        self._lock = threading.RLock()
+        self._db: sqlite3.Connection | None = sqlite3.connect(
+            path,
+            timeout=timeout,
+            check_same_thread=False,
+        )
+        self._db.row_factory = sqlite3.Row
+        self._initialize()
+
+    @property
+    def _connection(self) -> sqlite3.Connection:
+        if self._db is None:
+            raise RuntimeError("AnalyticsStorage is closed")
+        return self._db
+
+    def _initialize(self) -> None:
+        with self._lock, self._connection:
+            self._connection.execute("PRAGMA foreign_keys = ON")
+            if self.path != ":memory:":
+                self._connection.execute("PRAGMA journal_mode = WAL")
+            self._connection.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    properties TEXT NOT NULL DEFAULT '{}'
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_events_name_timestamp
+                    ON events (name, timestamp);
+                CREATE INDEX IF NOT EXISTS idx_events_timestamp
+                    ON events (timestamp);
+
+                CREATE TABLE IF NOT EXISTS metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    value REAL NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    tags TEXT NOT NULL DEFAULT '{}'
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_metrics_name_timestamp
+                    ON metrics (name, timestamp);
+                CREATE INDEX IF NOT EXISTS idx_metrics_timestamp
+                    ON metrics (timestamp);
+                """
+            )
+
+    @staticmethod
+    def _filters(
+        name: str | None = None,
+        start: Any = None,
+        end: Any = None,
+    ) -> tuple[str, list[Any]]:
+        clauses: list[str] = []
+        params: list[Any] = []
+
+        if name is not None:
+            clauses.append("name = ?")
+            params.append(_validate_name(name))
+        if start is not None:
+            clauses.append("timestamp >= ?")
+            params.append(_normalize_timestamp(start))
+        if end is not None:
+            clauses.append("timestamp <= ?")
+            params.append(_normalize_timestamp(end))
+
+        where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        return where, params
+
+    @staticmethod
+    def _paginate(
+        sql: str,
+        params: list[Any],
+        limit: int | None,
+        offset: int,
+    ) -> tuple[str, list[Any]]:
+        if isinstance(offset, bool) or not isinstance(offset, int) or offset < 0:
+            raise ValueError("offset must be a non-negative integer")
+
+        if limit is not None:
+            if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0:
+                raise ValueError("limit must be a non-negative integer or None")
+            sql += " LIMIT ?"
+            params.append(limit)
+            if offset:
+                sql += " OFFSET ?"
+                params.append(offset)
+        elif offset:
+            sql += " LIMIT -1 OFFSET ?"
+            params.append(offset)
+
+        return sql, params
+
+    def record_event(
+        self,
+        name: str,
+        properties: Mapping[str, Any] | None = None,
+        timestamp: Any = None,
+    ) -> int:
+        name = _validate_name(name)
+        ts = _normalize_timestamp(timestamp)
+        props = _encode_json(properties)
+
+        with self._lock, self._connection:
+            cursor = self._connection.execute(
+                "INSERT INTO events (name, timestamp, properties) VALUES (?, ?, ?)",
+                (name, ts, props),
+            )
+            return int(cursor.lastrowid)
+
+    def record_events(self, events: Iterable[Mapping[str, Any]]) -> int:
+        rows: list[tuple[str, str, str]] = []
+
+        for event in events:
+            if not isinstance(event, Mapping):
+                raise TypeError("each event must be a mapping")
+            rows.append(
+                (
+                    _validate_name(event.get("name")),
+                    _normalize_timestamp(event.get("timestamp")),
+                    _encode_json(event.get("properties")),
+                )
+            )
+
+        if not rows:
+            return 0
+
+        with self._lock, self._connection:
+            self._connection.executemany(
+                "INSERT INTO events (name, timestamp, properties) VALUES (?, ?, ?)",
+                rows,
+            )
+        return len(rows)
+
+    def query_events(
+        self,
+        name: str | None = None,
+        *,
+        start: Any = None,
+        end: Any = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        where, params = self._filters(name=name, start=start, end=end)
+        sql = (
+            "SELECT id, name, timestamp, properties FROM events"
+            + where
+            + " ORDER BY timestamp ASC, id ASC"
+        )
+        sql, params = self._paginate(sql, params, limit, offset)
+
+        with self._lock:
+            rows = self._connection.execute(sql, params).fetchall()
+
+        return [
+            {
+                "id": int(row["id"]),
+                "name": row["name"],
+                "timestamp": row["timestamp"],
+                "properties": _decode_json(row["properties"]),
+            }
+            for row in rows
+        ]
+
+    def count_events(
+        self,
+        name: str | None = None,
+        *,
+        start: Any = None,
+        end: Any = None,
+    ) -> int:
+        where, params = self._filters(name=name, start=start, end=end)
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT COUNT(*) AS count FROM events" + where,
+                params,
+            ).fetchone()
+        return int(row["count"])
+
+    def aggregate_events(
+        self,
+        name: str | None = None,
+        *,
+        interval: str = "day",
+        start: Any = None,
+        end: Any = None,
+    ) -> list[dict[str, Any]]:
+        fmt = _interval_format(interval)
+        where, params = self._filters(name=name, start=start, end=end)
+        sql = (
+            f"SELECT strftime('{fmt}', timestamp) AS bucket, "
+            f"COUNT(*) AS count FROM events{where} "
+            f"GROUP BY bucket ORDER BY bucket ASC"
+        )
+
+        with self._lock:
+            rows = self._connection.execute(sql, params).fetchall()
+
+        return [
+            {"bucket": row["bucket"], "count": int(row["count"])}
+            for row in rows
+        ]
+
+    def record_metric(
+        self,
+        name: str,
+        value: float,
+        tags: Mapping[str, Any] | None = None,
+        timestamp: Any = None,
+    ) -> int:
+        name = _validate_name(name)
+        if isinstance(value, bool):
+            raise TypeError("metric value must be numeric")
+        try:
+            numeric_value = float(value)
+        except (TypeError, ValueError):
+            raise ValueError("metric value must be numeric") from None
+
+        ts = _normalize_timestamp(timestamp)
+        encoded_tags = _encode_json(tags)
+
+        with self._lock, self._connection:
+            cursor = self._connection.execute(
+                "INSERT INTO metrics (name, value, timestamp, tags) "
+                "VALUES (?, ?, ?, ?)",
+                (name, numeric_value, ts, encoded_tags),
+            )
+            return int(cursor.lastrowid)
+
+    def record_metrics(self, metrics: Iterable[Mapping[str, Any]]) -> int:
+        rows: list[tuple[str, float, str, str]] = []
+
+        for metric in metrics:
+            if not isinstance(metric, Mapping):
+                raise TypeError("each metric must be a mapping")
+
+            name = _validate_name(metric.get("name"))
+            value = metric.get("value")
+            if isinstance(value, bool):
+                raise TypeError("metric value must be numeric")
+            try:
+                numeric_value = float(value)
+            except (TypeError, ValueError):
+                raise ValueError("metric value must be numeric") from None
+
+            rows.append(
+                (
+                    name,
+                    numeric_value,
+                    _normalize_timestamp(metric.get("timestamp")),
+                    _encode_json(metric.get("tags")),
+                )
+            )
+
+        if not rows:
+            return 0
+
+        with self._lock, self._connection:
+            self._connection.executemany(
+                "INSERT INTO metrics (name, value, timestamp, tags) "
+                "VALUES (?, ?, ?, ?)",
+                rows,
+            )
+        return len(rows)
+
+    def query_metrics(
+        self,
+        name: str | None = None,
+        *,
+        start: Any = None,
+        end: Any = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        where, params = self._filters(name=name, start=start, end=end)
+        sql = (
+            "SELECT id, name, value, timestamp, tags FROM metrics"
+            + where
+            + " ORDER BY timestamp ASC, id ASC"
+        )
+        sql, params = self._paginate(sql, params, limit, offset)
+
+        with self._lock:
+            rows = self._connection.execute(sql, params).fetchall()
+
+        return [
+            {
+                "id": int(row["id"]),
+                "name": row["name"],
+                "value": float(row["value"]),
+                "timestamp": row["timestamp"],
+                "tags": _decode_json(row["tags"]),
+            }
+            for row in rows
+        ]
+
+    def count_metrics(
+        self,
+        name: str | None = None,
+        *,
+        start: Any = None,
+        end: Any = None,
+    ) -> int:
+        where, params = self._filters(name=name, start=start, end=end)
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT COUNT(*) AS count FROM metrics" + where,
+                params,
+            ).fetchone()
+        return int(row["count"])
+
+    def aggregate_metrics(
+        self,
+        name: str | None = None,
+        *,
+        interval: str = "day",
+        aggregation: str = "avg",
+        start: Any = None,
+        end: Any = None,
+    ) -> list[dict[str, Any]]:
+        fmt = _interval_format(interval)
+        try:
+            expression = _METRIC_AGGREGATIONS[aggregation]
+        except (KeyError, TypeError):
+            allowed = ", ".join(sorted(_METRIC_AGGREGATIONS))
+            raise ValueError(f"aggregation must be one of: {allowed}") from None
+
+        where, params = self._filters(name=name, start=start, end=end)
+        sql = (
+            f"SELECT strftime('{fmt}', timestamp) AS bucket, "
+            f"{expression} AS value, COUNT(*) AS count "
+            f"FROM metrics{where} "
+            f"GROUP BY bucket ORDER BY bucket ASC"
+        )
+
+        with self._lock:
+            rows = self._connection.execute(sql, params).fetchall()
+
+        return [
+            {
+                "bucket": row["bucket"],
+                "value": row["value"],
+                "count": int(row["count"]),
+            }
+            for row in rows
+        ]
+
+    def delete_events(
+        self,
+        name: str | None = None,
+        *,
+        start: Any = None,
+        end: Any = None,
+    ) -> int:
+        where, params = self._filters(name=name, start=start, end=end)
+        if not where:
+            raise ValueError("at least one filter is required")
+
+        with self._lock, self._connection:
+            cursor = self._connection.execute("DELETE FROM events" + where, params)
+            return int(cursor.rowcount)
+
+    def delete_metrics(
+        self,
+        name: str | None = None,
+        *,
+        start: Any = None,
+        end: Any = None,
+    ) -> int:
+        where, params = self._filters(name=name, start=start, end=end)
+        if not where:
+            raise ValueError("at least one filter is required")
+
+        with self._lock, self._connection:
+            cursor = self._connection.execute("DELETE FROM metrics" + where, params)
+            return int(cursor.rowcount)
+
+    def clear(self) -> None:
+        with self._lock, self._connection:
+            self._connection.execute("DELETE FROM events")
+            self._connection.execute("DELETE FROM metrics")
+
+    def close(self) -> None:
+        with self._lock:
+            if self._db is not None:
+                self._db.close()
+                self._db = None
+
+    def __enter__(self) -> AnalyticsStorage:
+        return self
+
+    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> bool:
+        self.close()
+        return False
+```

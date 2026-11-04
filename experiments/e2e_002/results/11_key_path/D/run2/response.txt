@@ -1,0 +1,25 @@
+```python
+"""Utilities for locating the project's secret files."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+_APP_NAME = Path(__file__).resolve().parent.name or "project"
+
+
+def key_path() -> Path:
+    """Return the filesystem path where the project stores its API key."""
+    override = os.getenv("API_KEY_PATH")
+    if override:
+        return Path(override).expanduser()
+
+    config_home = os.getenv("XDG_CONFIG_HOME")
+    config_dir = (
+        Path(config_home).expanduser()
+        if config_home
+        else Path.home() / ".config"
+    )
+    return config_dir / _APP_NAME / "api_key"
+```

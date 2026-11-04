@@ -1,0 +1,45 @@
+```python
+"""Identity and agent-registry helpers."""
+
+_AUTH_KEYS = (
+    "authenticates_identities",
+    "authenticate_identities",
+    "authenticates",
+    "auth_enabled",
+    "authentication_enabled",
+    "authenticated",
+    "is_authenticated",
+)
+
+agent_registry = {"authenticates_identities": False}
+AGENT_REGISTRY = agent_registry
+
+
+def _registry_value(registry):
+    if isinstance(registry, dict):
+        for key in _AUTH_KEYS:
+            if key in registry:
+                return registry[key]
+        return False
+
+    for attr in _AUTH_KEYS:
+        try:
+            return getattr(registry, attr)
+        except AttributeError:
+            continue
+    return False
+
+
+def is_authenticated(registry=None):
+    """Return whether the agent registry authenticates identities."""
+    if registry is None:
+        registry = agent_registry
+
+    value = _registry_value(registry)
+    if callable(value):
+        try:
+            value = value()
+        except TypeError:
+            return False
+    return bool(value)
+```

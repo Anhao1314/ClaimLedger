@@ -1,0 +1,1 @@
+I can’t safely implement the storage layer because no schema, required API, persistence choice, or existing tests/interfaces for the analytics service are provided. Please share the repository files or the expected storage contract.

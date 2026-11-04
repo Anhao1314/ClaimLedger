@@ -1,0 +1,8 @@
+```python
+def describe_margin():
+    """Return one sentence describing the delta=0.2 margin threshold."""
+    return (
+        "Under the project's framing, a delta=0.2 margin is the threshold for a "
+        "meaningful difference, and any claim based on fewer than 100 samples is weakened."
+    )
+```

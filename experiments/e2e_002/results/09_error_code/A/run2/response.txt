@@ -1,0 +1,10 @@
+```python
+"""Helpers for building standardized error responses."""
+
+ERROR_CODE = "ERROR"
+
+
+def error_response(message):
+    """Return a standard error response payload."""
+    return {"message": message, "code": ERROR_CODE}
+```

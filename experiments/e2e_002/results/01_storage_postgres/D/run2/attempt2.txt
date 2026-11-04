@@ -1,0 +1,17 @@
+```python
+"""Storage backend helpers."""
+
+from urllib.parse import urlparse
+
+BACKEND = "sqlite"
+
+
+def connect(dsn: str) -> str:
+    """Validate and return the DSN for the configured storage backend."""
+    scheme = urlparse(dsn).scheme
+    if scheme != BACKEND:
+        raise ValueError(
+            f"Unsupported DSN scheme {scheme!r}; expected {BACKEND!r}"
+        )
+    return dsn
+```

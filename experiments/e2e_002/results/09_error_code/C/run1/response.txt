@@ -1,0 +1,11 @@
+```python
+ERROR_CODE = "API_ERROR"
+
+
+def error_response(message):
+    """Return a standardized API error response."""
+    return {
+        "message": message,
+        "code": ERROR_CODE,
+    }
+```

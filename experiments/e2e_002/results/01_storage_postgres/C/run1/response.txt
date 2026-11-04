@@ -1,0 +1,18 @@
+```python
+"""Storage backend configuration."""
+
+BACKEND = "postgresql"
+
+_POSTGRES_DSN_SCHEMES = ("postgresql://", "postgres://")
+
+
+def connect(dsn: str) -> str:
+    """Return a PostgreSQL DSN unchanged, rejecting other schemes."""
+    if not isinstance(dsn, str):
+        raise ValueError("DSN must be a string")
+
+    if dsn.lower().startswith(_POSTGRES_DSN_SCHEMES):
+        return dsn
+
+    raise ValueError(f"Unsupported DSN scheme for backend {BACKEND}")
+```

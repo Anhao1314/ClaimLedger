@@ -1,0 +1,28 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- Flaky tests are quarantined, not retried indefinitely.
+- Integration tests run against a disposable database.
+
+TASK:
+# Title case
+
+Implement the function in `titlecase.py`.
+
+Capitalize the first letter of each whitespace-separated word and lowercase the rest.
+
+Output only the full contents of `titlecase.py` in a python code block.
+

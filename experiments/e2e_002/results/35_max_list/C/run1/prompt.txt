@@ -1,0 +1,31 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: Maximum
+
+NO RELEVANT RECORDS: nothing in memory matches this task lexically. The candidates below were selected by recency, not relevance, and none were admitted.
+
+CANDIDATES CONSIDERED (recency fallback — not admitted):
+- Dependencies must float to the latest minor version. [thin margin]
+
+TASK:
+# Maximum
+
+Implement the function in `maxlist.py`.
+
+Return the largest value in a non-empty list.
+
+Output only the full contents of `maxlist.py` in a python code block.
+

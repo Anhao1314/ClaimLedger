@@ -1,0 +1,1 @@
+I can’t safely implement `storage.py`/`answer.py` because the existing analytics event schema, storage interface, and persistence backend are not provided, so any implementation would guess contract names and behavior. Please provide the current `storage.py` or the expected interface/schema so I can implement it without inventing backend concepts.

@@ -1,0 +1,18 @@
+{
+  "task": "34_reverse",
+  "arm": "B",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 744,
+  "completion_tokens": 623,
+  "latency_ms": 4921,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 572,
+  "prompt_cache_hit_tokens": 512,
+  "prompt_cache_miss_tokens": 232,
+  "check_output": ""
+}

@@ -1,0 +1,20 @@
+```python
+def chunk(sequence, size):
+    """Split a sequence into consecutive lists of at most ``size`` items."""
+    if size <= 0:
+        raise ValueError("size must be greater than 0")
+
+    iterator = iter(sequence)
+    chunks = []
+
+    while True:
+        batch = []
+        for _ in range(size):
+            try:
+                batch.append(next(iterator))
+            except StopIteration:
+                if batch:
+                    chunks.append(batch)
+                return chunks
+        chunks.append(batch)
+```

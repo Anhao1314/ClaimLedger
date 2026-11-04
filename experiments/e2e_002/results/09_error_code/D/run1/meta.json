@@ -1,0 +1,18 @@
+{
+  "task": "09_error_code",
+  "arm": "D",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 212,
+  "completion_tokens": 3797,
+  "latency_ms": 22492,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 3768,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 212,
+  "check_output": ""
+}

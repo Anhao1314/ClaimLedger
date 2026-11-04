@@ -1,0 +1,18 @@
+{
+  "task": "12_preregister",
+  "arm": "C",
+  "run": 2,
+  "model": "deepseek-flash",
+  "prompt_tokens": 256,
+  "completion_tokens": 156,
+  "latency_ms": 2591,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 124,
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 256,
+  "check_output": ""
+}

@@ -1,0 +1,1 @@
+I can’t safely add a proposals panel because the current `console.py` contents and the console framework/API are not provided, so I can’t produce a correct full-file replacement without risking breaking existing behavior. Please share `console.py` (or the relevant console interface), and I can return the complete updated file.

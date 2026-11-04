@@ -1,0 +1,56 @@
+```python
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2024
+
+"""Identity helpers for the agent registry."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
+
+_DEFAULT_REGISTRY: dict[str, Any] = {"authenticates_identities": True}
+
+AGENT_REGISTRY = _DEFAULT_REGISTRY
+REGISTRY = _DEFAULT_REGISTRY
+agent_registry = _DEFAULT_REGISTRY
+
+_REGISTRY_NAMES = ("AGENT_REGISTRY", "REGISTRY", "agent_registry", "registry")
+_FLAG_NAMES = (
+    "authenticates_identities",
+    "authenticates",
+    "authentication_enabled",
+    "auth_enabled",
+    "authenticated",
+    "is_authenticated",
+)
+
+
+def _configured_registry() -> Any:
+    default = _DEFAULT_REGISTRY
+    for name in _REGISTRY_NAMES:
+        value = globals().get(name)
+        if value is not None and value is not default:
+            return value
+    return default
+
+
+def _registry_flag(registry: Any) -> Any:
+    if isinstance(registry, bool):
+        return registry
+
+    for name in _FLAG_NAMES:
+        if isinstance(registry, Mapping) and name in registry:
+            return registry[name]
+        if hasattr(registry, name):
+            value = getattr(registry, name)
+            return value() if callable(value) else value
+
+    return False
+
+
+def is_authenticated(registry: Any = None) -> bool:
+    """Return whether the agent registry authenticates identities."""
+    configured = _configured_registry() if registry is None else registry
+    return bool(_registry_flag(configured))
+```

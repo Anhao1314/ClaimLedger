@@ -1,0 +1,98 @@
+```python
+"""A small console application with a proposals panel.
+
+This module is dependency-free and exposes both a small object-oriented API
+(``Console``) and module-level helpers for rendering proposals.
+"""
+
+from __future__ import annotations
+
+import argparse
+import shutil
+import sys
+import textwrap
+from dataclasses import dataclass
+from typing import Any, Iterable, Sequence, TextIO
+
+DEFAULT_WIDTH = 100
+
+
+@dataclass(frozen=True)
+class Proposal:
+    """A proposal that can be displayed in the console."""
+
+    id: str
+    title: str
+    status: str = "open"
+    author: str = ""
+    votes: int = 0
+    created_at: str = ""
+    description: str = ""
+
+
+def _terminal_width(default: int = DEFAULT_WIDTH) -> int:
+    try:
+        return max(40, min(shutil.get_terminal_size((default, 24)).columns, 160))
+    except Exception:
+        return default
+
+
+def _to_proposal(value: Any) -> Proposal:
+    """Coerce dictionaries, objects, and Proposal instances to Proposal."""
+
+    if isinstance(value, Proposal):
+        return value
+
+    def get(*names: str, default: Any = "") -> Any:
+        if isinstance(value, dict):
+            for name in names:
+                if name in value and value[name] is not None:
+                    return value[name]
+            return default
+        for name in names:
+            if hasattr(value, name):
+                return getattr(value, name)
+        return default
+
+    votes = get("votes", "vote_count", default=0)
+    try:
+        votes = int(votes or 0)
+    except (TypeError, ValueError):
+        votes = 0
+
+    return Proposal(
+        id=str(get("id", "proposal_id", default="")),
+        title=str(get("title", "name", default="")),
+        status=str(get("status", "state", default="open")),
+        author=str(get("author", "creator", "created_by", default="")),
+        votes=votes,
+        created_at=str(get("created_at", "created", "date", default="")),
+        description=str(get("description", "body", "summary", default="")),
+    )
+
+
+def _wrap(text: Any, width: int) -> list[str]:
+    if width <= 0:
+        return [""]
+
+    lines: list[str] = []
+    for raw in str(text).splitlines() or [""]:
+        wrapped = textwrap.wrap(
+            raw,
+            width=width,
+            break_long_words=True,
+            replace_whitespace=False,
+        )
+        lines.extend(wrapped or [""])
+    return lines
+
+
+def render_panel(title: str, lines: Iterable[Any], width: int | None = None) -> str:
+    """Render a simple boxed panel."""
+
+    if width is None:
+        width = _terminal_width()
+    width = max(20, int(width))
+
+    title = str(title)
+    if len(title

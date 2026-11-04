@@ -1,0 +1,10 @@
+```python
+def describe_margin() -> str:
+    """Return a README sentence describing the delta=0.2 margin threshold."""
+    return (
+        "We use delta=0.2 as a practical margin threshold: differences at or "
+        "below 0.2 are treated as within the margin (no meaningful difference), "
+        "but for sample sizes below 100 this is a weakened, descriptive claim "
+        "rather than a statistical guarantee."
+    )
+```

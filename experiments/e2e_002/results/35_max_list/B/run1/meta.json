@@ -1,0 +1,18 @@
+{
+  "task": "35_max_list",
+  "arm": "B",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 750,
+  "completion_tokens": 2139,
+  "latency_ms": 13690,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 2095,
+  "prompt_cache_hit_tokens": 512,
+  "prompt_cache_miss_tokens": 238,
+  "check_output": ""
+}

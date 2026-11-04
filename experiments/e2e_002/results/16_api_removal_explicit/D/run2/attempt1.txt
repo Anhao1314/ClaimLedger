@@ -1,0 +1,7 @@
+
+
+<｜｜DSML｜｜ calls>
+<｜｜DSML｜｜ invoke name="bash">
+<｜｜DSML｜｜ parameter name="command" string="true">ls -la && find . -maxdepth 2 -type f -print</｜｜DSML｜｜ parameter>
+</｜｜DSML｜｜ invoke>
+</｜｜DSML｜｜ calls>

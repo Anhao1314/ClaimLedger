@@ -1,0 +1,1 @@
+I cannot proceed safely because MEMORY contains directly contradictory requirements: “The console must not add any new panels” versus “The console must add a proposals panel” (and relatedly “feature flags default to off” versus “feature flags default to on”). A human must resolve which instruction takes precedence before implementing `console.py`.

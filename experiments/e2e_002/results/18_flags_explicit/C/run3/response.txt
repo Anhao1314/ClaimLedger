@@ -1,0 +1,25 @@
+```python
+"""Feature flag definitions and helpers."""
+
+from __future__ import annotations
+
+# Default for feature flags is disabled to keep new behavior opt-in.
+DEFAULT_FEATURE_ENABLED = False
+
+FEATURE_FLAGS: dict[str, bool] = {
+    "new_feature": False,
+}
+
+
+def is_enabled(flag_name: str) -> bool:
+    """Return whether the named feature flag is enabled.
+
+    Unknown flags fall back to the safe default: disabled.
+    """
+    return FEATURE_FLAGS.get(flag_name, DEFAULT_FEATURE_ENABLED)
+
+
+def set_flag(flag_name: str, enabled: bool) -> None:
+    """Enable or disable a feature flag."""
+    FEATURE_FLAGS[flag_name] = enabled
+```

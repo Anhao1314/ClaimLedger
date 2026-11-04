@@ -1,0 +1,1 @@
+I cannot proceed safely: the task requires adding a proposals panel, but MEMORY contains unresolved conflicts — "The console must add a proposals panel" conflicts with both "The console must not add any new panels" and "Do not add console features until one external user has used the system for two weeks." These must be resolved by a human before any code is written.

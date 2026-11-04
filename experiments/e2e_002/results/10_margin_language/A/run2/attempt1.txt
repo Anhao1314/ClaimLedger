@@ -1,0 +1,14 @@
+```python
+"""README descriptions for project thresholds."""
+
+DELTA = 0.2
+
+
+def describe_margin() -> str:
+    """Return the README sentence describing the project's margin threshold."""
+    return (
+        f"The project uses a delta={DELTA} margin threshold: when the gap "
+        "between the top two probabilities is at or below 0.2, the prediction "
+        "is treated as uncertain and flagged for review."
+    )
+```

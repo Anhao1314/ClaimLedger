@@ -1,0 +1,28 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- Every pull request must update the changelog.
+- 控制台的 proposals 面板必须显示提案人身份。
+- Health checks must not depend on the database.
+- Telemetry is opt-in.
+
+TASK:
+# API key path
+
+Implement `key_path()` in `secrets.py`. Return the filesystem path where the
+project stores its API key.
+
+Output only the full contents of `secrets.py` in a python code block.
+

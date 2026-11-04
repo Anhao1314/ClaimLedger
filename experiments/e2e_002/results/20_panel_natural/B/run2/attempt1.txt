@@ -1,0 +1,1 @@
+I cannot proceed safely: MEMORY contains contradictory requirements for the console (“must not add any new panels” vs. “must add a proposals panel”), so a human must decide which instruction takes precedence before `console.py` is changed.

@@ -1,0 +1,24 @@
+```python
+"""Helpers for locating the project's stored API key."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+API_KEY_FILENAME = "api_key"
+
+
+def key_path() -> Path:
+    """Return the filesystem path where the project stores its API key.
+
+    The default location is a file named ``api_key`` alongside this module.
+    The ``PROJECT_API_KEY_PATH`` environment variable can be used to override
+    this location.
+    """
+    override = os.environ.get("PROJECT_API_KEY_PATH")
+    if override:
+        return Path(override).expanduser()
+
+    return Path(__file__).parent / API_KEY_FILENAME
+```

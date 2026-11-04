@@ -1,0 +1,115 @@
+```python
+"""Structured logging configuration for the service.
+
+This module provides JSON-formatted, context-aware logging using only the
+Python standard library. Call :func:`setup_logging` once during application
+startup, then use :func:`get_logger` throughout the service.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import sys
+from contextlib import contextmanager
+from contextvars import ContextVar, Token
+from datetime import datetime, timezone
+from typing import Any, Iterator, Mapping, TextIO
+
+__all__ = [
+    "ContextFilter",
+    "JsonFormatter",
+    "bind_context",
+    "clear_context",
+    "configure_logging",
+    "get_logger",
+    "log_context",
+    "setup_logging",
+    "unbind_context",
+]
+
+_CONTEXT: ContextVar[Mapping[str, Any]] = ContextVar(
+    "logging_setup_context",
+    default={},
+)
+
+# Attributes that are already part of LogRecord and should not be copied into
+# the structured payload as arbitrary extras.
+_STANDARD_RECORD_ATTRS = frozenset(
+    {
+        "args",
+        "asctime",
+        "created",
+        "exc_info",
+        "exc_text",
+        "filename",
+        "funcName",
+        "levelname",
+        "levelno",
+        "lineno",
+        "message",
+        "module",
+        "msecs",
+        "msg",
+        "name",
+        "pathname",
+        "process",
+        "processName",
+        "relativeCreated",
+        "stack_info",
+        "taskName",
+        "thread",
+        "threadName",
+    }
+)
+
+
+def _current_context() -> dict[str, Any]:
+    """Return a mutable copy of the current logging context."""
+
+    return dict(_CONTEXT.get() or {})
+
+
+def bind_context(**values: Any) -> Token:
+    """Attach values to the current async/thread context.
+
+    The returned token can be used with ``_CONTEXT.reset(token)``. Most code
+    should prefer :func:`log_context` instead of managing tokens directly.
+    """
+
+    context = _current_context()
+    context.update(values)
+    return _CONTEXT.set(context)
+
+
+def unbind_context(*keys: str) -> None:
+    """Remove specific keys from the current logging context.
+
+    If no keys are supplied, the entire context is cleared.
+    """
+
+    if not keys:
+        clear_context()
+        return
+
+    context = _current_context()
+    for key in keys:
+        context.pop(key, None)
+    _CONTEXT.set(context)
+
+
+def clear_context() -> None:
+    """Remove all values from the current logging context."""
+
+    _CONTEXT.set({})
+
+
+@contextmanager
+def log_context(**values: Any) -> Iterator[None]:
+    """Temporarily add structured fields to logs emitted in this context."""
+
+    token = bind_context(**values)
+    try:
+        yield
+    finally

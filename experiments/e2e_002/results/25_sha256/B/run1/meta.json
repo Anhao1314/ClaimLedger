@@ -1,0 +1,18 @@
+{
+  "task": "25_sha256",
+  "arm": "B",
+  "run": 1,
+  "model": "deepseek-flash",
+  "prompt_tokens": 759,
+  "completion_tokens": 1685,
+  "latency_ms": 9692,
+  "pass": true,
+  "error": null,
+  "attempts": 1,
+  "finish_reason": "stop",
+  "length_retries": 0,
+  "reasoning_tokens": 1514,
+  "prompt_cache_hit_tokens": 512,
+  "prompt_cache_miss_tokens": 247,
+  "check_output": ""
+}

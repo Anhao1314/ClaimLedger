@@ -1,0 +1,27 @@
+```python
+"""Retry helper with the project-wide retry cap."""
+
+_MAX_ATTEMPTS = 3
+
+
+def fetch_with_retry(fn, attempts):
+    """Call fn(), retrying on exceptions up to the project retry cap.
+
+    The requested number of attempts is capped at 3. The first successful
+    result is returned. If every allowed attempt fails, the last exception is
+    re-raised.
+    """
+    max_attempts = min(attempts, _MAX_ATTEMPTS)
+    if max_attempts < 1:
+        max_attempts = 1
+
+    last_exception = None
+
+    for _ in range(max_attempts):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exception = exc
+
+    raise last_exception
+```

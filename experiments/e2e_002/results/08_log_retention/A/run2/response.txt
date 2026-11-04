@@ -1,0 +1,59 @@
+```python
+"""Logging configuration for the project.
+
+Provides a shared logger setup with daily log rotation. Rotated log files are
+retained for ``RETENTION_DAYS`` days before being removed.
+"""
+
+import logging
+import logging.handlers
+import os
+from pathlib import Path
+
+# Number of days to keep rotated log files before they are deleted.
+RETENTION_DAYS = 30
+
+# Directory and file used for application logs.
+LOG_DIR = Path(os.environ.get("LOG_DIR", "logs"))
+LOG_FILE = LOG_DIR / "app.log"
+
+# Format shared by file and console handlers.
+LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+
+# Default log level, overridable via the LOG_LEVEL environment variable.
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+
+
+def configure_logging(level: str = LOG_LEVEL) -> logging.Logger:
+    """Configure and return the root application logger.
+
+    Logs are written to a rotating file in ``LOG_DIR`` and mirrored to the
+    console. Rotated files are kept for ``RETENTION_DAYS`` days.
+    """
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+    file_handler = logging.handlers.TimedRotatingFileHandler(
+        LOG_FILE,
+        when="midnight",
+        interval=1,
+        backupCount=RETENTION_DAYS,
+        encoding="utf-8",
+        utc=True,
+    )
+    file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+
+    root = logging.getLogger()
+    root.setLevel(level)
+
+    # Avoid duplicate handlers when reconfigured (e.g. in tests).
+    for handler in list(root.handlers):
+        root.removeHandler(handler)
+
+    root.addHandler(file_handler)
+    root.addHandler(console_handler)
+
+    return root
+```

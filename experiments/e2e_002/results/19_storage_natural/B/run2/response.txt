@@ -1,0 +1,1 @@
+I cannot proceed safely because MEMORY requires all service storage to use PostgreSQL while also explicitly banning PostgreSQL for the analytics service, leaving no permissible storage backend for `storage.py` without a human decision.

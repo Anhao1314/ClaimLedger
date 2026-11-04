@@ -1,0 +1,1 @@
+I can’t proceed safely because the records conflict on whether API v1 must be removed in Q4 or must remain unchanged, and unresolved conflicts require a human decision before I write code.

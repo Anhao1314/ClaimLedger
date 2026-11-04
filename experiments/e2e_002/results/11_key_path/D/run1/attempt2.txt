@@ -1,0 +1,41 @@
+```python
+"""Helpers for locating the project's API key."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+API_KEY_FILENAME = "api_key"
+_DEFAULT_APP_NAME = "project"
+
+
+def _app_name() -> str:
+    """Return the project's per-user configuration namespace."""
+    override = os.environ.get("PROJECT_NAME")
+    if override:
+        return override
+
+    if __package__:
+        return __package__.split(".")[0]
+
+    return Path(__file__).resolve().parent.name or _DEFAULT_APP_NAME
+
+
+def _config_home() -> Path:
+    """Return the base directory for per-user configuration."""
+    override = os.environ.get("XDG_CONFIG_HOME")
+    if override:
+        return Path(override).expanduser()
+
+    return Path.home() / ".config"
+
+
+def key_path() -> Path:
+    """Return the filesystem path where the project stores its API key."""
+    override = os.environ.get("PROJECT_API_KEY_PATH") or os.environ.get("API_KEY_PATH")
+    if override:
+        return Path(override).expanduser()
+
+    return _config_home() / _app_name() / API_KEY_FILENAME
+```

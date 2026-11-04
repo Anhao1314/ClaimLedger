@@ -1,0 +1,1 @@
+I cannot safely implement `storage.py` because the repository context does not specify the storage interface, schema, database backend, or expected function/class names, and inventing them would risk breaking integration tests. Please provide the existing API/schema or confirm the desired design before I write the storage layer.

@@ -1,0 +1,1 @@
+I cannot proceed: MEMORY explicitly states "Do not add console features until one external user has used the system for two weeks," and adding a proposals panel to `console.py` is a console feature. There is no available evidence that this prerequisite has been met, so this requires a human decision before any code is written.

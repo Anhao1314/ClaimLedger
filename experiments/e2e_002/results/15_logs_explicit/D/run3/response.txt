@@ -1,0 +1,242 @@
+```python
+"""Structured, opt-in logging for the new service.
+
+This module only configures logging. It redacts PII before records are
+enqueued and drains the queue during shutdown.
+"""
+
+from __future__ import annotations
+
+import atexit
+import json
+import logging
+import logging.handlers
+import os
+import queue
+import re
+import sys
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Mapping, TextIO
+
+_REDACTED = "[REDACTED]"
+
+_STANDARD_RECORD_ATTRS = {
+    "name",
+    "msg",
+    "args",
+    "levelname",
+    "levelno",
+    "pathname",
+    "filename",
+    "module",
+    "exc_info",
+    "exc_text",
+    "stack_info",
+    "lineno",
+    "funcName",
+    "created",
+    "msecs",
+    "relativeCreated",
+    "thread",
+    "threadName",
+    "processName",
+    "process",
+    "taskName",
+    "message",
+    "asctime",
+}
+
+_PII_KEY_RE = re.compile(
+    r"(?i)(?:pass(?:word)?|secret|token|api[_-]?key|authorization|cookie|"
+    r"ssn|social[_-]?security|credit[_-]?card|card[_-]?number|"
+    r"phone|mobile|email|address|dob|date[_-]?of[_-]?birth)"
+)
+_EMAIL_RE = re.compile(r"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b")
+_SSN_RE = re.compile(r"(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)")
+_CARD_RE = re.compile(r"(?<!\d)(?:\d[ -]*?){13,19}(?!\d)")
+_PHONE_RE = re.compile(r"(?<!\d)(?:\+?\d[\d .()-]{7,}\d)(?!\d)")
+
+
+def _redact_value(value: Any) -> Any:
+    if isinstance(value, str):
+        value = _EMAIL_RE.sub(_REDACTED, value)
+        value = _SSN_RE.sub(_REDACTED, value)
+        value = _CARD_RE.sub(_REDACTED, value)
+        value = _PHONE_RE.sub(_REDACTED, value)
+        return value
+    if isinstance(value, Mapping):
+        return {
+            key: (
+                _REDACTED
+                if _PII_KEY_RE.search(str(key))
+                else _redact_value(item)
+            )
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_value(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_redact_value(item) for item in value)
+    if isinstance(value, set):
+        return {_redact_value(item) for item in value}
+    return value
+
+
+class RedactPIIFilter(logging.Filter):
+    """Redact PII from a record before any handler can persist it."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = _redact_value(record.msg)
+        if record.args:
+            record.args = _redact_value(record.args)
+
+        for key, value in list(record.__dict__.items()):
+            if key in _STANDARD_RECORD_ATTRS:
+                continue
+            if _PII_KEY_RE.search(key):
+                record.__dict__[key] = _REDACTED
+            else:
+                record.__dict__[key] = _redact_value(value)
+
+        if record.exc_text:
+            record.exc_text = _redact_value(record.exc_text)
+        return True
+
+
+class JsonFormatter(logging.Formatter):
+    def __init__(self, *, service: str, environment: str | None = None) -> None:
+        super().__init__()
+        self.service = service
+        self.environment = environment
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload: dict[str, Any] = {
+            "timestamp": datetime.fromtimestamp(
+                record.created, tz=timezone.utc
+            ).isoformat().replace("+00:00", "Z"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "service": self.service,
+        }
+        if self.environment:
+            payload["environment"] = self.environment
+
+        for key, value in record.__dict__.items():
+            if key in _STANDARD_RECORD_ATTRS or key.startswith("_"):
+                continue
+            payload[key] = value
+
+        if record.exc_info:
+            payload["exception"] = _redact_value(
+                self.formatException(record.exc_info)
+            )
+
+        return json.dumps(payload, default=str, separators=(",", ":"))
+
+
+def _telemetry_opt_in(explicit: bool | None) -> bool:
+    if explicit is not None:
+        return explicit
+    return os.getenv("TELEMETRY_ENABLED", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+@dataclass(eq=False)
+class LoggingHandle:
+    logger: logging.Logger
+    listener: logging.handlers.QueueListener | None = None
+    queue: queue.Queue[logging.LogRecord] | None = None
+    queue_handler: logging.Handler | None = None
+
+    def shutdown(self) -> None:
+        if self.queue_handler is not None:
+            self.logger.removeHandler(self.queue_handler)
+            self.queue_handler.close()
+            self.queue_handler = None
+
+        if self.listener is not None:
+            # QueueListener.stop() processes everything already in the queue
+            # before it handles the sentinel, so the queue is drained.
+            self.listener.stop()
+            self.listener = None
+
+        try:
+            _active_handles.remove(self)
+        except ValueError:
+            pass
+
+
+_active_handles: list[LoggingHandle] = []
+
+
+def _shutdown_all() -> None:
+    for handle in list(reversed(_active_handles)):
+        handle.shutdown()
+
+
+atexit.register(_shutdown_all)
+
+
+def setup_structured_logging(
+    service_name: str,
+    *,
+    level: int = logging.INFO,
+    stream: TextIO | None = None,
+    telemetry_opt_in: bool | None = None,
+    environment: str | None = None,
+    queue_size: int = 0,
+) -> LoggingHandle:
+    """Configure JSON logging for *service_name*.
+
+    Structured logging is treated as telemetry and is therefore opt-in. When
+    disabled, the logger receives only a NullHandler.
+    """
+    logger = logging.getLogger(service_name)
+    logger.setLevel(level)
+    logger.propagate = False
+
+    if not _telemetry_opt_in(telemetry_opt_in):
+        logger.addHandler(logging.NullHandler())
+        return LoggingHandle(logger=logger)
+
+    formatter = JsonFormatter(service=service_name, environment=environment)
+
+    target = logging.StreamHandler(stream or sys.stderr)
+    target.setFormatter(formatter)
+    target.addFilter(RedactPIIFilter())
+
+    log_queue: queue.Queue[logging.LogRecord] = queue.Queue(maxsize=queue_size)
+    queue_handler = logging.handlers.QueueHandler(log_queue)
+    queue_handler.addFilter(RedactPIIFilter())
+
+    listener = logging.handlers.QueueListener(
+        log_queue,
+        target,
+        respect_handler_level=True,
+    )
+    listener.start()
+    logger.addHandler(queue_handler)
+
+    handle = LoggingHandle(
+        logger=logger,
+        listener=listener,
+        queue=log_queue,
+        queue_handler=queue_handler,
+    )
+    _active_handles.append(handle)
+    return handle
+
+
+__all__ = [
+    "JsonFormatter",
+    "LoggingHandle",
+    "RedactPIIFilter",
+    "setup_structured_logging",
+]
+```

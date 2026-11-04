@@ -1,0 +1,10 @@
+```python
+"""Locations for ClaimLedger secret files."""
+
+from pathlib import Path
+
+
+def key_path() -> Path:
+    """Return the filesystem path where the project stores its API key."""
+    return Path.home() / ".config" / "claimledger" / "api.env"
+```
