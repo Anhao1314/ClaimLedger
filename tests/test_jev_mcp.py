@@ -179,6 +179,76 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(
             json.loads(audit["result"]["content"][0]["text"])["n_judgments"], 1)
 
+    def _judgment_with_edges(self, records):
+        from jev_first.judge import EdgeDecision, judge as judge_fn
+        from tests.test_jev_first import fake_core
+        base = judge_fn("t", records, model="jev-test",
+                        caller=fake_core({r["record_id"]: (ADMIT, 0.9)
+                                          for r in records}, {}))
+        from dataclasses import replace
+        return replace(base, edges=[EdgeDecision(
+            src=records[0]["record_id"], dst=records[1]["record_id"],
+            label="supports", p=0.92, action="proposed")])
+
+    def test_decide_proposes_edges_for_human_confirmation(self):
+        """The write gate extends to the graph: judge proposes, human confirms."""
+        from jev_first import edges as edge_log
+        records = make_records(["Use PostgreSQL.", "SQLite is deprecated."])
+        for record in records:
+            self.server.store.append(record["text"], "agent")
+        judgment = self._judgment_with_edges(records)
+        with mock.patch("jev_first.mcp_server.judge", return_value=judgment), \
+                mock.patch.dict(os.environ, {"TYPESAFE_API_KEY": "test"}):
+            response = self.server.handle(
+                {"jsonrpc": "2.0", "id": 90, "method": "tools/call",
+                 "params": {"name": "memory_decide",
+                            "arguments": {"task": "write an adapter"}}})
+        payload = json.loads(response["result"]["content"][0]["text"])
+        self.assertEqual(len(payload["edges"]), 1)
+        proposal = payload["edges"][0]
+        self.assertEqual(proposal["edge_type"], "supports")
+        self.assertEqual(edge_log.verify(self.server.edges_path), 1)
+        # Re-running the same judgment must not duplicate the edge.
+        with mock.patch("jev_first.mcp_server.judge", return_value=judgment), \
+                mock.patch.dict(os.environ, {"TYPESAFE_API_KEY": "test"}):
+            self.server.handle(
+                {"jsonrpc": "2.0", "id": 91, "method": "tools/call",
+                 "params": {"name": "memory_decide",
+                            "arguments": {"task": "write an adapter"}}})
+        self.assertEqual(edge_log.verify(self.server.edges_path), 1)
+        listing = self.server.handle(
+            {"jsonrpc": "2.0", "id": 92, "method": "tools/call",
+             "params": {"name": "memory_proposals", "arguments": {}}})
+        result = json.loads(listing["result"]["content"][0]["text"])
+        self.assertEqual(result["pending_edge_count"], 1)
+        self.assertEqual(result["pending_edges"][0]["edge_id"],
+                         proposal["edge_id"])
+        audit = self.server.handle(
+            {"jsonrpc": "2.0", "id": 93, "method": "tools/call",
+             "params": {"name": "memory_audit", "arguments": {}}})
+        audit_payload = json.loads(audit["result"]["content"][0]["text"])
+        self.assertEqual(audit_payload["edge_statuses"]["pending"], 1)
+
+    def test_confirmed_edge_lives_in_the_log_not_the_record_store(self):
+        """Confirming an edge appends a decision event; it never mutates a
+        record or writes a status field anywhere else."""
+        from jev_first import edges as edge_log
+        records = make_records(["Use PostgreSQL.", "SQLite is deprecated."])
+        for record in records:
+            self.server.store.append(record["text"], "agent")
+        edge_log.propose_edge(self.server.edges_path,
+                              src=records[0]["record_id"],
+                              dst=records[1]["record_id"],
+                              edge_type="contradicts", confidence=0.9,
+                              source="jev")
+        eid = edge_log.edge_id(records[0]["record_id"],
+                               records[1]["record_id"], "contradicts")
+        event = edge_log.decide_edge(self.server.edges_path, eid,
+                                     decision="confirmed", by="console-human")
+        self.assertEqual(event["decision"], "confirmed")
+        self.assertEqual(len(edge_log.confirmed(self.server.edges_path)), 1)
+        self.assertEqual(len(self.server.store.load()), 2)
+
     def test_outcome_is_not_an_mcp_tool(self):
         """Calibration's ground truth must come from a human surface."""
         response = self.server.handle(

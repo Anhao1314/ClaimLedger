@@ -88,9 +88,10 @@ def _tool_definitions() -> List[Dict[str, Any]]:
         {"name": "memory_decide",
          "description": (
              "Select candidate records for a task and judge them: one admit choice per "
-             "record, pairwise conflict localization, governing. Seals the judgment "
-             "and returns its hash; a human records the outcome against that "
-             "hash in the console or CLI. Requires TYPESAFE_API_KEY; without "
+             "record, pairwise conflict localization, governing, and pairwise edge "
+             "classification (proposed graph edges wait for human confirmation). Seals "
+             "the judgment and returns its hash; a human records the outcome against "
+             "that hash in the console or CLI. Requires TYPESAFE_API_KEY; without "
              "it the result is degraded and every record is review."),
          "inputSchema": {"type": "object", "properties": {
              "task": {"type": "string"},
@@ -118,8 +119,8 @@ def _tool_definitions() -> List[Dict[str, Any]]:
          "inputSchema": {"type": "object", "properties": {
              "record_id": {"type": "string"}}}},
         {"name": "memory_proposals",
-         "description": ("List pending proposals: agent writes waiting for a human "
-                         "to confirm or reject them."),
+         "description": ("List pending proposals: agent writes and proposed graph "
+                         "edges waiting for a human to confirm or reject them."),
          "inputSchema": {"type": "object", "properties": {}}},
     ]
 
@@ -132,6 +133,7 @@ class MemoryServer:
         self.cache = Cache(self.directory / "cache.jsonl")
         self.outcomes_path = self.directory / "outcomes.jsonl"
         self.proposals_path = self.directory / "proposals.jsonl"
+        self.edges_path = self.directory / "edges.jsonl"
 
     # ---- tool dispatch -----------------------------------------------------
 
@@ -181,8 +183,12 @@ class MemoryServer:
                 "note": "awaiting human confirmation; not active memory"}
 
     def _tool_proposals(self, args: Mapping[str, Any]) -> Dict[str, Any]:
+        from . import edges as edge_log
         rows = proposal_log.pending(self.proposals_path)
-        return {"count": len(rows), "pending": rows}
+        pending_edges = edge_log.pending(self.edges_path)
+        return {"count": len(rows), "pending": rows,
+                "pending_edges": pending_edges,
+                "pending_edge_count": len(pending_edges)}
 
     def _decide(self, args: Mapping[str, Any]) -> tuple:
         task = str(args["task"]).strip()
@@ -206,12 +212,15 @@ class MemoryServer:
         from .brief import render_brief
         judgment, stats = self._decide(args)
         sealed = append_judgment(self.log_path, judgment.to_dict())
+        proposed = self._propose_edges(judgment,
+                                       judgment_hash=sealed["judgment_hash"])
         brief = render_brief(judgment)
         payload = {
             "brief": brief["text"],
             "admitted": brief["admitted"],
             "warnings": brief["warnings"],
             "conflicts": brief["conflicts"],
+            "edges": proposed,
             "degraded": judgment.degraded,
             "model": judgment.model,
             "judgment_hash": sealed["judgment_hash"],
@@ -226,6 +235,22 @@ class MemoryServer:
                      if judgment.degraded else None),
         }
         return {k: v for k, v in payload.items() if v is not None}
+
+    def _propose_edges(self, judgment, *, judgment_hash: str) -> list:
+        """Append policy-cleared edge proposals to the log. Idempotent: a
+        judgment that re-runs must not duplicate an already-proposed edge."""
+        from . import edges as edge_log
+        proposed = []
+        for decision in judgment.edges:
+            if decision.action != "proposed":
+                continue
+            body = edge_log.propose_edge(
+                self.edges_path, src=decision.src, dst=decision.dst,
+                edge_type=decision.label, confidence=decision.p,
+                source="jev", judgment_hash=judgment_hash)
+            if body is not None:
+                proposed.append(body)
+        return proposed
 
     def _tool_brief(self, args: Mapping[str, Any]) -> Dict[str, Any]:
         from .brief import render_brief
@@ -247,7 +272,20 @@ class MemoryServer:
             return {"record_id": str(args["record_id"]),
                     "judgments": for_record(self.log_path, str(args["record_id"]),
                                             reader=read_log)}
-        return summarize(self.log_path, reader=read_log)
+        summary = summarize(self.log_path, reader=read_log)
+        from . import edges as edge_log
+        try:
+            edge_count = edge_log.verify(self.edges_path)
+            edge_statuses = edge_log.statuses(self.edges_path)
+            summary["edge_events"] = edge_count
+            summary["edge_statuses"] = {
+                "pending": sum(1 for s in edge_statuses.values() if s == "pending"),
+                "confirmed": sum(1 for s in edge_statuses.values() if s == "confirmed"),
+                "rejected": sum(1 for s in edge_statuses.values() if s == "rejected"),
+            }
+        except ValueError as exc:
+            summary["edge_events"] = f"CORRUPT: {exc}"
+        return summary
 
     # ---- JSON-RPC ----------------------------------------------------------
 

@@ -15,8 +15,16 @@ not affect this task.
   The global contradiction signal is retired from the flow: pairwise is strictly
   more informative and cannot punish uninvolved records.
 
+Stage 2.5 — the validated `edge` question on the same pairs, as its own request
+(so neither question's validated single-question configuration is contaminated
+by the other). The answer never changes record actions: it PROPOSES graph
+edges. Policy v2.3: p >= 0.80 and a relational label (supports/contradicts/
+supersedes) proposes an edge; 0.50-0.79 routes the pair to edge review; below
+0.50 or an `unrelated` argmax proposes nothing. An edge failure marks the
+judgment degraded — a missing edge must not look like a clean no.
+
 Stage 3 — `governing` over the surviving set; may promote review to admit,
-  never a conflicted record.
+never a conflicted record.
 
 Failures fail open: a record or pair we could not judge goes to review. An
 outage must never look like a clean admission.
@@ -42,6 +50,7 @@ from .policy import ADMIT, EXCLUDE, REVIEW, Policy
 Caller = Callable[[str, Mapping[str, Mapping[str, Any]]], Mapping[str, Any]]
 DEFAULT_BUDGET_BYTES = 2048
 MAX_RECORDS = 6
+EDGE_RELATIONAL = ("supports", "contradicts", "supersedes")
 
 
 def _canonical(body: Mapping[str, Any]) -> str:
@@ -78,6 +87,20 @@ class Entry:
 
 
 @dataclass(frozen=True)
+class EdgeDecision:
+    """One pair's edge-question outcome. Never changes record actions."""
+    src: str
+    dst: str
+    label: str
+    p: float
+    action: str  # proposed | review | none
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"src": self.src, "dst": self.dst, "label": self.label,
+                "p": round(self.p, 4), "action": self.action}
+
+
+@dataclass(frozen=True)
 class Judgment:
     task: str
     model: str
@@ -100,6 +123,7 @@ class Judgment:
     degraded: bool = False
     cached: bool = False
     selection: Dict[str, Any] = field(default_factory=dict)
+    edges: Sequence[EdgeDecision] = field(default_factory=list)
 
     @property
     def admitted(self) -> List[Entry]:
@@ -128,6 +152,7 @@ class Judgment:
             "created_at": self.created_at,
             "degraded": self.degraded,
             "selection": self.selection,
+            "edges": [e.to_dict() for e in self.edges],
             "entries": [e.to_dict() for e in self.entries],
         }
 
@@ -156,6 +181,9 @@ class Judgment:
             created_at=body.get("created_at", ""),
             degraded=body.get("degraded", False), cached=True,
             selection=body.get("selection") or {},
+            edges=[EdgeDecision(src=e["src"], dst=e["dst"], label=e["label"],
+                                p=float(e["p"]), action=e["action"])
+                   for e in body.get("edges", [])],
         )
 
 
@@ -194,11 +222,11 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
           timeout: float = 30.0) -> Judgment:
     """Judge a candidate record set against a task.
 
-    Fresh cost: N admit requests + C(a,2) relation requests + 1 governing
-    request, run concurrently. Per-record and per-pair inputs are cached, so a
-    repeated task is served without the network and a repeated pair is served
-    across every future task. Only clean judgments are cached; a degraded one
-    must be re-judged after the transport recovers.
+    Fresh cost: N admit requests + C(a,2) relation requests + C(a,2) edge
+    requests + 1 governing request, run concurrently. Per-record and per-pair
+    inputs are cached, so a repeated task is served without the network and a
+    repeated pair is served across every future task. Only clean judgments are
+    cached; a degraded one must be re-judged after the transport recovers.
     """
     if not task or not task.strip():
         raise ValueError("task must be a non-empty string")
@@ -218,6 +246,11 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
     relation_question = {"type": relation_spec["type"],
                          "instructions": relation_spec["instructions"],
                          "criteria": dict(relation_spec["criteria"])}
+    edge_spec = spec["questions"].get("edge")
+    edge_question = ({"type": edge_spec["type"],
+                      "instructions": edge_spec["instructions"],
+                      "criteria": dict(edge_spec["criteria"])}
+                     if edge_spec else None)
     resolved_model = model or jev.model_name()
     version = spec["version"]
 
@@ -225,6 +258,7 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
         "admit": admit_spec,
         "relation": relation_question,
         "relation_scope": "pairs_with_admitted_side",
+        **({"edge": edge_question} if edge_question else {}),
     }, model=resolved_model, question_set_version=version)
     if cache is not None:
         hit = cache.get(top_key)
@@ -357,6 +391,49 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
         e.low_margin or e.record_id in uncertain_ids, e.included,
     ) for e in entries]
 
+    # ---- stage 2.5: propose graph edges; never changes record actions -------
+    # Own request, own cache key: the edge question was validated as a
+    # single-question call, and mixing questions would create a third,
+    # unvalidated configuration. State format matches edges_v1 byte-for-byte.
+    edge_decisions: List[EdgeDecision] = []
+    if edge_question is not None and pairs:
+        def edge_job(pair: tuple) -> Optional[EdgeDecision]:
+            a, b = pair
+            state = f"Record A (src): {a.text}\nRecord B (dst): {b.text}"
+            try:
+                parsed = ask(state, {"edge": edge_question})
+            except jev.JevError:
+                if on_error == "raise":
+                    raise
+                with lock:
+                    counter["degraded"] = True
+                return None
+            answer = jev.answer(parsed, "edge")
+            probabilities = answer.get("probabilities") or {}
+            label = (max(probabilities, key=probabilities.get)
+                     if probabilities else answer.get("choice"))
+            if label not in (*EDGE_RELATIONAL, "unrelated"):
+                # An answer outside the frozen criteria is a broken response,
+                # not a signal: fail open without proposing anything.
+                with lock:
+                    counter["degraded"] = True
+                return None
+            p_label = probabilities.get(label)
+            p_value = (float(p_label)
+                       if isinstance(p_label, (int, float)) else None)
+            if label == "unrelated" or p_value is None or p_value < 0.50:
+                action = "none"
+            elif p_value >= policy.edge_propose_at:
+                action = "proposed"
+            else:
+                action = "review"
+            return EdgeDecision(src=a.record_id, dst=b.record_id,
+                                label=label, p=p_value if p_value is not None else 0.0,
+                                action=action)
+
+        with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(pairs)))) as pool:
+            edge_decisions = [d for d in pool.map(edge_job, pairs) if d is not None]
+
     # ---- stage 3: governing over the surviving set --------------------------
     governing: Optional[str] = None
     governing_value: Optional[float] = None
@@ -422,6 +499,7 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
         latency_ms=latency_ms, requests=counter["requests"],
         created_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         degraded=counter["degraded"],
+        edges=edge_decisions,
     )
     if cache is not None and not judgment.degraded:
         cache.put(top_key, judgment.to_dict())

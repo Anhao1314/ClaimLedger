@@ -572,6 +572,8 @@ function closeOverlays() { $("overlay").className = "overlay hidden"; }
 async function openProposals() {
   const rows = await api("/api/proposals");
   state.proposals = rows;
+  let edges = [];
+  try { edges = await api("/api/edge-proposals"); } catch (e) { edges = []; }
   let html = `<button class="close" onclick="closeOverlays()">✕</button>
     <h3>Pending proposals</h3>
     <div class="p-sub">Agent writes wait here until a human confirms or rejects.</div>`;
@@ -589,7 +591,36 @@ async function openProposals() {
         </div></div>`;
     }).join("");
   }
+  html += `<h3 style="margin-top:14px">Proposed edges</h3>
+    <div class="p-sub">Graph relations the judge proposes wait here too — the memory graph is judged, not written.</div>`;
+  if (!edges.length) {
+    html += '<div class="empty-hint">No edge proposals.</div>';
+  } else {
+    html += edges.map(e => {
+      const time = (e.at || "").slice(5, 16).replace("T", " ");
+      return `<div class="rec" style="cursor:default">
+        <div class="body"><div class="text"><span class="p">${esc(e.edge_type)}</span>
+          ${esc(e.src)} → ${esc(e.dst)}</div>
+        <div class="flags"><span class="p">${esc(e.edge_id)} · p=${esc(e.confidence)} · ${esc(e.source)} · ${time}</span></div></div>
+        <div class="out">
+          <button onclick="decideEdge('${e.edge_id}','confirm')">Confirm</button>
+          <button onclick="decideEdge('${e.edge_id}','reject')">Reject</button>
+        </div></div>`;
+    }).join("");
+  }
   showPanel(html, false);
+}
+
+async function decideEdge(id, decision) {
+  try {
+    const res = await api("/api/edge-confirm", {edge_id: id, decision: decision,
+                                                by: "console-human"});
+    $("meta-right").textContent = (decision === "reject" ? "edge rejected "
+                                    : "edge confirmed ") + id;
+    await refreshSide();
+    await openProposals();
+    if (!state.current) renderFirstRun();
+  } catch (e) { $("meta-right").textContent = "edge-confirm: " + e.message; }
 }
 
 async function decideProposal(id, decision) {
@@ -746,7 +777,7 @@ function toggleSettings() {
 async function refreshSide() {
   const c = await api("/api/audit");
   state.records = c.records; state.judgments = c.judgments; state.outcomes = c.outcomes;
-  state.pending = c.pending_proposals || 0;
+  state.pending = (c.pending_proposals || 0) + (c.pending_edges || 0);
   const btn = $("btn-proposals");
   btn.textContent = state.pending ? `Proposals (${state.pending})` : "Proposals";
   btn.disabled = state.pending === 0;

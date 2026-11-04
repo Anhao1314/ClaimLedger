@@ -184,6 +184,33 @@ class ConsoleTests(unittest.TestCase):
             "by": "human"})
         self.assertIn("already decided", again["error"])
 
+    def test_edge_proposal_round_trip(self):
+        """Proposed graph edges confirm through the same human gate."""
+        from jev_first import edges as edge_log
+        records = make_records(["Use PostgreSQL.", "SQLite is deprecated."])
+        a = self.console.store.append(records[0]["text"], "agent")
+        b = self.console.store.append(records[1]["text"], "agent")
+        proposal = edge_log.propose_edge(
+            self.console.edges_path, src=a["record_id"], dst=b["record_id"],
+            edge_type="supports", confidence=0.92, source="jev")
+        self.assertEqual(len(self.console.api_edge_proposals()), 1)
+        result = self.console.api_edge_confirm({
+            "edge_id": proposal["edge_id"], "decision": "confirm",
+            "by": "console-human"})
+        self.assertTrue(result["created"])
+        self.assertEqual(result["decision"]["decision"], "confirmed")
+        self.assertEqual(self.console.api_edge_proposals(), [])
+        self.assertEqual(edge_log.verify(self.console.edges_path), 2)
+        # decided once, like records
+        again = self.console.api_edge_confirm({
+            "edge_id": proposal["edge_id"], "decision": "confirm",
+            "by": "console-human"})
+        self.assertIn("already decided", again["error"])
+        self.assertIn("unknown edge proposal",
+                      self.console.api_edge_confirm({
+                          "edge_id": "edg_" + "0" * 24,
+                          "decision": "confirm"})["error"])
+
     def test_confirm_reuses_an_existing_near_duplicate(self):
         existing = self.console.store.append(
             "In the README, the delta=0.2 margin threshold must consistently "

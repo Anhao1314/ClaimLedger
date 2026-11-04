@@ -82,6 +82,20 @@ def main(argv=None) -> int:
     p_reject.add_argument("--proposal-id", required=True)
     p_reject.add_argument("--by", default="cli-human")
 
+    p_edges = sub.add_parser("edges", help="list pending edge proposals")
+    p_edges.add_argument("--edges", required=True, help="edges.jsonl path")
+
+    p_edge_confirm = sub.add_parser(
+        "edge-confirm", help="confirm a proposed graph edge")
+    p_edge_confirm.add_argument("--edges", required=True, help="edges.jsonl path")
+    p_edge_confirm.add_argument("--edge-id", required=True)
+    p_edge_confirm.add_argument("--by", default="cli-human")
+
+    p_edge_reject = sub.add_parser("edge-reject", help="reject a proposed graph edge")
+    p_edge_reject.add_argument("--edges", required=True, help="edges.jsonl path")
+    p_edge_reject.add_argument("--edge-id", required=True)
+    p_edge_reject.add_argument("--by", default="cli-human")
+
     p_judge = sub.add_parser("judge", help="judge pre-selected records against a task")
     p_judge.add_argument("--store", required=True)
     p_judge.add_argument("--task", required=True)
@@ -244,6 +258,32 @@ def main(argv=None) -> int:
             event = proposal_log.decide(
                 args.proposals, args.proposal_id, decision="rejected",
                 by=args.by)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        print(json.dumps(event, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "edges":
+        from . import edges as edge_log
+        rows = edge_log.pending(args.edges)
+        try:
+            verified = edge_log.verify(args.edges)
+        except ValueError as exc:
+            print(f"edge log corrupt: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps({"verified_events": verified,
+                          "pending_count": len(rows), "pending": rows},
+                         ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command in ("edge-confirm", "edge-reject"):
+        from . import edges as edge_log
+        try:
+            event = edge_log.decide_edge(
+                args.edges, args.edge_id,
+                decision="confirmed" if args.command == "edge-confirm"
+                else "rejected", by=args.by)
         except ValueError as exc:
             print(str(exc), file=sys.stderr)
             return 2

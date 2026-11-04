@@ -26,12 +26,30 @@ def make_records(texts):
 
 
 def fake_core(admit, relations, governing=("none", 0.0), calls=None,
-              fail_pairs=()):
+              fail_pairs=(), edges=None, fail_edges=()):
     """admit: {record_id: (choice, p_admit)}
-    relations: {(text_a, text_b): label}"""
+    relations: {(text_a, text_b): label}
+    edges: {(text_a, text_b): (label, p)} — defaults to a confident unrelated,
+    which proposes nothing and keeps pre-edge tests unchanged."""
     def call(state, questions):
         if calls is not None:
             calls.append(state)
+        if "edge" in questions:
+            a = state.split("Record A (src): ", 1)[1].split("\n", 1)[0]
+            b = state.split("Record B (dst): ", 1)[1].strip()
+            if (a, b) in fail_edges or (b, a) in fail_edges:
+                raise jev.JevError("transport failure")
+            label, p = ((edges or {}).get((a, b))
+                        or (edges or {}).get((b, a)) or ("unrelated", 0.95))
+            others = round((1.0 - p) / 3, 4)
+            probabilities = {"supports": others, "contradicts": others,
+                             "supersedes": others, "unrelated": others}
+            probabilities[label] = p
+            return {"model": "jev-test",
+                    "answers": {"edge": {
+                        "type": "choice", "choice": label, "confidence": p,
+                        "probabilities": probabilities}},
+                    "usage": {}}
         if "relation" in questions:
             a = state.split("Statement A: ", 1)[1].split("\n", 1)[0]
             b = state.split("Statement B: ", 1)[1].strip()
@@ -220,8 +238,8 @@ class JudgeTests(unittest.TestCase):
         calls = []
         judge("t", self.records, model="jev-test",
               caller=fake_core(self.admit_all, {}, calls=calls))
-        # 3 per-record admits + 3 pairs + 1 governing
-        self.assertEqual(len(calls), 7)
+        # 3 per-record admits + 3 relation pairs + 3 edge pairs + 1 governing
+        self.assertEqual(len(calls), 10)
         self.assertNotIn("Two or more of the listed claims", "".join(calls))
 
     def test_pair_failure_fails_open_to_review(self):
@@ -242,6 +260,63 @@ class JudgeTests(unittest.TestCase):
                   caller=fake_core(self.admit_all, {},
                                    fail_pairs={(TEXTS["clm_a"], TEXTS["clm_b"])}),
                   on_error="raise")
+
+    # ---- stage 2.5: the edge question --------------------------------------
+
+    def test_edge_proposed_at_high_confidence_without_touching_actions(self):
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {},
+                             edges={(TEXTS["clm_a"], TEXTS["clm_b"]): ("supports", 0.9)}))
+        self.assertEqual(len(decision.edges), 3)  # one decision per pair
+        proposed = [e for e in decision.edges if e.action == "proposed"]
+        self.assertEqual(len(proposed), 1)
+        self.assertEqual(proposed[0].label, "supports")
+        self.assertEqual(proposed[0].src, self.a)
+        self.assertEqual(proposed[0].dst, self.b)
+        self.assertGreaterEqual(proposed[0].p, 0.80)
+        # The edge plane never changes record actions.
+        self.assertEqual({e.action for e in decision.entries}, {ADMIT})
+        self.assertFalse(decision.degraded)
+
+    def test_edge_review_below_threshold(self):
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {},
+                             edges={(TEXTS["clm_a"], TEXTS["clm_b"]): ("contradicts", 0.6)}))
+        reviewed = [e for e in decision.edges if e.action == "review"]
+        self.assertEqual(len(reviewed), 1)
+        self.assertEqual(reviewed[0].label, "contradicts")
+
+    def test_edge_none_below_half_and_for_unrelated(self):
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {},
+                             edges={(TEXTS["clm_a"], TEXTS["clm_b"]): ("supports", 0.4),
+                                    (TEXTS["clm_a"], TEXTS["clm_c"]): ("unrelated", 0.95)}))
+        actions = {(e.src, e.dst): e.action for e in decision.edges}
+        self.assertEqual(actions[(self.a, self.b)], "none")
+        self.assertEqual(actions[(self.a, self.c)], "none")
+        self.assertEqual(actions[(self.b, self.c)], "none")  # default unrelated
+
+    def test_edge_failure_marks_degraded_and_proposes_nothing(self):
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {},
+                             fail_edges={(TEXTS["clm_a"], TEXTS["clm_b"])}),
+            on_error="review")
+        self.assertTrue(decision.degraded)
+        self.assertEqual([e for e in decision.edges
+                          if (e.src, e.dst) == (self.a, self.b)], [])
+
+    def test_edges_survive_the_log_round_trip(self):
+        decision = judge(
+            "t", self.records, model="jev-test",
+            caller=fake_core(self.admit_all, {},
+                             edges={(TEXTS["clm_a"], TEXTS["clm_b"]): ("supersedes", 0.95)}))
+        restored = Judgment.from_dict(decision.to_dict())
+        self.assertEqual(restored.edges, list(decision.edges))
+        self.assertEqual(restored.edges[0].label, "supersedes")
 
     def test_governing_promotes_a_clean_review(self):
         admit = {self.a: (ADMIT, 0.9), self.b: (REVIEW, 0.2),
@@ -275,6 +350,9 @@ class JudgeTests(unittest.TestCase):
                         "answers": {"governing": {"type": "choice",
                                                   "choice": "none",
                                                   "confidence": 0.9}}, "usage": {}}
+            if "edge" in questions:
+                # delegate to the default fake: a confident unrelated edge
+                return fake_core({}, {})(state, questions)
             if "relation" in questions:
                 return {"model": "jev-test",
                         "answers": {"relation": {
@@ -298,6 +376,8 @@ class JudgeTests(unittest.TestCase):
 
     def test_thin_margin_pair_is_uncertain_not_conflict(self):
         def caller(state, questions):
+            if "edge" in questions:
+                return fake_core({}, {})(state, questions)
             if "relation" in questions:
                 return {"model": "jev-test",
                         "answers": {"relation": {
@@ -334,8 +414,8 @@ class JudgeTests(unittest.TestCase):
         judge("t", self.records, model="jev-test",
               caller=fake_core(admit, {(TEXTS["clm_a"], TEXTS["clm_b"]): "unrelated"},
                                calls=calls))
-        # 3 admits + 3 pairs touching a non-excluded record + governing
-        self.assertEqual(len(calls), 3 + 3 + 1)
+        # 3 admits + 3 relation pairs + 3 edge pairs + governing
+        self.assertEqual(len(calls), 3 + 3 + 3 + 1)
 
     def test_conflict_is_found_when_one_side_would_be_excluded(self):
         """Stage 1 excludes relevance, not truth: an excluded record can still

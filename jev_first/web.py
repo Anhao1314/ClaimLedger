@@ -44,6 +44,7 @@ class Console:
         self.outcomes_path = directory / "outcomes.jsonl"
         self.agents_path = directory / "agents.jsonl"
         self.proposals_path = directory / "proposals.jsonl"
+        self.edges_path = directory / "edges.jsonl"
         self.last: Optional[Dict[str, Any]] = None
 
     # ---- endpoints ---------------------------------------------------------
@@ -105,6 +106,31 @@ class Console:
 
     def api_proposals(self) -> List[Dict[str, Any]]:
         return proposal_log.pending(self.proposals_path)
+
+    def api_edge_proposals(self) -> List[Dict[str, Any]]:
+        from . import edges as edge_log
+        return edge_log.pending(self.edges_path)
+
+    def api_edge_confirm(self, body: Mapping[str, Any]) -> Dict[str, Any]:
+        """Human decision on a proposed graph edge: confirm or reject."""
+        from . import edges as edge_log
+        eid = str(body.get("edge_id", ""))
+        decision = str(body.get("decision", "confirm"))
+        by = str(body.get("by", "console-human"))
+        proposal = edge_log.get(self.edges_path, eid)
+        if proposal is None:
+            return {"error": f"unknown edge proposal: {eid}"}
+        if edge_log.decision_for(self.edges_path, eid) is not None:
+            return {"error": f"edge already decided: {eid}"}
+        if decision in ("reject", "rejected"):
+            event = edge_log.decide_edge(self.edges_path, eid,
+                                         decision="rejected", by=by)
+            return {"decision": event, "created": False}
+        if decision not in ("confirm", "confirmed"):
+            return {"error": "decision must be confirm or reject"}
+        event = edge_log.decide_edge(self.edges_path, eid,
+                                     decision="confirmed", by=by)
+        return {"decision": event, "created": True}
 
     def api_confirm(self, body: Mapping[str, Any]) -> Dict[str, Any]:
         """Human decision on an agent proposal: confirm appends the record."""
@@ -238,10 +264,17 @@ class Console:
         records = len(self.store.load())
         judgments = jlog.verify(self.log_path)
         outcomes = verify_outcomes(self.outcomes_path)
+        from . import edges as edge_log
+        edge_statuses = edge_log.statuses(self.edges_path)
         summary = {
             "records": records, "judgments": judgments, "outcomes": outcomes,
             "pending_proposals": len(proposal_log.pending(self.proposals_path)),
             "proposal_events": proposal_log.verify(self.proposals_path),
+            "pending_edges": sum(1 for s in edge_statuses.values()
+                                 if s == "pending"),
+            "confirmed_edges": sum(1 for s in edge_statuses.values()
+                                   if s == "confirmed"),
+            "edge_events": edge_log.verify(self.edges_path),
             "degraded": sum(1 for r in jlog.read(self.log_path) if r.get("degraded")),
             "confirmed_conflicts": sum(len(r.get("conflicts", []))
                                        for r in jlog.read(self.log_path)),
@@ -287,6 +320,8 @@ def make_handler(console: Console):
                 self._send(console.api_agents())
             elif route.path == "/api/proposals":
                 self._send(console.api_proposals())
+            elif route.path == "/api/edge-proposals":
+                self._send(console.api_edge_proposals())
             elif route.path == "/api/record-history":
                 record_id = parse_qs(route.query).get("record_id", [""])[0]
                 self._send(console.api_record_history(record_id))
@@ -316,6 +351,8 @@ def make_handler(console: Console):
                 self._send(console.api_register_agent(body))
             elif route.path == "/api/confirm":
                 self._send(console.api_confirm(body))
+            elif route.path == "/api/edge-confirm":
+                self._send(console.api_edge_confirm(body))
             elif route.path == "/api/seed-examples":
                 self._send(console.api_seed_examples())
             elif route.path == "/api/outcome":

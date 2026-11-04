@@ -10,6 +10,11 @@ History of the rules, each added by a measurement:
           (borderline-stability.json) showed a ~17% flip rate on a borderline
           pair while unambiguous pairs never flip: argmax alone lets sampling
           noise become a decision. Thin margins go to review.
+* v2.3  — **edge proposal rule**: the `edge` question proposes a graph edge at
+          p >= 0.80 and routes 0.50-0.79 to review. edges_v1 measured both
+          classification errors at exactly p = 0.5 while every decision at
+          p >= 0.80 was correct (111/111): the threshold separates a validated
+          region from a human-review region instead of trusting argmax.
 
 What remains invariant: wrong suppression is silent, wrong retention is
 visible — so every uncertain path lands on review, never on exclude.
@@ -26,12 +31,13 @@ ACTIONS = (ADMIT, REVIEW, EXCLUDE)
 
 @dataclass(frozen=True)
 class Policy:
-    version: str = "v2.2"
+    version: str = "v2.3"
     governing_at: float = 0.80
     margin: float = 0.20
+    edge_propose_at: float = 0.80
 
     def __post_init__(self) -> None:
-        for name in ("governing_at", "margin"):
+        for name in ("governing_at", "margin", "edge_propose_at"):
             value = getattr(self, name)
             if not 0.0 <= value <= 1.0:
                 raise ValueError(f"{name} must be within [0, 1]")
