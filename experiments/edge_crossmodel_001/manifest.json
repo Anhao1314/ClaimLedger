@@ -1,0 +1,11 @@
+{
+  "files": {
+    "pairs.jsonl": {
+      "sha256": "2325468dcb201172e61c832294a527ff92a6b1e8e7a485b5b718ab4b1de7c82c"
+    },
+    "protocol.md": {
+      "sha256": "f82716797421a5e853df9234ec339ecfd2bcbfed37b49a13408f03b8b3fe9b25"
+    }
+  },
+  "frozen_at": "2026-11-05"
+}
