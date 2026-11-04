@@ -50,8 +50,8 @@ def build_prompt() -> tuple:
         lines.append(f"- {label}: {criteria[label]}")
     lines += ["", "Record A (src): {a}", "Record B (dst): {b}", "",
               "Answer only with JSON: "
-              '{"probabilities": {"supports": 0.0, "contradicts": 0.0, '
-              '"supersedes": 0.0, "unrelated": 0.0}}']
+              '{{"probabilities": {{"supports": 0.0, "contradicts": 0.0, '
+              '"supersedes": 0.0, "unrelated": 0.0}}}}']
     return system, "\n".join(lines)
 
 

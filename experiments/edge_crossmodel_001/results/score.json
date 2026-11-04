@@ -1,0 +1,177 @@
+{
+  "accuracy_run1": {
+    "ci95": [
+      0.9682,
+      1.0
+    ],
+    "k": 117,
+    "n": 117,
+    "rate": 1.0
+  },
+  "brier_contradicts": 0.0004,
+  "confusion_predicted_by_gold": {
+    "contradicts": {
+      "contradicts": 5,
+      "supersedes": 0,
+      "supports": 0,
+      "unrelated": 0
+    },
+    "supersedes": {
+      "contradicts": 0,
+      "supersedes": 0,
+      "supports": 0,
+      "unrelated": 0
+    },
+    "supports": {
+      "contradicts": 0,
+      "supersedes": 0,
+      "supports": 8,
+      "unrelated": 0
+    },
+    "unrelated": {
+      "contradicts": 0,
+      "supersedes": 0,
+      "supports": 0,
+      "unrelated": 104
+    }
+  },
+  "gates": {
+    "X1_flash_accuracy>=0.90": {
+      "metric": {
+        "ci95": [
+          0.9682,
+          1.0
+        ],
+        "k": 117,
+        "n": 117,
+        "rate": 1.0
+      },
+      "pass": true
+    },
+    "X2_zero_false_contradicts": {
+      "metric": {
+        "k": 0,
+        "n": 117
+      },
+      "pairs": [],
+      "pass": true
+    },
+    "X3_commodity_composite": {
+      "comparison": {
+        "accuracy": {
+          "flash": 1.0,
+          "jev": 0.9829
+        },
+        "flip_rate": {
+          "flash": 0.0085,
+          "jev": 0.0085
+        },
+        "parse_fail_rate": {
+          "flash": 0.0,
+          "jev": 0.0
+        }
+      },
+      "pass": true,
+      "validity": "VOID by circularity: the flash judge co-authored gold-v1 (second annotation channel), so the accuracy leg measures self-consistency on its own prior labels, not independent correctness. The stability leg is asymmetric for the same reason (flash re-answers its own labels at t=0; JEV answered foreign gold). Only parse-failure rate and latency are uncontaminated axes."
+    }
+  },
+  "judge_under_test": "deepseek-flash (t=0)",
+  "latency_p50_ms": 1834,
+  "n_pairs": 117,
+  "parse_failures": {
+    "count": 0,
+    "note": "rows with parse failures are not appended; rerun tail showed 0 failures over 351 calls",
+    "rate": 0.0
+  },
+  "per_class": {
+    "contradicts": {
+      "precision": {
+        "ci95": [
+          0.5655,
+          1.0
+        ],
+        "k": 5,
+        "n": 5,
+        "rate": 1.0
+      },
+      "recall": {
+        "ci95": [
+          0.5655,
+          1.0
+        ],
+        "k": 5,
+        "n": 5,
+        "rate": 1.0
+      }
+    },
+    "supersedes": {
+      "precision": {
+        "ci95": [
+          NaN,
+          NaN
+        ],
+        "k": 0,
+        "n": 0,
+        "rate": null
+      },
+      "recall": {
+        "ci95": [
+          NaN,
+          NaN
+        ],
+        "k": 0,
+        "n": 0,
+        "rate": null
+      }
+    },
+    "supports": {
+      "precision": {
+        "ci95": [
+          0.6756,
+          1.0
+        ],
+        "k": 8,
+        "n": 8,
+        "rate": 1.0
+      },
+      "recall": {
+        "ci95": [
+          0.6756,
+          1.0
+        ],
+        "k": 8,
+        "n": 8,
+        "rate": 1.0
+      }
+    },
+    "unrelated": {
+      "precision": {
+        "ci95": [
+          0.9644,
+          1.0
+        ],
+        "k": 104,
+        "n": 104,
+        "rate": 1.0
+      },
+      "recall": {
+        "ci95": [
+          0.9644,
+          1.0
+        ],
+        "k": 104,
+        "n": 104,
+        "rate": 1.0
+      }
+    }
+  },
+  "schema": "edge_crossmodel_001_score_v1",
+  "stability": {
+    "flip_rate": 0.0085,
+    "unstable": 1,
+    "unstable_pair_ids": [
+      "pair_bd1025c2b932"
+    ]
+  },
+  "validity_note": "Gold-v1 is dual-model annotated and flash was its second channel: flash's accuracy on this gold is self-consistency, not independent correctness. See gate X3.validity and results.md."
+}
