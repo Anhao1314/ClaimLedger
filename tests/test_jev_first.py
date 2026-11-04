@@ -327,14 +327,33 @@ class JudgeTests(unittest.TestCase):
         self.assertFalse(any(e.conflicted for e in decision.entries))
         self.assertTrue(all(e.low_margin for e in decision.entries))
 
-    def test_excluded_records_are_not_paired(self):
+    def test_excluded_records_are_paired_with_admitted(self):
         calls = []
         admit = {self.a: (ADMIT, 0.9), self.b: (ADMIT, 0.9),
                  self.c: (EXCLUDE, 0.1)}
         judge("t", self.records, model="jev-test",
               caller=fake_core(admit, {(TEXTS["clm_a"], TEXTS["clm_b"]): "unrelated"},
                                calls=calls))
-        self.assertEqual(len(calls), 3 + 1 + 1)  # admits + 1 pair + governing
+        # 3 admits + 3 pairs touching a non-excluded record + governing
+        self.assertEqual(len(calls), 3 + 3 + 1)
+
+    def test_conflict_is_found_when_one_side_would_be_excluded(self):
+        """Stage 1 excludes relevance, not truth: an excluded record can still
+        contradict an admitted one, and that conflict must surface."""
+        records = make_records([
+            "All new services must emit structured logs.",
+            "New services must not emit structured logs.",
+        ])
+        decision = judge(
+            "t", records, model="jev-test",
+            caller=fake_core(
+                {records[0]["record_id"]: (ADMIT, 0.9),
+                 records[1]["record_id"]: (EXCLUDE, 0.1)},
+                {(records[0]["text"], records[1]["text"]): "contradiction"}))
+        self.assertEqual(decision.conflicts,
+                         [[records[0]["record_id"], records[1]["record_id"]]])
+        self.assertTrue(all(e.action == REVIEW for e in decision.entries))
+        self.assertTrue(all(e.conflicted for e in decision.entries))
 
     def test_more_than_six_records_rejected(self):
         records = make_records([f"r{i}" for i in range(7)])

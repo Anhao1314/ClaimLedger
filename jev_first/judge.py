@@ -5,7 +5,8 @@ Stage 1 — one `admit` choice per record, against a **single-record state**.
   set cannot contaminate its answer (this is why the retired applies/holds pair
   existed, and why the one-big-request flow hedged everything to review).
 
-Stage 2 — the validated `relation` question on every pair of admitted records.
+Stage 2 — the validated `relation` question on every pair that touches a
+non-excluded record (admitted or review, plus its excluded counterpart).
   Pair states are exactly the frozen 30-pair format and are **task-independent**,
   so pair judgments cache across every future task. A confirmed contradicting
   pair sends both records to review; everything else keeps its stage-1 action.
@@ -218,8 +219,11 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
     resolved_model = model or jev.model_name()
     version = spec["version"]
 
-    top_key = input_hash(task, list(records), {"admit": admit_spec},
-                         model=resolved_model, question_set_version=version)
+    top_key = input_hash(task, list(records), {
+        "admit": admit_spec,
+        "relation": relation_question,
+        "relation_scope": "pairs_touching_non_excluded",
+    }, model=resolved_model, question_set_version=version)
     if cache is not None:
         hit = cache.get(top_key)
         if hit is not None and not hit.get("degraded"):
@@ -288,7 +292,12 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
     with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(records)))) as pool:
         entries: List[Entry] = list(pool.map(admit_job, records))
 
-    admitted = [e for e in entries if e.action != EXCLUDE]
+    # An excluded record can still contradict an admitted one. Stage 1 answers
+    # relevance, not truth, so a contradiction must be checked whenever either
+    # side is non-excluded. Excluded-excluded pairs stay unchecked: neither is
+    # relevant to this task.
+    pairs = [(a, b) for a, b in combinations(entries, 2)
+             if a.action != EXCLUDE or b.action != EXCLUDE]
 
     # ---- stage 2: localize conflicts with the validated pair question -------
     conflicts: List[List[str]] = []
@@ -316,8 +325,7 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
         margin = _margin(probabilities)
         return pair, observed, margin
 
-    if len(admitted) >= 2:
-        pairs = list(combinations(admitted, 2))
+    if pairs:
         with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(pairs)))) as pool:
             results = list(pool.map(relation_job, pairs))
         pair_checks = len(pairs)
