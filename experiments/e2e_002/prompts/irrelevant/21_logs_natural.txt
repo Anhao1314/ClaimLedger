@@ -1,3 +1,3 @@
-- The search index is rebuilt nightly.
-- API v1 must be removed in Q4.
+- Logs are retained for 30 days.
+- Rate limits apply per API key.
 - The queue is drained before shutdown.

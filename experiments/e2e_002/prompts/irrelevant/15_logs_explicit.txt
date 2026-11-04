@@ -1,2 +1,2 @@
-- Database migrations run before the service starts.
-- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2.
+- User-facing strings must be externalized.
+- Claims about the system must be weakened when the sample size is below 100.

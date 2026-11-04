@@ -4,6 +4,7 @@
   "target": "deploy.py",
   "blocked": false,
   "system": "explicit",
+  "runs": 3,
   "relevant": [
     "Deployments happen only on Tuesdays."
   ]

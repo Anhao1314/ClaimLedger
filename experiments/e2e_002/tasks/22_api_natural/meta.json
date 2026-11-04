@@ -4,6 +4,7 @@
   "target": null,
   "blocked": true,
   "system": "natural",
+  "runs": 3,
   "relevant": [
     "API v1 must remain unchanged.",
     "API v1 must be removed in Q4."

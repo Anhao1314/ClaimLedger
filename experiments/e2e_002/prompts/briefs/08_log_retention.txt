@@ -1,3 +1,4 @@
-TASK: Set the project's log retention period
+TASK: Set how long logs are retained
 
-NO RELEVANT RECORDS: nothing in memory matches this task lexically. The candidates below were selected by recency, not relevance, and none were admitted.
+ACTIVE CONSTRAINTS (must follow):
+- Logs are retained for 30 days.

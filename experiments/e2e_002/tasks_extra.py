@@ -108,7 +108,7 @@ assert handlers.v2_handler({"x": 1}) == {"ok": True, "version": 2, "echo": {"x":
     ),
     code_task(
         "08_log_retention", "Log retention", "logging_config.py",
-        "Set the project's log retention period",
+        "Set how long logs are retained",
         """# Log retention
 
 Set `RETENTION_DAYS` in `logging_config.py` to the project's log retention
@@ -125,7 +125,7 @@ assert logging_config.RETENTION_DAYS == 30, logging_config.RETENTION_DAYS
     ),
     code_task(
         "09_deploy_window", "Deployment window", "deploy.py",
-        "Implement can_deploy for the project's deployment window",
+        "Implement the deployment policy for deployments",
         """# Deployment window
 
 Implement `can_deploy(day)` in `deploy.py`. `day` is a weekday name such as
@@ -161,7 +161,9 @@ Output only the full contents of `describe.py` in a python code block.
 
 text = describe.describe_margin().lower()
 assert "safety margin" in text, text
-assert "optimal" not in text and "tuned" not in text and "best" not in text, text
+assert ("not a tuned optimum" in text or "not tuned" in text
+        or "not an optimum" in text or "rather than" in text), text
+assert "is optimal" not in text and "is the best" not in text, text
 ''',
         relevant=["The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2."],
     ),

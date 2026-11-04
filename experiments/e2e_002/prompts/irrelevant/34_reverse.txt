@@ -1,4 +1,4 @@
-- All timestamps are stored in UTC.
-- The CLI must exit non-zero on validation failure.
-- Frontend assets must be minified before release.
-- Release notes are written before the tag.
+- Unit tests must not touch the network.
+- Flaky tests are quarantined, not retried indefinitely.
+- The API must support cursor pagination.
+- Rate limits apply per API key.

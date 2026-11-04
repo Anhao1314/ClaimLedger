@@ -1,4 +1,4 @@
-- The API must support cursor pagination.
-- The service must start within two seconds.
-- Database migrations run before the service starts.
-- Every endpoint must include a request id.
+- The build must be reproducible from a clean checkout.
+- User-facing strings must be externalized.
+- Configuration is read from environment variables only.
+- Every pull request must update the changelog.

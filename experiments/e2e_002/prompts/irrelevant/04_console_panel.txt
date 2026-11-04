@@ -1,13 +1,16 @@
-- Attribution is not authentication: the agent registry carries no keys or signatures.
-- All storage in every service must use PostgreSQL as the database backend.
-- The API must support cursor pagination.
-- Release notes are written before the tag.
-- Errors must include a stable machine-readable code.
-- All new services must emit structured logs.
+- 控制台的 proposals 面板必须显示提案人身份。
+- Retries must be capped at 3.
+- Configuration is read from environment variables only.
+- Telemetry is opt-in.
 - The CLI must exit non-zero on validation failure.
-- License headers are required on new files.
-- Dependencies are pinned to exact versions.
-- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.
-- The docs site is built from the main branch.
+- Background jobs use exponential backoff.
+- Unit tests must not touch the network.
 - Webhooks are signed with HMAC.
-- The search index is rebuilt nightly.
+- Rate limits apply per API key.
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- User-facing strings must be externalized.
+- The API must support cursor pagination.
+- PII is redacted before storage.
+- Every pull request must update the changelog.
+- The mobile client caches the last 20 items.
+- Model-swap drift remains unmeasured until a second-generation model is available.

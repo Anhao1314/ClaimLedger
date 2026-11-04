@@ -1,9 +1,8 @@
-- The API must support cursor pagination.
-- Configuration is read from environment variables only.
-- The CLI must exit non-zero on validation failure.
-- PII is redacted before storage.
-- The search index is rebuilt nightly.
-- Retries must be capped at 3.
-- API v1 must be removed in Q4.
-- Webhooks are signed with HMAC.
+- The build must be reproducible from a clean checkout.
+- Release notes are written before the tag.
+- Flaky tests are quarantined, not retried indefinitely.
+- The queue is drained before shutdown.
+- Logs are retained for 30 days.
 - Health checks must not depend on the database.
+- User-facing strings must be externalized.
+- Rate limits apply per API key.

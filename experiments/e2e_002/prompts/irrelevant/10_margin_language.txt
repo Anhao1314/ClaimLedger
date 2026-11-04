@@ -1,3 +1,4 @@
-- Model-swap drift remains unmeasured until a second-generation model is available.
-- Attribution is not authentication: the agent registry carries no keys or signatures.
-- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- Frontend assets must be minified before release.
+- 控制台的 proposals 面板必须显示提案人身份。
+- Claims about the system must be weakened when the sample size is below 100.
+- Release notes are written before the tag.

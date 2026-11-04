@@ -1,4 +1,5 @@
+- Retries must be capped at 3.
+- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2.
+- 控制台的 proposals 面板必须显示提案人身份。
+- License headers are required on new files.
 - Health checks must not depend on the database.
-- All storage in every service must use PostgreSQL as the database backend.
-- The console must not introduce new backend concepts; this round is presentation only.
-- Attribution is not authentication: the agent registry carries no keys or signatures.

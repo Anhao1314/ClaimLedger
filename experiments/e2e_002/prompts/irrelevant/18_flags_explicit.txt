@@ -1,11 +1,12 @@
-- The API must support cursor pagination.
-- The admin UI is internal-only.
-- User-facing strings must be externalized.
-- Configuration is read from environment variables only.
-- The default locale is en-US.
-- All new services must emit structured logs.
-- Attribution is not authentication: the agent registry carries no keys or signatures.
-- New services must not emit structured logs.
+- Secrets must never be logged.
+- Unit tests must not touch the network.
+- Flaky tests are quarantined, not retried indefinitely.
+- Health checks must not depend on the database.
+- 控制台的 proposals 面板必须显示提案人身份。
+- The service must start within two seconds.
+- Logs are retained for 30 days.
+- Model-swap drift remains unmeasured until a second-generation model is available.
+- All timestamps are stored in UTC.
 - Retries must be capped at 3.
-- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- Deployments happen only on Tuesdays.
 - All HTTP handlers must return JSON.

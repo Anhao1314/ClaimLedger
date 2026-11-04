@@ -4,6 +4,7 @@
   "target": "policy.py",
   "blocked": false,
   "system": "explicit",
+  "runs": 3,
   "relevant": [
     "Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results."
   ]

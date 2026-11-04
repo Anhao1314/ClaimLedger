@@ -1,4 +1,4 @@
-- The CLI must exit non-zero on validation failure.
-- User-facing strings must be externalized.
-- Errors must include a stable machine-readable code.
-- PostgreSQL is banned for the analytics service.
+- Flaky tests are quarantined, not retried indefinitely.
+- Integration tests run against a disposable database.
+- Secrets must never be logged.
+- Deployments happen only on Tuesdays.

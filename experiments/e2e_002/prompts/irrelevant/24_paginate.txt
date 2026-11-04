@@ -1,5 +1,6 @@
-- Errors must include a stable machine-readable code.
-- The admin UI is internal-only.
-- Configuration is read from environment variables only.
-- Background jobs use exponential backoff.
-- Dependencies must float to the latest minor version.
+- Secrets must never be logged.
+- Release notes are written before the tag.
+- Frontend assets must be minified before release.
+- Integration tests run against a disposable database.
+- All timestamps are stored in UTC.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.

@@ -1,3 +1,4 @@
-- API v1 must be removed in Q4.
-- All storage in every service must use PostgreSQL as the database backend.
-- Database migrations run before the service starts.
+- Retries must be capped at 3.
+- User-facing strings must be externalized.
+- Configuration is read from environment variables only.
+- Model-swap drift remains unmeasured until a second-generation model is available.

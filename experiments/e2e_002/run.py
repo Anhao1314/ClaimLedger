@@ -223,11 +223,13 @@ def main() -> int:
                 row = json.loads(line)
                 if row.get("pass"):
                     done.add((row["task"], row["arm"], row["run"]))
-    jobs = [(task_id, arm, run)
-            for task_id in task_ids
-            for arm in arms
-            for run in range(1, args.runs + 1)
-            if (task_id, arm, run) not in done]
+    jobs = []
+    for task_id in task_ids:
+        task_runs = int(task_meta(task_id).get("runs", args.runs))
+        for arm in arms:
+            for run in range(1, task_runs + 1):
+                if (task_id, arm, run) not in done:
+                    jobs.append((task_id, arm, run))
     if args.shuffle:
         random.Random(args.seed).shuffle(jobs)
     call_budget = CallBudget(args.max_calls)

@@ -1,4 +1,2 @@
-- Background jobs use exponential backoff.
-- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
-- Dependencies are pinned to exact versions.
-- PostgreSQL is banned for the analytics service.
+- Model-swap drift remains unmeasured until a second-generation model is available.
+- The mobile client caches the last 20 items.

@@ -236,6 +236,15 @@ from tasks_extra import NEW_MEMORY, NEW_TASKS, SYSTEM_NATURAL  # noqa: E402
 TASKS.extend(NEW_TASKS)
 MEMORY.extend(NEW_MEMORY)
 
+# Sanity strata get one run; primary strata (constraint/conflict) get three.
+SANITY = {
+    "05_date_parser", "06_control_math",
+    "23_slugify", "24_paginate", "25_sha256", "26_human_bytes", "27_clamp",
+    "28_chunks", "29_collapse_spaces", "30_median", "31_parse_bool",
+    "32_multiply", "33_is_even", "34_reverse", "35_max_list", "36_factorial",
+    "37_count_vowels", "38_title_case", "39_flatten", "40_dedupe",
+}
+
 
 def load_env(path: Path) -> None:
     text = path.expanduser().read_text(encoding="utf-8")
@@ -268,6 +277,7 @@ def write_tasks() -> None:
             json.dumps({"id": task["id"], "title": task["title"],
                         "target": task["target"], "blocked": task["blocked"],
                         "system": task.get("system", "explicit"),
+                        "runs": 1 if task["id"] in SANITY else 3,
                         "relevant": task["relevant"]}, indent=2) + "\n",
             encoding="utf-8")
 
@@ -313,9 +323,12 @@ def write_briefs(records: list) -> dict:
 
 def write_irrelevant(records: list, briefs: dict) -> None:
     by_text = {row["text"]: row for row in records}
+    conflict_texts = {text for task in TASKS if task.get("blocked")
+                      for text in task["relevant"]}
     for task in TASKS:
-        relevant_ids = {by_text[text]["record_id"] for text in task["relevant"]}
-        pool = [row for row in records if row["record_id"] not in relevant_ids]
+        excluded_texts = set(task["relevant"]) | conflict_texts
+        excluded_ids = {by_text[text]["record_id"] for text in excluded_texts}
+        pool = [row for row in records if row["record_id"] not in excluded_ids]
         rng = random.Random(task["id"])
         rng.shuffle(pool)
         target = max(8, len(briefs[task["id"]].split()))
@@ -339,7 +352,7 @@ def write_freeze() -> None:
                     "protocol.md"):
         for path in sorted(ROOT.glob(pattern)):
             files[str(path.relative_to(ROOT))] = sha256(path)
-    freeze_path.write_text(json.dumps({"version": "e2e_002_v1",
+    freeze_path.write_text(json.dumps({"version": "e2e_002_v4",
                                        "files": files}, indent=2,
                                       sort_keys=True) + "\n",
                            encoding="utf-8")

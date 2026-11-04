@@ -1,3 +1,4 @@
-- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.
-- Frontend assets must be minified before release.
 - Attribution is not authentication: the agent registry carries no keys or signatures.
+- The API must support cursor pagination.
+- 控制台的 proposals 面板必须显示提案人身份。
+- Health checks must not depend on the database.

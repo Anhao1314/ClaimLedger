@@ -4,6 +4,7 @@
   "target": "secrets.py",
   "blocked": false,
   "system": "explicit",
+  "runs": 3,
   "relevant": [
     "API keys must live in ~/.config/claimledger/*.env and never enter the repository."
   ]

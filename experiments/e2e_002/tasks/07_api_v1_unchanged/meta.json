@@ -4,6 +4,7 @@
   "target": "handlers.py",
   "blocked": false,
   "system": "explicit",
+  "runs": 3,
   "relevant": [
     "API v1 must remain unchanged."
   ]

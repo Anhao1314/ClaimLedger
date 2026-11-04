@@ -4,6 +4,7 @@
   "target": "identity.py",
   "blocked": false,
   "system": "explicit",
+  "runs": 3,
   "relevant": [
     "Attribution is not authentication: the agent registry carries no keys or signatures."
   ]

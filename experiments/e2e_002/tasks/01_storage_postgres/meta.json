@@ -4,6 +4,7 @@
   "target": "storage.py",
   "blocked": false,
   "system": "explicit",
+  "runs": 3,
   "relevant": [
     "All storage in every service must use PostgreSQL as the database backend."
   ]

@@ -1,3 +1,2 @@
-- Integration tests run against a disposable database.
-- New services must not emit structured logs.
-- Webhooks are signed with HMAC.
+- The docs site is built from the main branch.
+- Health checks must not depend on the database.

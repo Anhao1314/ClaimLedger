@@ -1,7 +1,4 @@
-- Secrets must never be logged.
-- New services must not emit structured logs.
-- The build must be reproducible from a clean checkout.
-- Telemetry is opt-in.
-- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.
-- Database migrations run before the service starts.
-- Deployments happen only on Tuesdays.
+- Every pull request must update the changelog.
+- License headers are required on new files.
+- Background jobs use exponential backoff.
+- Attribution is not authentication: the agent registry carries no keys or signatures.

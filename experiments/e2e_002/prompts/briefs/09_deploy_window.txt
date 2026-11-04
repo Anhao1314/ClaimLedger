@@ -1,3 +1,6 @@
-TASK: Implement can_deploy for the project's deployment window
+TASK: Implement the deployment policy for deployments
 
-NO RELEVANT RECORDS: nothing in memory matches this task lexically. The candidates below were selected by recency, not relevance, and none were admitted.
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- Deployments happen only on Tuesdays. [model asked for review]

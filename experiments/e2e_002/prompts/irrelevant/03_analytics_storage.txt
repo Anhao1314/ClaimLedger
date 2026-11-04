@@ -1,15 +1,11 @@
-- User-facing strings must be externalized.
-- Frontend assets must be minified before release.
-- Webhooks are signed with HMAC.
-- Model-swap drift remains unmeasured until a second-generation model is available.
+- The build must be reproducible from a clean checkout.
+- Every endpoint must include a request id.
+- The queue is drained before shutdown.
+- Claims about the system must be weakened when the sample size is below 100.
 - Retries must be capped at 3.
-- 控制台的 proposals 面板必须显示提案人身份。
-- Every pull request must update the changelog.
-- Secrets must never be logged.
-- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
-- All HTTP handlers must return JSON.
-- Background jobs use exponential backoff.
-- API v1 must remain unchanged.
-- Dependencies are pinned to exact versions.
-- The default locale is en-US.
-- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.
+- Database migrations run before the service starts.
+- PII is redacted before storage.
+- Flaky tests are quarantined, not retried indefinitely.
+- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2.
+- Errors must include a stable machine-readable code.
+- Rate limits apply per API key.

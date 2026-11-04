@@ -4,5 +4,6 @@
   "target": "slug.py",
   "blocked": false,
   "system": "explicit",
+  "runs": 1,
   "relevant": []
 }

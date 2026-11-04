@@ -1,2 +1,3 @@
-- Do not add console features until one external user has used the system for two weeks.
-- Dependencies must float to the latest minor version.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- Flaky tests are quarantined, not retried indefinitely.
+- Integration tests run against a disposable database.

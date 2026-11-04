@@ -4,6 +4,7 @@
   "target": "retry.py",
   "blocked": false,
   "system": "explicit",
+  "runs": 3,
   "relevant": [
     "Retries must be capped at 3."
   ]

@@ -4,6 +4,7 @@
   "target": null,
   "blocked": true,
   "system": "natural",
+  "runs": 3,
   "relevant": [
     "The console must not add any new panels.",
     "The console must add a proposals panel."

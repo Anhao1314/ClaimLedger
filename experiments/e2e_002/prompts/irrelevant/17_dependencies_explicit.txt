@@ -1,9 +1,10 @@
-- Feature flags default to off.
-- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
-- The console must not add any new panels.
+- The CLI must exit non-zero on validation failure.
 - Model-swap drift remains unmeasured until a second-generation model is available.
 - Database migrations run before the service starts.
-- Feature flags default to on.
-- Rate limits apply per API key.
-- Retries must be capped at 3.
-- Every pull request must update the changelog.
+- Frontend assets must be minified before release.
+- User-facing strings must be externalized.
+- The default locale is en-US.
+- Logs are retained for 30 days.
+- Webhooks are signed with HMAC.
+- Secrets must never be logged.
+- The build must be reproducible from a clean checkout.

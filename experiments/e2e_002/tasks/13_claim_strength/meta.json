@@ -4,6 +4,7 @@
   "target": "claims.py",
   "blocked": false,
   "system": "explicit",
+  "runs": 3,
   "relevant": [
     "Claims about the system must be weakened when the sample size is below 100."
   ]

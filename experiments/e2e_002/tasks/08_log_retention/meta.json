@@ -4,6 +4,7 @@
   "target": "logging_config.py",
   "blocked": false,
   "system": "explicit",
+  "runs": 3,
   "relevant": [
     "Logs are retained for 30 days."
   ]

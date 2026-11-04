@@ -1,2 +1,2 @@
-- Deployments happen only on Tuesdays.
-- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2.
+- Do not add console features until one external user has used the system for two weeks.
+- Claims about the system must be weakened when the sample size is below 100.

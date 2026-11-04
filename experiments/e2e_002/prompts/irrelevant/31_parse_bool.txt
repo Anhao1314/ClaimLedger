@@ -1,3 +1,4 @@
-- Frontend assets must be minified before release.
-- The console must not add any new panels.
+- The API must support cursor pagination.
+- Database migrations run before the service starts.
 - Health checks must not depend on the database.
+- Frontend assets must be minified before release.

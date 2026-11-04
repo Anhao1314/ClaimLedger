@@ -59,7 +59,7 @@ def v2_handler(payload):
     return day == "Tuesday"
 ''',
     "10_margin_language": '''def describe_margin():
-    return "The delta=0.2 threshold is a safety margin; the ablation cannot distinguish 0.0 to 0.2."
+    return "The delta=0.2 threshold is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2."
 ''',
     "11_key_path": '''def key_path():
     return "~/.config/claimledger/deepseek.env"

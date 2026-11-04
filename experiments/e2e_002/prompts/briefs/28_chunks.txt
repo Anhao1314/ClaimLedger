@@ -5,5 +5,4 @@ NO RELEVANT RECORDS: nothing in memory matches this task lexically. The candidat
 CANDIDATES CONSIDERED (recency fallback — not admitted):
 - Dependencies must float to the latest minor version. [thin margin]
 - API v1 must be removed in Q4. [thin margin]
-- The default locale is en-US. [thin margin]
 - Feature flags default to on. [thin margin]

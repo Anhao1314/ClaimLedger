@@ -1,3 +1,3 @@
-- Retries must be capped at 3.
-- Do not add console features until one external user has used the system for two weeks.
-- Dependencies must float to the latest minor version.
+- Logs are retained for 30 days.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- The service must start within two seconds.

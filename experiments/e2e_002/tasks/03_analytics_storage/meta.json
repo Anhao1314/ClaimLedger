@@ -4,6 +4,7 @@
   "target": null,
   "blocked": true,
   "system": "explicit",
+  "runs": 3,
   "relevant": [
     "All storage in every service must use PostgreSQL as the database backend.",
     "PostgreSQL is banned for the analytics service."

@@ -1,4 +1,2 @@
-- The console must add a proposals panel.
-- Deployments happen only on Tuesdays.
-- 控制台的 proposals 面板必须显示提案人身份。
+- Every endpoint must include a request id.
 - Do not add console features until one external user has used the system for two weeks.

@@ -2,6 +2,15 @@
 
 **Status:** pre-registered, not yet run. 40 tasks × 4 arms × 3 runs.
 
+**Revision 2026-11-04 (before any scored run):** fixed three design bugs found in
+a pre-run health check, and runs are stratified to 320 calls. The 08/09 task queries did not lexically retrieve their
+own constraint; the 10_margin check rejected the correct sentence because it
+contains "tuned"; and D blocks sampled other tasks' conflict pairs, so D could
+block instead of ignoring irrelevant memory. D now excludes every conflict
+record; queries and the margin check are fixed. The 15/16/21/22 conflict briefs
+remain known misses (stage 1 excludes one side before stage 2); they are reported
+as a separate failure and are not "fixed" inside this protocol.
+
 This is the powered version of the e2e_001 pilot. The pilot's inputs and results
 are preserved under `experiments/e2e_001/`; this is a new freeze and a new
 result set, not a continuation.
@@ -88,7 +97,9 @@ browsing, no test execution.
 - The model emits reasoning tokens before the answer; any run ending with
   `finish_reason=length` is retried once with a doubled budget (16000). If it
   still truncates, it is recorded as a failure, never silently dropped.
-- Three runs per task × arm; 40 × 4 × 3 = 480 calls.
+- Runs per task are stratified: constraint and conflict get three runs
+  (20 × 4 × 3 = 240); irrelevant and control get one sanity run
+  (20 × 4 × 1 = 80). Total 320 calls.
 - Each run gets a fresh temp directory. Responses, prompts, and metadata are
   saved under `results/`; `--resume` skips runs that already passed.
 - `--max-calls` caps spend; batches can be run per stratum.

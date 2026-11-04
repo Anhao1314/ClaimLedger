@@ -4,6 +4,7 @@
   "target": null,
   "blocked": true,
   "system": "explicit",
+  "runs": 3,
   "relevant": [
     "All new services must emit structured logs.",
     "New services must not emit structured logs."

@@ -1,8 +1,9 @@
-- Telemetry is opt-in.
-- Dependencies are pinned to exact versions.
-- Retries must be capped at 3.
-- Dependencies must float to the latest minor version.
-- The CLI must exit non-zero on validation failure.
-- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2.
-- The queue is drained before shutdown.
-- API v1 must remain unchanged.
+- The admin UI is internal-only.
+- Webhooks are signed with HMAC.
+- Deployments happen only on Tuesdays.
+- The service must start within two seconds.
+- Integration tests run against a disposable database.
+- Model-swap drift remains unmeasured until a second-generation model is available.
+- The console must not introduce new backend concepts; this round is presentation only.
+- Rate limits apply per API key.
+- Claims about the system must be weakened when the sample size is below 100.

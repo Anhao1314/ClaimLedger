@@ -1,3 +1,4 @@
-- Database migrations run before the service starts.
-- Rate limits apply per API key.
-- Claims about the system must be weakened when the sample size is below 100.
+- User-facing strings must be externalized.
+- Health checks must not depend on the database.
+- All HTTP handlers must return JSON.
+- The build must be reproducible from a clean checkout.

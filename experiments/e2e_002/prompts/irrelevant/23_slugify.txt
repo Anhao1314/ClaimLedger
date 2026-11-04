@@ -1,4 +1,6 @@
-- Attribution is not authentication: the agent registry carries no keys or signatures.
-- Database migrations run before the service starts.
-- Configuration is read from environment variables only.
-- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- 控制台的 proposals 面板必须显示提案人身份。
+- User-facing strings must be externalized.
+- Release notes are written before the tag.
+- Model-swap drift remains unmeasured until a second-generation model is available.
+- The docs site is built from the main branch.
+- The service must start within two seconds.

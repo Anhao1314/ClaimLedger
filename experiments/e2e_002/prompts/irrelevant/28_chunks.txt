@@ -1,9 +1,9 @@
-- Secrets must never be logged.
-- The console must add a proposals panel.
-- Release notes are written before the tag.
+- Every pull request must update the changelog.
+- Every endpoint must include a request id.
+- Rate limits apply per API key.
+- Errors must include a stable machine-readable code.
+- Flaky tests are quarantined, not retried indefinitely.
 - 控制台的 proposals 面板必须显示提案人身份。
-- The CLI must exit non-zero on validation failure.
-- Attribution is not authentication: the agent registry carries no keys or signatures.
-- The search index is rebuilt nightly.
-- Frontend assets must be minified before release.
-- The build must be reproducible from a clean checkout.
+- The API must support cursor pagination.
+- License headers are required on new files.
+- The console must not introduce new backend concepts; this round is presentation only.

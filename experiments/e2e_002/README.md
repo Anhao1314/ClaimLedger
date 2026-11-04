@@ -5,15 +5,19 @@ preserved under [../e2e_001/](../e2e_001/).
 
 ## Status (2026-11-04)
 
-40 briefs are generated and frozen (`freeze.json`, v2); all 40 checks pass the
-offline selftest. The 480-call run is in progress.
+**v3/v4 design revision.** The first 480-call attempt was stopped before any scored
+analysis. A pre-run health check found three design bugs: the 08/09 task queries
+did not retrieve their own constraint, the 10_margin check rejected the correct
+sentence because it contains "tuned", and D blocks sampled other tasks' conflict
+pairs, so D could block instead of ignoring memory. Those are fixed; briefs and D
+blocks are regenerated; runs are stratified to 320 calls (primary strata 3,
+sanity strata 1) and frozen as `e2e_002_v4`; partial v2 results were discarded.
 
-Pre-run inspection found that 6/10 conflict briefs contain an
-`UNRESOLVED CONFLICTS` section. The four that do not are the structured-logs and
-API-v1 pairs (15, 16, 21, 22): stage 1 excludes one side as irrelevant before
-stage 2 can compare the pair. This is recorded now, before seeing outcomes; the
-run will show whether it becomes a C-arm failure. Do not change the judge or the
-briefs after freeze.
+Known and deliberately left in v3: 15/16/21/22 conflict briefs still miss a
+conflict because stage 1 excludes one side before stage 2. That is reported as a
+separate failure, not hidden by changing the judge mid-protocol.
+
+The 320-call run is pending the regenerated freeze.
 
 ## 1. Generate the frozen artifacts (once)
 

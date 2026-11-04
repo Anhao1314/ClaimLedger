@@ -1,4 +1,4 @@
-- Model-swap drift remains unmeasured until a second-generation model is available.
-- Do not add console features until one external user has used the system for two weeks.
-- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.
-- Unit tests must not touch the network.
+- Frontend assets must be minified before release.
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- The docs site is built from the main branch.
