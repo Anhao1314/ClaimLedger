@@ -391,6 +391,7 @@ question set, and every difference is measurable at the output. [Full analysis](
 | Edge gold (dual-model, 120 pairs) | **κ = 0.886**, constructed probe **11/11** both channels; 3 contested pairs = one ontology seam | [edges_gold](experiments/edges_gold/agreement-report.md) |
 | Edge classification (117 gold pairs) | **115/117 = 0.983**; contradicts **5/5 both ways**; **both errors at p = 0.5** → review routing catches them | [edges_v1](experiments/edges_v1/results.md) |
 | Supersedes recall (3 experiments) | wording iteration 0.643 → 0.786 (churn) → **binary cascade 0.857, zero real conflicts repaired** | [supersedes_003](experiments/supersedes_003/results.md) |
+| Threshold sensitivity (offline, zero calls) | proposal precision **1.0 across T = 0.55–0.90** (plateau — 0.80 is not fitted); cascade safety gap **0.63 vs 0.10** | [threshold-sweep](experiments/edges_v1/results/threshold-sweep.json) |
 
 Known limitation, recorded honestly: the candidate selector is lexical, so a record with zero
 token overlap is not selected. Semantic recall is deferred to a topic field (contract v2).
