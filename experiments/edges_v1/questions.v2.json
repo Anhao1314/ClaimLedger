@@ -1,0 +1,60 @@
+{
+  "version": "v2",
+  "frozen_at": "2026-11-05",
+  "description": "Candidate question set for the multi-relational memory plane. The 'edge' question is new in v2; all v1 questions are copied verbatim for provenance and remain governed by questions.v1.json until adoption. Changing this file is a version bump.",
+  "questions": {
+    "edge": {
+      "type": "choice",
+      "applies_to": "pair",
+      "instructions": "In a memory graph of project constraints, what relation does record A bear to record B",
+      "criteria": {
+        "supports": "One record provides evidence, refinement, elaboration, or repetition for the other; following one reinforces or is consistent with the other",
+        "contradicts": "Following both records is impossible; one forbids what the other requires, or they specify incompatible values for the same thing",
+        "supersedes": "One record replaces the other due to a decision change, version update, or time passage; the replaced record is no longer intended to be followed",
+        "unrelated": "The two records talk about different aspects, systems, or concerns; following one has no bearing on the other"
+      },
+      "criteria_provenance": "Verbatim from contracts/edge-schema.v1.json (frozen 2026-11-05)",
+      "decision_rule": "argmax of the returned probability map; p >= 0.80 proposes the edge, 0.50-0.79 routes to review",
+      "validation": {
+        "status": "VALIDATION_IN_PROGRESS",
+        "evidence": "experiments/edges_v1"
+      }
+    },
+    "relation": {
+      "type": "choice",
+      "applies_to": "pair",
+      "instructions": "What is the relation between statement A and statement B",
+      "criteria": {
+        "contradiction": "Following both is impossible; one forbids what the other requires",
+        "complementary": "Both can be true at once; one may refine or repeat the other",
+        "unrelated": "They talk about different things and do not constrain each other"
+      },
+      "decision_rule": "argmax of the returned probability map",
+      "validation": {
+        "evidence": "experiments/jev_relation_001",
+        "n_pairs": 30,
+        "scored": 29,
+        "observed_agreement": "29/29 scored; contradiction recall 10/10; false suppression 0/20",
+        "status": "VALIDATED"
+      }
+    },
+    "admit": {
+      "type": "choice",
+      "applies_to": "record",
+      "instructions": "Given the TASK, should this claim be admitted, reviewed, or excluded",
+      "criteria": {
+        "admit": "The claim constrains how the TASK must be done and is still in force",
+        "review": "It is unclear whether the claim applies or still holds; a human must look",
+        "exclude": "The claim does not constrain the TASK"
+      },
+      "decision_rule": "argmax of the returned probability map; on provider failure the record is review, never exclude"
+    },
+    "governing": {
+      "type": "choice",
+      "applies_to": "set",
+      "instructions": "Which single claim should govern the TASK",
+      "criteria_template": "one option per candidate record (text truncated to 160 chars) plus 'none': No single claim governs this task",
+      "decision_rule": "confidence >= 0.80 promotes that record to admit; the contradiction field is still reported"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "files": {
+    "pairs.jsonl": {
+      "sha256": "2325468dcb201172e61c832294a527ff92a6b1e8e7a485b5b718ab4b1de7c82c"
+    },
+    "protocol.md": {
+      "sha256": "345d8a1fe080699b62fc4c9e26b4c46cb33385821add1916c91e79916978210c"
+    },
+    "questions.v2.json": {
+      "sha256": "86cc04ebe8cd31899009c865067cf1534deca08eb280c5796a5e3ec18493b25c"
+    }
+  },
+  "frozen_at": "2026-11-05"
+}
