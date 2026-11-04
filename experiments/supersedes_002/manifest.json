@@ -1,0 +1,17 @@
+{
+  "files": {
+    "pairs.jsonl": {
+      "sha256": "561d9923806b8a047f1b9e4da2c836f90abc63539747d646e98d769c1008e245"
+    },
+    "protocol.md": {
+      "sha256": "f3cf4816b6b85598b6cbecad26333d420825a03c406375ba7e0c4ba85256204d"
+    },
+    "questions.json": {
+      "sha256": "245f8ca3da95dfaab2cfcc53a47e2467505847d06a9ed57d3a6b3962a28373b8"
+    },
+    "questions.v3.json": {
+      "sha256": "f4329fd5ce063aae8d0a7d9e3c59ee1c3d38a307ae3fd2ba9729a0abae95767f"
+    }
+  },
+  "frozen_at": "2026-11-05"
+}
