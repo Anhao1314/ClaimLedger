@@ -1,0 +1,69 @@
+{
+  "version": "v1",
+  "frozen_at": "2026-11-05",
+  "description": "The typed edge schema for the multi-relational memory plane. Changing any field or enum invalidates all annotated edges and requires a version bump.",
+  "node_kinds": ["record", "entity", "event", "concept"],
+  "edge_types": {
+    "supports": {
+      "definition": "One record provides evidence, refinement, elaboration, or repetition for another. Following one reinforces or is consistent with the other.",
+      "includes": [
+        "One is a specific instance of the other",
+        "One provides rationale for the other",
+        "Both say the same thing differently",
+        "One adds detail without changing the other's meaning"
+      ],
+      "excludes": ["causal relationships (Phase 5)", "temporal ordering (use supersedes or precedes)"]
+    },
+    "contradicts": {
+      "definition": "Following both records is impossible; one forbids what the other requires, or they specify incompatible values for the same thing.",
+      "includes": [
+        "Direct negation ('must use X' vs 'must not use X')",
+        "Incompatible values ('cap at 3' vs 'cap at 5')",
+        "Scope conflicts that make both unfollowable simultaneously"
+      ],
+      "excludes": ["records about different topics that merely coexist"]
+    },
+    "supersedes": {
+      "definition": "One record replaces another due to a version change, decision reversal, or time passage. The superseded record is no longer intended to be followed.",
+      "requires_direction": true,
+      "direction_semantics": "src supersedes dst (dst is the old record, src is the new)",
+      "includes": [
+        "Version updates ('use v15' replaced by 'use v16')",
+        "Policy reversals ('allow X' replaced by 'no longer allow X')",
+        "Scope narrowing that effectively replaces the old rule"
+      ],
+      "excludes": ["records that complement each other without replacing"]
+    },
+    "unrelated": {
+      "definition": "The two records talk about different aspects, systems, or concerns. Following one has no bearing on the other.",
+      "includes": [
+        "Records about different subsystems",
+        "Records at different abstraction levels with no shared constraint"
+      ]
+    },
+    "abstain": {
+      "definition": "Cannot determine the relationship; requires domain knowledge, broader context, or a judgement call not available to the annotator.",
+      "usage": "Use sparingly; high abstain rate signals ontology ambiguity"
+    }
+  },
+  "edge_fields": {
+    "id": {"type": "string", "pattern": "edg_[0-9a-f]{24}", "required": true},
+    "src": {"type": "string", "pattern": "rec_[0-9a-f]{24}", "required": true, "description": "source node id"},
+    "dst": {"type": "string", "pattern": "rec_[0-9a-f]{24}", "required": true, "description": "target node id"},
+    "type": {"type": "string", "enum": ["supports", "contradicts", "supersedes", "unrelated", "abstain"], "required": true},
+    "confidence": {"type": "float", "min": 0.0, "max": 1.0, "required": true, "description": "annotator confidence in this classification"},
+    "source": {"type": "string", "required": true, "description": "annotator id"},
+    "status": {"type": "string", "enum": ["proposed"], "required": true, "description": "annotation output is always proposed; confirmation is a separate event"},
+    "created_at": {"type": "string", "format": "ISO 8601", "required": true},
+    "direction": {"type": "string", "enum": ["src→dst", "dst→src", "undirected"], "required": false, "description": "only required when type=supersedes; src supersedes dst"},
+    "evidence_span": {"type": "string", "max_length": 200, "required": false, "description": "key phrase from the pair that supports this classification"},
+    "notes": {"type": "string", "required": false}
+  },
+  "provenance": {
+    "requirement": "Every edge must be traceable to: (1) the annotator who created it (source field), (2) the annotation guide version used, (3) the exact record texts forming the pair (via src/dst node ids).",
+    "guide_versions": {
+      "full": "docs/annotation-guide-full.md",
+      "reduced": "docs/annotation-guide-reduced.md"
+    }
+  }
+}
