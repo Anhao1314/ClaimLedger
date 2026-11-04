@@ -1,2 +1,8 @@
 - The docs site is built from the main branch.
 - Health checks must not depend on the database.
+- Retries must be capped at 3.
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- Webhooks are signed with HMAC.
+- Integration tests run against a disposable database.
+- Logs are retained for 30 days.
+- Flaky tests are quarantined, not retried indefinitely.

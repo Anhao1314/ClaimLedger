@@ -14,3 +14,8 @@
 - Every pull request must update the changelog.
 - The mobile client caches the last 20 items.
 - Model-swap drift remains unmeasured until a second-generation model is available.
+- All timestamps are stored in UTC.
+- The queue is drained before shutdown.
+- The default locale is en-US.
+- Every endpoint must include a request id.
+- License headers are required on new files.

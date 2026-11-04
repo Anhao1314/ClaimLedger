@@ -1,3 +1,11 @@
 - Logs are retained for 30 days.
 - Rate limits apply per API key.
 - The queue is drained before shutdown.
+- Integration tests run against a disposable database.
+- The service must start within two seconds.
+- User-facing strings must be externalized.
+- Database migrations run before the service starts.
+- Errors must include a stable machine-readable code.
+- All timestamps are stored in UTC.
+- Telemetry is opt-in.
+- The API must support cursor pagination.

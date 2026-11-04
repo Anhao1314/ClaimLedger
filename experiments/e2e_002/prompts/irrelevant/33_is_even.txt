@@ -2,3 +2,4 @@
 - License headers are required on new files.
 - Background jobs use exponential backoff.
 - Attribution is not authentication: the agent registry carries no keys or signatures.
+- User-facing strings must be externalized.

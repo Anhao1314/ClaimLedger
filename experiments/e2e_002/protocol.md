@@ -3,13 +3,14 @@
 **Status:** pre-registered, not yet run. 40 tasks × 4 arms × 3 runs.
 
 **Revision 2026-11-04 (before any scored run):** fixed three design bugs found in
-a pre-run health check, and runs are stratified to 320 calls. The 08/09 task queries did not lexically retrieve their
+a pre-run health check, runs are stratified to 320 calls, and stage 2 now pairs
+excluded records with admitted ones (the 15/16/21/22 conflicts were being lost
+because one side was excluded before pair checks). The 08/09 task queries did not lexically retrieve their
 own constraint; the 10_margin check rejected the correct sentence because it
 contains "tuned"; and D blocks sampled other tasks' conflict pairs, so D could
 block instead of ignoring irrelevant memory. D now excludes every conflict
 record; queries and the margin check are fixed. The 15/16/21/22 conflict briefs
-remain known misses (stage 1 excludes one side before stage 2); they are reported
-as a separate failure and are not "fixed" inside this protocol.
+were the regression cases for the pairing fix; they are regenerated under v5.
 
 This is the powered version of the e2e_001 pilot. The pilot's inputs and results
 are preserved under `experiments/e2e_001/`; this is a new freeze and a new

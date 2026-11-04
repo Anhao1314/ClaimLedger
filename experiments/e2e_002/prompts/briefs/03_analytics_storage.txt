@@ -4,7 +4,6 @@ ACTIVE CONSTRAINTS: none admitted for this task.
 
 NEEDS HUMAN REVIEW (not admitted — do not rely yet):
 - PII is redacted before storage. [thin margin]
-- All new services must emit structured logs. [thin margin]
 - PostgreSQL is banned for the analytics service. [conflicts with another record]
 - All storage in every service must use PostgreSQL as the database backend. [conflicts with another record]
 

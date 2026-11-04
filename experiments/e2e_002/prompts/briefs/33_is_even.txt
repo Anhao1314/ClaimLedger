@@ -1,3 +1,6 @@
 TASK: Even check
 
 NO RELEVANT RECORDS: nothing in memory matches this task lexically. The candidates below were selected by recency, not relevance, and none were admitted.
+
+CANDIDATES CONSIDERED (recency fallback — not admitted):
+- The default locale is en-US. [thin margin]

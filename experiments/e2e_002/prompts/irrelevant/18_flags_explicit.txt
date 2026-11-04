@@ -10,3 +10,9 @@
 - Retries must be capped at 3.
 - Deployments happen only on Tuesdays.
 - All HTTP handlers must return JSON.
+- The build must be reproducible from a clean checkout.
+- The CLI must exit non-zero on validation failure.
+- Errors must include a stable machine-readable code.
+- Webhooks are signed with HMAC.
+- Telemetry is opt-in.
+- Attribution is not authentication: the agent registry carries no keys or signatures.

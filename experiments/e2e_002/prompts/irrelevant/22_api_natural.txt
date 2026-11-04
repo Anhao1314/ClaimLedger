@@ -1,3 +1,8 @@
 - Deployments happen only on Tuesdays.
 - All HTTP handlers must return JSON.
 - Attribution is not authentication: the agent registry carries no keys or signatures.
+- Every endpoint must include a request id.
+- Configuration is read from environment variables only.
+- Telemetry is opt-in.
+- Unit tests must not touch the network.
+- Do not add console features until one external user has used the system for two weeks.

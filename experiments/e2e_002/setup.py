@@ -352,7 +352,7 @@ def write_freeze() -> None:
                     "protocol.md"):
         for path in sorted(ROOT.glob(pattern)):
             files[str(path.relative_to(ROOT))] = sha256(path)
-    freeze_path.write_text(json.dumps({"version": "e2e_002_v4",
+    freeze_path.write_text(json.dumps({"version": "e2e_002_v5",
                                        "files": files}, indent=2,
                                       sort_keys=True) + "\n",
                            encoding="utf-8")

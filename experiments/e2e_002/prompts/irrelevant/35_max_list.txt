@@ -2,3 +2,5 @@
 - The API must support cursor pagination.
 - 控制台的 proposals 面板必须显示提案人身份。
 - Health checks must not depend on the database.
+- Database migrations run before the service starts.
+- Retries must be capped at 3.

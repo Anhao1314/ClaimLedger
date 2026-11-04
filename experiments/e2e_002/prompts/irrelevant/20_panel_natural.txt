@@ -11,3 +11,6 @@
 - The CLI must exit non-zero on validation failure.
 - Health checks must not depend on the database.
 - The service must start within two seconds.
+- Do not add console features until one external user has used the system for two weeks.
+- Frontend assets must be minified before release.
+- User-facing strings must be externalized.

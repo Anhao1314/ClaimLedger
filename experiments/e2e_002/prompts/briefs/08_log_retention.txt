@@ -1,4 +1,6 @@
 TASK: Set how long logs are retained
 
-ACTIVE CONSTRAINTS (must follow):
-- Logs are retained for 30 days.
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- Logs are retained for 30 days. [thin margin]

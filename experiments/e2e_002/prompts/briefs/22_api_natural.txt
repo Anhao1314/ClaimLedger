@@ -1,4 +1,10 @@
 TASK: Remove API v1 in Q4
 
-ACTIVE CONSTRAINTS (must follow):
-- API v1 must be removed in Q4.
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- API v1 must be removed in Q4. [conflicts with another record]
+- API v1 must remain unchanged. [conflicts with another record]
+
+UNRESOLVED CONFLICTS (resolve with a human before acting):
+- API v1 must be removed in Q4.  ⟂  API v1 must remain unchanged.

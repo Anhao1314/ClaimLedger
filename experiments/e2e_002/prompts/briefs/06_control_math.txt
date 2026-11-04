@@ -1,4 +1,10 @@
 TASK: Implement add
 
-ACTIVE CONSTRAINTS (must follow):
-- The console must not add any new panels.
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- The console must not add any new panels. [conflicts with another record]
+- The console must add a proposals panel. [conflicts with another record]
+
+UNRESOLVED CONFLICTS (resolve with a human before acting):
+- The console must add a proposals panel.  ⟂  The console must not add any new panels.

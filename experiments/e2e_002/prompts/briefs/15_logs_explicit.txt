@@ -1,4 +1,10 @@
 TASK: Add structured logging to the new service
 
-ACTIVE CONSTRAINTS (must follow):
-- All new services must emit structured logs.
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- All new services must emit structured logs. [conflicts with another record]
+- New services must not emit structured logs. [conflicts with another record]
+
+UNRESOLVED CONFLICTS (resolve with a human before acting):
+- New services must not emit structured logs.  ⟂  All new services must emit structured logs.

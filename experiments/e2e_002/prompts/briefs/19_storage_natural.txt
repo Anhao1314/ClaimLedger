@@ -1,9 +1,9 @@
 TASK: Implement the storage layer for the analytics service
 
-ACTIVE CONSTRAINTS (must follow):
-- PII is redacted before storage.
+ACTIVE CONSTRAINTS: none admitted for this task.
 
 NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- PII is redacted before storage. [thin margin]
 - Database migrations run before the service starts. [thin margin]
 - All storage in every service must use PostgreSQL as the database backend. [conflicts with another record]
 - PostgreSQL is banned for the analytics service. [conflicts with another record]

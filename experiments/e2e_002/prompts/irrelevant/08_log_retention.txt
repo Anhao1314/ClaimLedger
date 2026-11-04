@@ -1,2 +1,4 @@
 - Model-swap drift remains unmeasured until a second-generation model is available.
 - The mobile client caches the last 20 items.
+- Deployments happen only on Tuesdays.
+- License headers are required on new files.
