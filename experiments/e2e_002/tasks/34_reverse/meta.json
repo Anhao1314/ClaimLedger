@@ -1,0 +1,8 @@
+{
+  "id": "34_reverse",
+  "title": "Reverse string",
+  "target": "strings.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

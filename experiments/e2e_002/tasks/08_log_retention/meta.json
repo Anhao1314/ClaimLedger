@@ -1,0 +1,10 @@
+{
+  "id": "08_log_retention",
+  "title": "Log retention",
+  "target": "logging_config.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": [
+    "Logs are retained for 30 days."
+  ]
+}

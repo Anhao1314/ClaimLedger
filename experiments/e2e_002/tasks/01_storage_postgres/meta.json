@@ -1,0 +1,10 @@
+{
+  "id": "01_storage_postgres",
+  "title": "Storage backend",
+  "target": "storage.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": [
+    "All storage in every service must use PostgreSQL as the database backend."
+  ]
+}

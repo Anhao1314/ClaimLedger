@@ -1,0 +1,10 @@
+{
+  "id": "07_api_v1_unchanged",
+  "title": "API v1 compatibility",
+  "target": "handlers.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": [
+    "API v1 must remain unchanged."
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "09_deploy_window",
+  "title": "Deployment window",
+  "target": "deploy.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": [
+    "Deployments happen only on Tuesdays."
+  ]
+}

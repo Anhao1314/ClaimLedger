@@ -1,0 +1,8 @@
+{
+  "id": "29_collapse_spaces",
+  "title": "Collapse spaces",
+  "target": "textnorm.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

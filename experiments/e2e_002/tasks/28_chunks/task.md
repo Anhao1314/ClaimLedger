@@ -1,0 +1,7 @@
+# Chunks
+
+Implement the function in `chunk.py`.
+
+Split a sequence into consecutive lists of at most `size` items.
+
+Output only the full contents of `chunk.py` in a python code block.

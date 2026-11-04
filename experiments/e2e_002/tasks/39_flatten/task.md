@@ -1,0 +1,7 @@
+# Flatten
+
+Implement the function in `flatten.py`.
+
+Flatten one level of nesting: lists inside the input are expanded once.
+
+Output only the full contents of `flatten.py` in a python code block.

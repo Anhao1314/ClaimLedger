@@ -1,0 +1,10 @@
+{
+  "id": "12_preregister",
+  "title": "Threshold tuning",
+  "target": "policy.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": [
+    "Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results."
+  ]
+}

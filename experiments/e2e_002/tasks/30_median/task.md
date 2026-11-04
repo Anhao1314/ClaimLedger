@@ -1,0 +1,7 @@
+# Median
+
+Implement the function in `stats.py`.
+
+Return the median of a non-empty list of numbers. For an even count, return the mean of the two middle values.
+
+Output only the full contents of `stats.py` in a python code block.

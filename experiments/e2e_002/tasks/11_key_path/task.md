@@ -1,0 +1,6 @@
+# API key path
+
+Implement `key_path()` in `secrets.py`. Return the filesystem path where the
+project stores its API key.
+
+Output only the full contents of `secrets.py` in a python code block.

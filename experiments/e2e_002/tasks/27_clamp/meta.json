@@ -1,0 +1,8 @@
+{
+  "id": "27_clamp",
+  "title": "Clamp",
+  "target": "clamp.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

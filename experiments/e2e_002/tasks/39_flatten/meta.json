@@ -1,0 +1,8 @@
+{
+  "id": "39_flatten",
+  "title": "Flatten",
+  "target": "flatten.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

@@ -1,0 +1,11 @@
+{
+  "id": "21_logs_natural",
+  "title": "Structured logging (natural)",
+  "target": null,
+  "blocked": true,
+  "system": "natural",
+  "relevant": [
+    "All new services must emit structured logs.",
+    "New services must not emit structured logs."
+  ]
+}

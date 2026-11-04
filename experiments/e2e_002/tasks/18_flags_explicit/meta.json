@@ -1,0 +1,11 @@
+{
+  "id": "18_flags_explicit",
+  "title": "Feature flag default",
+  "target": null,
+  "blocked": true,
+  "system": "explicit",
+  "relevant": [
+    "Feature flags default to off.",
+    "Feature flags default to on."
+  ]
+}

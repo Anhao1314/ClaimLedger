@@ -1,0 +1,8 @@
+{
+  "id": "35_max_list",
+  "title": "Maximum",
+  "target": "maxlist.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

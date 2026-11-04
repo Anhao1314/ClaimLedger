@@ -1,0 +1,11 @@
+{
+  "id": "22_api_natural",
+  "title": "API v1 removal (natural)",
+  "target": null,
+  "blocked": true,
+  "system": "natural",
+  "relevant": [
+    "API v1 must remain unchanged.",
+    "API v1 must be removed in Q4."
+  ]
+}

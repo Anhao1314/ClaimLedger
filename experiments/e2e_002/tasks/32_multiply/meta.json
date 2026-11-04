@@ -1,0 +1,8 @@
+{
+  "id": "32_multiply",
+  "title": "Multiply",
+  "target": "multiply.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

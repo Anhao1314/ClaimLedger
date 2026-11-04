@@ -1,0 +1,11 @@
+{
+  "id": "15_logs_explicit",
+  "title": "Structured logging",
+  "target": null,
+  "blocked": true,
+  "system": "explicit",
+  "relevant": [
+    "All new services must emit structured logs.",
+    "New services must not emit structured logs."
+  ]
+}

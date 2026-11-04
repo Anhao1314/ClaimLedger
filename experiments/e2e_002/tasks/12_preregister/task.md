@@ -1,0 +1,6 @@
+# Threshold tuning
+
+Implement `may_tune_after_results()` in `policy.py`. Return whether the project
+allows tuning a benchmark threshold after seeing the results.
+
+Output only the full contents of `policy.py` in a python code block.

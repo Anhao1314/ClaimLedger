@@ -1,0 +1,10 @@
+{
+  "id": "11_key_path",
+  "title": "API key path",
+  "target": "secrets.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": [
+    "API keys must live in ~/.config/claimledger/*.env and never enter the repository."
+  ]
+}

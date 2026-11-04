@@ -1,0 +1,8 @@
+{
+  "id": "33_is_even",
+  "title": "Even check",
+  "target": "parity.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

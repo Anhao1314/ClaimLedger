@@ -1,0 +1,8 @@
+{
+  "id": "25_sha256",
+  "title": "SHA-256 hex",
+  "target": "hashing.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

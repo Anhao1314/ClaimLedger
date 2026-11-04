@@ -1,0 +1,7 @@
+# Count vowels
+
+Implement the function in `vowels.py`.
+
+Count the vowels `aeiou` case-insensitively.
+
+Output only the full contents of `vowels.py` in a python code block.

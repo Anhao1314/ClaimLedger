@@ -1,0 +1,11 @@
+{
+  "id": "17_dependencies_explicit",
+  "title": "Dependency versions",
+  "target": null,
+  "blocked": true,
+  "system": "explicit",
+  "relevant": [
+    "Dependencies are pinned to exact versions.",
+    "Dependencies must float to the latest minor version."
+  ]
+}

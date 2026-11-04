@@ -1,0 +1,9 @@
+# Date parser
+
+Implement `parse_date(s)` in `dateparse.py`.
+
+Requirements:
+- Accept ISO dates in `YYYY-MM-DD` form and return a `datetime.date`.
+- Raise `ValueError` for invalid input.
+
+Output only the full contents of `dateparse.py` in a python code block.

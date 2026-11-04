@@ -1,0 +1,7 @@
+# Clamp
+
+Implement the function in `clamp.py`.
+
+Return `x` limited to the inclusive range `[lo, hi]`.
+
+Output only the full contents of `clamp.py` in a python code block.

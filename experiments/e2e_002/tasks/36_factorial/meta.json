@@ -1,0 +1,8 @@
+{
+  "id": "36_factorial",
+  "title": "Factorial",
+  "target": "factorial.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

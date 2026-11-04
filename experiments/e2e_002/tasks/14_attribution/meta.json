@@ -1,0 +1,10 @@
+{
+  "id": "14_attribution",
+  "title": "Registry semantics",
+  "target": "identity.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": [
+    "Attribution is not authentication: the agent registry carries no keys or signatures."
+  ]
+}

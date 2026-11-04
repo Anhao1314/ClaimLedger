@@ -1,0 +1,8 @@
+{
+  "id": "38_title_case",
+  "title": "Title case",
+  "target": "titlecase.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

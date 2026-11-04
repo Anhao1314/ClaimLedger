@@ -1,0 +1,6 @@
+def v1_handler(payload):
+    return {"ok": True, "version": 1, "echo": payload}
+
+
+def v2_handler(payload):
+    raise NotImplementedError("implement v2_handler")

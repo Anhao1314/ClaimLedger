@@ -1,0 +1,11 @@
+{
+  "id": "19_storage_natural",
+  "title": "Analytics storage (natural)",
+  "target": null,
+  "blocked": true,
+  "system": "natural",
+  "relevant": [
+    "All storage in every service must use PostgreSQL as the database backend.",
+    "PostgreSQL is banned for the analytics service."
+  ]
+}

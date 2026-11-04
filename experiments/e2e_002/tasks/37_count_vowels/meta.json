@@ -1,0 +1,8 @@
+{
+  "id": "37_count_vowels",
+  "title": "Count vowels",
+  "target": "vowels.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

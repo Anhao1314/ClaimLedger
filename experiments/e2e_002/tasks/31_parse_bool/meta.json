@@ -1,0 +1,8 @@
+{
+  "id": "31_parse_bool",
+  "title": "Parse bool",
+  "target": "boolparse.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

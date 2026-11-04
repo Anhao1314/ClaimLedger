@@ -1,0 +1,8 @@
+{
+  "id": "26_human_bytes",
+  "title": "Human bytes",
+  "target": "bytesize.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

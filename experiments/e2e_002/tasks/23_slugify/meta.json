@@ -1,0 +1,8 @@
+{
+  "id": "23_slugify",
+  "title": "Slugify",
+  "target": "slug.py",
+  "blocked": false,
+  "system": "explicit",
+  "relevant": []
+}

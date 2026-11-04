@@ -1,0 +1,11 @@
+{
+  "id": "16_api_removal_explicit",
+  "title": "API v1 removal",
+  "target": null,
+  "blocked": true,
+  "system": "explicit",
+  "relevant": [
+    "API v1 must remain unchanged.",
+    "API v1 must be removed in Q4."
+  ]
+}
