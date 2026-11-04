@@ -5,8 +5,10 @@ Stage 1 — one `admit` choice per record, against a **single-record state**.
   set cannot contaminate its answer (this is why the retired applies/holds pair
   existed, and why the one-big-request flow hedged everything to review).
 
-Stage 2 — the validated `relation` question on every pair that touches a
-non-excluded record (admitted or review, plus its excluded counterpart).
+Stage 2 — the validated `relation` question on every pair where at least one
+side was admitted. A conflict only changes behaviour when the system was about
+to rely on one side; pairing reviews with reviews produces conflicts that do
+not affect this task.
   Pair states are exactly the frozen 30-pair format and are **task-independent**,
   so pair judgments cache across every future task. A confirmed contradicting
   pair sends both records to review; everything else keeps its stage-1 action.
@@ -222,7 +224,7 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
     top_key = input_hash(task, list(records), {
         "admit": admit_spec,
         "relation": relation_question,
-        "relation_scope": "pairs_touching_non_excluded",
+        "relation_scope": "pairs_with_admitted_side",
     }, model=resolved_model, question_set_version=version)
     if cache is not None:
         hit = cache.get(top_key)
@@ -292,12 +294,12 @@ def judge(task: str, records: Sequence[Mapping[str, Any]], *,
     with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(records)))) as pool:
         entries: List[Entry] = list(pool.map(admit_job, records))
 
-    # An excluded record can still contradict an admitted one. Stage 1 answers
-    # relevance, not truth, so a contradiction must be checked whenever either
-    # side is non-excluded. Excluded-excluded pairs stay unchecked: neither is
-    # relevant to this task.
+    # A conflict matters when the system was about to rely on one side. Pair
+    # every admitted record with every other candidate (including excluded
+    # ones); review-review and excluded-excluded pairs do not change behaviour
+    # and are already visible in the brief.
     pairs = [(a, b) for a, b in combinations(entries, 2)
-             if a.action != EXCLUDE or b.action != EXCLUDE]
+             if a.action == ADMIT or b.action == ADMIT]
 
     # ---- stage 2: localize conflicts with the validated pair question -------
     conflicts: List[List[str]] = []

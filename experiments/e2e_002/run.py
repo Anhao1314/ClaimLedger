@@ -221,7 +221,9 @@ def main() -> int:
         for line in results_path.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 row = json.loads(line)
-                if row.get("pass"):
+                error = str(row.get("error") or "")
+                if (row.get("pass") or not error
+                        or error.startswith("no code block")):
                     done.add((row["task"], row["arm"], row["run"]))
     jobs = []
     for task_id in task_ids:
