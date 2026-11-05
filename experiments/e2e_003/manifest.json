@@ -1,0 +1,9 @@
+{
+  "files": {
+    "protocol.md": {
+      "sha256": "c2aa3c2e0f2ff188da7fbcf1e99e086243bdc993a6b81698f4c64a983254eb43"
+    }
+  },
+  "frozen_at": "2026-11-05",
+  "note": "protocol frozen before any embedding/call; tasks/records/checkers inherited from e2e_002 freeze.json (sha256 there)"
+}
