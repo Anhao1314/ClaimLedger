@@ -291,8 +291,8 @@ PAGE = r"""<!doctype html>
         <button class="tool" id="btn-record" onclick="openRecordForm()" data-i18n="+ Record">+ Record</button>
         <button class="tool" id="btn-copy" onclick="copyBrief()" disabled data-i18n="Copy brief" data-i18n-title="Copy brief (c)">Copy brief</button>
         <button class="tool" onclick="openCalibration()" data-i18n="Calibration">Calibration</button>
-        <button class="icon-btn" onclick="toggleTheme()" data-i18n-title="toggle theme">◐</button>
-        <button class="icon-btn" id="btn-lang" onclick="toggleLang()" title="中文 / English"></button>
+        <button class="icon-btn" onclick="toggleTheme()" data-i18n-title="toggle theme" aria-label="toggle theme">◐</button>
+        <button class="icon-btn" id="btn-lang" onclick="toggleLang()" title="中文 / English" aria-label="中文 / English"></button>
       </div>
     </div>
     <div class="canvas" id="canvas">
@@ -301,7 +301,7 @@ PAGE = r"""<!doctype html>
     <div class="composer-wrap">
       <div class="composer">
         <textarea id="task" rows="1" data-i18n-ph="Describe a task…  (/ to focus · ⌘↵ to judge)" placeholder="Describe a task…  (/ to focus · ⌘↵ to judge)" autofocus></textarea>
-        <button class="send" id="send" onclick="decide()" title="judge">↑</button>
+        <button class="send" id="send" onclick="decide()" title="judge" aria-label="judge">↑</button>
       </div>
       <div class="composer-meta">
         <span id="meta-left" data-i18n="jev-first memory · model proposes, the ledger decides">jev-first memory · model proposes, the ledger decides</span>
@@ -358,6 +358,7 @@ const ZH = {
   "Click upheld or overturned on admitted records. Those clicks are the calibration data.":
     "在采纳的记录上点 upheld（成立）或 overturned（推翻）。这些点击就是校准数据。",
   "error: ": "错误：",
+  "judge timed out after 60s": "判定超时（60 秒）",
   "· degraded": "· 降级",
   "Brief": "判定摘要",
   "Copy": "复制",
@@ -465,9 +466,10 @@ function toggleTheme() {
     document.documentElement.setAttribute("data-theme", "dark");
 })();
 
-async function api(path, body) {
+async function api(path, body, signal) {
   const opt = body ? {method: "POST", headers: {"Content-Type": "application/json"},
-                      body: JSON.stringify(body)} : {};
+                      body: JSON.stringify(body)} : {signal};
+  if (body && signal) opt.signal = signal;
   const res = await fetch(path, opt);
   const data = await res.json();
   if (data.error) throw new Error(data.error);
@@ -517,8 +519,12 @@ async function decide() {
   if (!task) return;
   $("send").disabled = true;
   $("send").innerHTML = '<span class="spinner"></span>';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000);
   try {
-    const j = await api("/api/decide?task=" + encodeURIComponent(task));
+    const j = await api("/api/decide?task=" + encodeURIComponent(task),
+                        undefined, controller.signal);
+    clearTimeout(timeout);
     state.current = j;
     render(j);
     $("top-title").textContent = task;
@@ -531,8 +537,10 @@ async function decide() {
     await loadHistory();
     await refreshSide();
   } catch (e) {
-    $("meta-right").textContent = T("error: ") + e.message;
+    $("meta-right").textContent = T("error: ") +
+      (e.name === "AbortError" ? T("judge timed out after 60s") : e.message);
   } finally {
+    clearTimeout(timeout);
     $("send").disabled = false;
     $("send").textContent = "↑";
   }
