@@ -263,21 +263,21 @@ PAGE = r"""<!doctype html>
       <svg viewBox="0 0 256 256"><rect x="28" y="28" width="200" height="200" rx="30" fill="none" stroke="currentColor" stroke-width="14"/><line x1="58" y1="82" x2="70" y2="82" stroke="currentColor" stroke-width="10"/><line x1="58" y1="130" x2="70" y2="130" stroke="currentColor" stroke-width="10"/><line x1="58" y1="178" x2="70" y2="178" stroke="currentColor" stroke-width="10"/><rect x="76" y="68" width="112" height="28" rx="9" fill="currentColor"/><rect x="76" y="116" width="72" height="28" rx="9" fill="currentColor"/><rect x="76" y="164" width="36" height="28" rx="9" fill="currentColor"/><circle cx="200" cy="200" r="50" fill="#10a37f"/><polyline points="179,201 194,216 222,187" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/></svg>
       ClaimLedger
     </div>
-    <button class="new-btn" onclick="newTask()">+ New task</button>
-    <div class="side-label">History</div>
+    <button class="new-btn" onclick="newTask()" data-i18n="+ New task">+ New task</button>
+    <div class="side-label" data-i18n="History">History</div>
     <div class="history" id="history"></div>
     <div class="side-foot">
       <div class="chains" id="chains"></div>
-      <button class="settings-toggle" onclick="toggleSettings()" id="settings-toggle">Settings ▸</button>
+      <button class="settings-toggle" onclick="toggleSettings()" id="settings-toggle" data-i18n="Settings ▸">Settings ▸</button>
       <div class="settings hidden" id="settings">
         <div id="agents"></div>
         <div class="agent-reg">
-          <input id="agent-name" placeholder="identity name">
+          <input id="agent-name" placeholder="identity name" data-i18n-ph="identity name">
           <select id="agent-kind"><option value="agent">agent</option><option value="human">human</option></select>
           <button onclick="registerAgent()">+</button>
         </div>
         <div style="font:10px var(--sans);color:var(--faint);margin-top:6px;line-height:1.4">
-          Attribution only — no keys, no signatures. New records and outcomes are signed as the selected identity.
+          <span data-i18n="Attribution only — no keys, no signatures. New records and outcomes are signed as the selected identity.">Attribution only — no keys, no signatures. New records and outcomes are signed as the selected identity.</span>
         </div>
       </div>
     </div>
@@ -285,13 +285,14 @@ PAGE = r"""<!doctype html>
 
   <main class="main">
     <div class="topbar">
-      <div class="title" id="top-title">New task</div>
+      <div class="title" id="top-title" data-i18n="New task">New task</div>
       <div class="right">
         <button class="tool" id="btn-proposals" onclick="openProposals()" disabled>Proposals</button>
-        <button class="tool" id="btn-record" onclick="openRecordForm()">+ Record</button>
-        <button class="tool" id="btn-copy" onclick="copyBrief()" disabled title="Copy brief (c)">Copy brief</button>
-        <button class="tool" onclick="openCalibration()">Calibration</button>
-        <button class="icon-btn" onclick="toggleTheme()" title="toggle theme">◐</button>
+        <button class="tool" id="btn-record" onclick="openRecordForm()" data-i18n="+ Record">+ Record</button>
+        <button class="tool" id="btn-copy" onclick="copyBrief()" disabled data-i18n="Copy brief" data-i18n-title="Copy brief (c)">Copy brief</button>
+        <button class="tool" onclick="openCalibration()" data-i18n="Calibration">Calibration</button>
+        <button class="icon-btn" onclick="toggleTheme()" data-i18n-title="toggle theme">◐</button>
+        <button class="icon-btn" id="btn-lang" onclick="toggleLang()" title="中文 / English"></button>
       </div>
     </div>
     <div class="canvas" id="canvas">
@@ -299,11 +300,11 @@ PAGE = r"""<!doctype html>
     </div>
     <div class="composer-wrap">
       <div class="composer">
-        <textarea id="task" rows="1" placeholder="Describe a task…  (/ to focus · ⌘↵ to judge)" autofocus></textarea>
+        <textarea id="task" rows="1" data-i18n-ph="Describe a task…  (/ to focus · ⌘↵ to judge)" placeholder="Describe a task…  (/ to focus · ⌘↵ to judge)" autofocus></textarea>
         <button class="send" id="send" onclick="decide()" title="judge">↑</button>
       </div>
       <div class="composer-meta">
-        <span id="meta-left">jev-first memory · model proposes, the ledger decides</span>
+        <span id="meta-left" data-i18n="jev-first memory · model proposes, the ledger decides">jev-first memory · model proposes, the ledger decides</span>
         <span id="meta-right"></span>
       </div>
     </div>
@@ -317,6 +318,134 @@ const state = { records: 0, judgments: 0, outcomes: 0,
                 pending: 0, proposals: [],
                 currentAgent: localStorage.getItem("agent") || null,
                 settingsOpen: false };
+
+/* ---------- i18n ---------- */
+const LANG_KEY = "lang";
+const LANG = () => localStorage.getItem(LANG_KEY) || "en";
+const ZH = {
+  "+ New task": "+ 新任务",
+  "History": "历史",
+  "Settings": "设置",
+  "Settings ▸": "设置 ▸",
+  "+ Record": "+ 记录",
+  "identity name": "身份名称",
+  "Attribution only — no keys, no signatures. New records and outcomes are signed as the selected identity.":
+    "仅用于署名——不含密钥、不含签名。新记录与 outcome 以当前选中的身份签署。",
+  "New task": "新任务",
+  "Proposals": "提案",
+  "Record": "记录",
+  "Copy brief": "复制 brief",
+  "Copy brief (c)": "复制 brief (c)",
+  "toggle theme": "切换主题",
+  "Calibration": "校准",
+  "Describe a task…  (/ to focus · ⌘↵ to judge)": "描述一个任务…（/ 聚焦 · ⌘↵ 判定）",
+  "jev-first memory · model proposes, the ledger decides": "jev-first 记忆层 · 模型提议，账本裁决",
+  "Start in three steps": "三步开始",
+  "The ledger only judges what it knows. Record decisions first, then ask what applies to a task.":
+    "账本只判断它认识的东西。先录入决策，再问哪些适用于任务。",
+  "Record a decision": "录入一条决策",
+  " records ready.": " 条记录就绪。",
+  "One standalone sentence, e.g. \u201cAll storage must use PostgreSQL.\u201d":
+    "一句独立的话，例如\u201cAll storage must use PostgreSQL.\u201d",
+  "Add one": "添加一条",
+  "Load 5 examples": "载入 5 条示例",
+  "Ask what applies": "问哪些适用",
+  "Type a task below. Records are selected by overlap, judged one by one, and conflicting pairs are localized.":
+    "在下方输入任务。记录按重叠度选出、逐条判断，冲突对会被定位。",
+  "Type a task below and press \u2318\u21b5.": "在下方输入任务并按 \u2318\u21b5。",
+  "Available once a record exists.": "录入一条记录后可用。",
+  "Review the verdict": "复核判定",
+  "Click upheld or overturned on admitted records. Those clicks are the calibration data.":
+    "在采纳的记录上点 upheld（成立）或 overturned（推翻）。这些点击就是校准数据。",
+  "error: ": "错误：",
+  "· degraded": "· 降级",
+  "Brief": "判定摘要",
+  "Copy": "复制",
+  "✓ Active constraints": "✓ 生效约束",
+  "governing": "主导",
+  "thin margin": "薄边际",
+  "No lexical match": "无词面匹配",
+  "The judge admitted these records semantically; confirm before relying.":
+    "判定器在语义上采纳了这些记录；依赖前请确认。",
+  "No relevant records": "无相关记录",
+  "Nothing in memory matched this task lexically. The records below were selected by recency, not relevance.":
+    "记忆中没有与该任务词面匹配的内容。以下记录按近期性而非相关性选出。",
+  "none admitted for this task.": "本任务无采纳项。",
+  "Candidates considered (recency fallback — not admitted)": "候选（近期回退——未采纳）",
+  "⚠ Needs human review": "⚠ 需人工复核",
+  "conflict": "冲突",
+  "review": "待审",
+  "⛔ Unresolved conflicts": "⛔ 未决冲突",
+  "⚠ Degraded": "⚠ 降级",
+  "Judge unreachable — every record is review.": "判定服务不可达——所有记录按待审处理。",
+  "Records": "记录",
+  "scoreable": "可评分",
+  "of": "/",
+  "counts toward calibration": "计入校准",
+  "recorded; v1 calibration scores admit entries only": "已记录；v1 校准只统计采纳项",
+  "upheld": "成立",
+  "overturned": "推翻",
+  "unclear": "存疑",
+  "admit": "采纳",
+  "exclude": "排除",
+  "view this record\u2019s judgment history": "查看该记录的判定历史",
+  "no judgments yet": "尚无判定",
+  "sealed": "已封存",
+  "Copied ✓": "已复制 ✓",
+  "copy failed: ": "复制失败：",
+  "Pending proposals": "待确认提案",
+  "Agent writes wait here until a human confirms or rejects.": "agent 的写入在这里等待人确认或拒绝。",
+  "Nothing waiting. Agents propose; you decide.": "没有等待项。agent 提议，你来决定。",
+  "Confirm": "确认",
+  "Reject": "拒绝",
+  "Proposed edges": "提议的边",
+  "Graph relations the judge proposes wait here too — the memory graph is judged, not written.":
+    "判定器提议的图关系也在这里等待——记忆图是被判断出来的，不是写出来的。",
+  "No edge proposals.": "没有待确认的边。",
+  "edge rejected ": "边已拒绝 ",
+  "edge confirmed ": "边已确认 ",
+  "edge-confirm: ": "边确认：",
+  "rejected ": "已拒绝 ",
+  "confirmed → ": "已确认 → ",
+  "already recorded as ": "已存在为 ",
+  "confirm: ": "确认：",
+  "scored": "已评分",
+  "outcomes recorded": "条 outcome 已记录",
+  "No scored outcomes yet. Click upheld or overturned on an\n      <b>admit</b> record — review and exclude outcomes are recorded but not scored in v1.":
+    "还没有可评分的 outcome。在采纳（admit）记录上点 upheld 或 overturned——待审与排除的 outcome 会记录但 v1 不计分。",
+  "upheld rate": "成立率",
+  "By author": "按作者",
+  "author": "作者",
+  "n": "条数",
+  "Export JSON": "导出 JSON",
+  "This record has not appeared in a sealed judgment yet.": "该记录尚未出现在任何已封存的判定中。",
+  "when": "时间",
+  "action": "动作",
+  "one standalone sentence — no conversation context": "一句独立的话——不带对话上下文",
+  " · similarity ": " · 相似度 ",
+  "record: ": "记录：",
+  "no identities yet": "尚无身份",
+  "unregistered": "未注册",
+  "register: ": "注册：",
+  "records": "条记录",
+  "judgments": "次判定",
+  "outcomes": "条 outcome",
+};
+const T = s => (LANG() === "zh" && Object.prototype.hasOwnProperty.call(ZH, s)) ? ZH[s] : s;
+function toggleLang() {
+  localStorage.setItem(LANG_KEY, LANG() === "zh" ? "en" : "zh");
+  location.reload();
+}
+function applyStaticLang() {
+  document.querySelectorAll("[data-i18n]").forEach(el =>
+    el.textContent = T(el.getAttribute("data-i18n")));
+  document.querySelectorAll("[data-i18n-ph]").forEach(el =>
+    el.placeholder = T(el.getAttribute("data-i18n-ph")));
+  document.querySelectorAll("[data-i18n-title]").forEach(el =>
+    el.title = T(el.getAttribute("data-i18n-title")));
+  const b = $("btn-lang");
+  if (b) b.textContent = LANG() === "zh" ? "EN" : "中";
+}
 
 const $ = id => document.getElementById(id);
 const esc = s => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
@@ -349,27 +478,26 @@ function renderFirstRun() {
   const seeded = state.records > 0;
   $("canvas-inner").innerHTML =
     `<div class="first-run">
-       <h2>Start in three steps</h2>
-       <p class="lead">The ledger only judges what it knows. Record decisions first,
-          then ask what applies to a task.</p>
+       <h2>${T("Start in three steps")}</h2>
+       <p class="lead">${T("The ledger only judges what it knows. Record decisions first, then ask what applies to a task.")}</p>
        <div class="step ${seeded ? "done" : ""}">
          <div class="n">${seeded ? "✓" : "1"}</div>
-         <div class="body"><b>Record a decision</b>
-           <p>${seeded ? state.records + " records ready." : "One standalone sentence, e.g. “All storage must use PostgreSQL.”"}</p>
+         <div class="body"><b>${T("Record a decision")}</b>
+           <p>${seeded ? state.records + T(" records ready.") : T("One standalone sentence, e.g. \u201cAll storage must use PostgreSQL.\u201d")}</p>
            ${seeded ? "" : `<div class="actions">
-             <button class="primary" onclick="openRecordForm()">Add one</button>
-             <button onclick="seedExamples()">Load 5 examples</button></div>`}
+             <button class="primary" onclick="openRecordForm()">${T("Add one")}</button>
+             <button onclick="seedExamples()">${T("Load 5 examples")}</button></div>`}
          </div>
        </div>
        <div class="step">
          <div class="n">2</div>
-         <div class="body"><b>Ask what applies</b>
-           <p>${seeded ? "Type a task below and press ⌘↵." : "Available once a record exists."}</p></div>
+         <div class="body"><b>${T("Ask what applies")}</b>
+           <p>${seeded ? T("Type a task below and press ⌘↵.") : T("Available once a record exists.")}</p></div>
        </div>
        <div class="step">
          <div class="n">3</div>
-         <div class="body"><b>Review the verdict</b>
-           <p>Click upheld or overturned on admitted records. Those clicks are the calibration data.</p></div>
+         <div class="body"><b>${T("Review the verdict")}</b>
+           <p>${T("Click upheld or overturned on admitted records. Those clicks are the calibration data.")}</p></div>
        </div>
      </div>`;
 }
@@ -396,13 +524,13 @@ async function decide() {
     $("btn-copy").disabled = false;
     $("meta-right").textContent =
       `${j.model} · ${j.requests} req · ${j.latency_ms} ms · ${String(j.judgment_hash).slice(0,10)}…` +
-      (j.degraded ? " · degraded" : "");
+      (j.degraded ? T("· degraded") : "");
     $("task").value = "";
     $("task").style.height = "auto";
     await loadHistory();
     await refreshSide();
   } catch (e) {
-    $("meta-right").textContent = "error: " + e.message;
+    $("meta-right").textContent = T("error: ") + e.message;
   } finally {
     $("send").disabled = false;
     $("send").textContent = "↑";
@@ -419,63 +547,63 @@ function render(j) {
   const fallback = !!(j.selection && j.selection.fallback_to_recency);
   let html = "";
 
-  html += '<div class="card"><div class="card-head">Brief' +
-    '<button onclick="copyBrief()">Copy</button></div><div class="card-body">';
+  html += `<div class="card"><div class="card-head">${T("Brief")}` +
+    `<button onclick="copyBrief()">${T("Copy")}</button></div><div class="card-body">`;
   if (admitted.length) {
-    html += '<div class="section active"><div class="section-title">✓ Active constraints</div><ul>' +
-      admitted.map(e => `<li>${esc(e.text)}${e.governing ? ' <span class="pill green">governing</span>' : ""}${e.low_margin ? ' <span class="pill amber">thin margin</span>' : ""}</li>`).join("") + "</ul></div>";
+    html += `<div class="section active"><div class="section-title">${T("✓ Active constraints")}</div><ul>` +
+      admitted.map(e => `<li>${esc(e.text)}${e.governing ? ` <span class="pill green">${T("governing")}</span>` : ""}${e.low_margin ? ` <span class="pill amber">${T("thin margin")}</span>` : ""}</li>`).join("") + "</ul></div>";
     if (fallback) {
-      html += '<div class="section degraded"><div class="section-title">No lexical match</div>' +
-        '<div style="font-size:12.5px">The judge admitted these records semantically; confirm before relying.</div></div>';
+      html += `<div class="section degraded"><div class="section-title">${T("No lexical match")}</div>` +
+        `<div style="font-size:12.5px">${T("The judge admitted these records semantically; confirm before relying.")}</div></div>`;
     }
   } else if (fallback) {
-    html += '<div class="section degraded"><div class="section-title">No relevant records</div>' +
-      '<div style="font-size:12.5px">Nothing in memory matched this task lexically. The records below were selected by recency, not relevance.</div></div>';
+    html += `<div class="section degraded"><div class="section-title">${T("No relevant records")}</div>` +
+      `<div style="font-size:12.5px">${T("Nothing in memory matched this task lexically. The records below were selected by recency, not relevance.")}</div></div>`;
   } else {
-    html += '<div class="section active"><div class="section-title">✓ Active constraints</div>' +
-      '<div style="font-size:12.5px;color:var(--muted)">none admitted for this task.</div></div>';
+    html += `<div class="section active"><div class="section-title">${T("✓ Active constraints")}</div>` +
+      `<div style="font-size:12.5px;color:var(--muted)">${T("none admitted for this task.")}</div></div>`;
   }
   if (review.length) {
-    const title = fallback ? "Candidates considered (recency fallback — not admitted)"
-                           : "⚠ Needs human review";
+    const title = fallback ? T("Candidates considered (recency fallback — not admitted)")
+                           : T("⚠ Needs human review");
     html += `<div class="section review"><div class="section-title">${title}</div><ul>` +
-      review.map(e => `<li>${esc(e.text)} <span class="pill amber">${e.conflicted ? "conflict" : e.low_margin ? "thin margin" : "review"}</span></li>`).join("") + "</ul></div>";
+      review.map(e => `<li>${esc(e.text)} <span class="pill amber">${e.conflicted ? T("conflict") : e.low_margin ? T("thin margin") : T("review")}</span></li>`).join("") + "</ul></div>";
   }
   if (conflicts.length) {
-    html += '<div class="section conflict"><div class="section-title">⛔ Unresolved conflicts</div><ul>' +
+    html += `<div class="section conflict"><div class="section-title">${T("⛔ Unresolved conflicts")}</div><ul>` +
       conflicts.map(p => `<li>${esc(byId[p[0]]?.text || p[0])} <span style="color:var(--danger-text)">⟂</span> ${esc(byId[p[1]]?.text || p[1])}</li>`).join("") + "</ul></div>";
   }
   if (j.degraded) {
-    html += '<div class="section degraded"><div class="section-title">⚠ Degraded</div>' +
-      '<div style="font-size:12.5px">Judge unreachable — every record is review.</div></div>';
+    html += `<div class="section degraded"><div class="section-title">${T("⚠ Degraded")}</div>` +
+      `<div style="font-size:12.5px">${T("Judge unreachable — every record is review.")}</div></div>`;
   }
   html += "</div></div>";
 
   const order = {admit: 0, review: 1, exclude: 2};
   const sorted = [...(j.entries || [])].sort((a, b) =>
     (order[a.action] - order[b.action]) || ((b.p_admit ?? 0) - (a.p_admit ?? 0)));
-  html += '<div class="card"><div class="card-head">Records' +
-    `<span class="sub">scoreable: ${scoreable} of ${(j.entries || []).length}</span></div>` +
+  html += `<div class="card"><div class="card-head">${T("Records")}` +
+    `<span class="sub">${T("scoreable")}: ${scoreable} ${T("of")} ${(j.entries || []).length}</span></div>` +
     '<div class="card-body">';
   html += sorted.map(e => {
     const cls = e.action === "admit" ? "green" : e.action === "review" ? "amber" : "gray";
     const flags = [
-      e.governing ? '<span class="pill green">governing</span>' : "",
-      e.conflicted ? '<span class="pill red">conflicted</span>' : "",
-      e.low_margin ? '<span class="pill amber">thin margin</span>' : ""
+      e.governing ? `<span class="pill green">${T("governing")}</span>` : "",
+      e.conflicted ? `<span class="pill red">${T("conflict")}</span>` : "",
+      e.low_margin ? `<span class="pill amber">${T("thin margin")}</span>` : ""
     ].filter(Boolean).join(" ");
     const outcome = outcomes[e.record_id];
     const ghost = e.action === "admit" ? "" : " ghost";
     const tip = e.action === "admit"
-      ? "counts toward calibration"
-      : "recorded; v1 calibration scores admit entries only";
+      ? T("counts toward calibration")
+      : T("recorded; v1 calibration scores admit entries only");
     const buttons = outcome
-      ? `<span class="pill ${outcome === "upheld" ? "green" : outcome === "overturned" ? "red" : "gray"}">${outcome}</span>`
+      ? `<span class="pill ${outcome === "upheld" ? "green" : outcome === "overturned" ? "red" : "gray"}">${T(outcome)}</span>`
       : ["upheld", "overturned", "unclear"].map(v =>
-          `<button class="${ghost.trim()}" title="${tip}" onclick="event.stopPropagation();postOutcome('${e.record_id}','${v}')">${v}</button>`).join(" ");
-    return `<div class="rec" onclick="openRecord('${e.record_id}')" title="view this record's judgment history">` +
+          `<button class="${ghost.trim()}" title="${tip}" onclick="event.stopPropagation();postOutcome('${e.record_id}','${v}')">${T(v)}</button>`).join(" ");
+    return `<div class="rec" onclick="openRecord('${e.record_id}')" title="${T("view this record\u2019s judgment history")}">` +
       `<div class="body"><div class="text">${esc(e.text)}</div>` +
-      `<div class="flags"><span class="pill ${cls}">${e.action}</span>` +
+      `<div class="flags"><span class="pill ${cls}">${T(e.action)}</span>` +
       `<span class="p">p(admit) ${e.p_admit ?? "—"}</span>${flags}</div></div>` +
       `<div class="out">${buttons}</div></div>`;
   }).join("");
@@ -502,7 +630,7 @@ async function loadHistory() {
   state.history = await api("/api/history?limit=40");
   const el = $("history");
   if (!state.history.length) {
-    el.innerHTML = '<div style="padding:8px 9px;font-size:11px;color:var(--faint)">no judgments yet</div>';
+    el.innerHTML = `<div style="padding:8px 9px;font-size:11px;color:var(--faint)">${T("no judgments yet")}</div>`;
     return;
   }
   el.innerHTML = state.history.map(j => {
@@ -524,22 +652,21 @@ function selectJudgment(hash) {
   render(j);
   $("btn-copy").disabled = false;
   $("top-title").textContent = j.task;
-  $("meta-right").textContent = `${j.model} · sealed ${String(hash).slice(0,10)}…` +
-    (j.degraded ? " · degraded" : "");
+  $("meta-right").textContent = `${j.model} · ${T("sealed")} ${String(hash).slice(0,10)}…` +
+    (j.degraded ? T("· degraded") : "");
   document.querySelectorAll(".hist").forEach(el =>
     el.classList.toggle("active", el.dataset.hash === hash));
 }
 
 function newTask() {
   state.current = null;
-  $("top-title").textContent = "New task";
+  $("top-title").textContent = T("New task");
   $("btn-copy").disabled = true;
   $("meta-right").textContent = "";
   if (state.records) {
     $("canvas-inner").innerHTML =
-      '<div class="first-run"><h2>Ask what applies</h2>' +
-      '<p class="lead">Type a task below. Records are selected by overlap, judged one by one, ' +
-      'and conflicting pairs are localized.</p></div>';
+      `<div class="first-run"><h2>${T("Ask what applies")}</h2>` +
+      `<p class="lead">${T("Type a task below. Records are selected by overlap, judged one by one, and conflicting pairs are localized.")}</p></div>`;
   } else {
     renderFirstRun();
   }
@@ -555,9 +682,9 @@ async function copyBrief() {
     await navigator.clipboard.writeText(text);
     const btn = $("btn-copy");
     const old = btn.textContent;
-    btn.textContent = "Copied ✓";
+    btn.textContent = T("Copied ✓");
     setTimeout(() => { btn.textContent = old; }, 1200);
-  } catch (e) { $("meta-right").textContent = "copy failed: " + e.message; }
+  } catch (e) { $("meta-right").textContent = T("copy failed: ") + e.message; }
 }
 
 /* ---------- overlays ---------- */
@@ -575,10 +702,10 @@ async function openProposals() {
   let edges = [];
   try { edges = await api("/api/edge-proposals"); } catch (e) { edges = []; }
   let html = `<button class="close" onclick="closeOverlays()">✕</button>
-    <h3>Pending proposals</h3>
-    <div class="p-sub">Agent writes wait here until a human confirms or rejects.</div>`;
+    <h3>${T("Pending proposals")}</h3>
+    <div class="p-sub">${T("Agent writes wait here until a human confirms or rejects.")}</div>`;
   if (!rows.length) {
-    html += '<div class="empty-hint">Nothing waiting. Agents propose; you decide.</div>';
+    html += `<div class="empty-hint">${T("Nothing waiting. Agents propose; you decide.")}</div>`;
   } else {
     html += rows.map(p => {
       const time = (p.at || "").slice(5, 16).replace("T", " ");
@@ -586,15 +713,15 @@ async function openProposals() {
         <div class="body"><div class="text">${esc(p.text)}</div>
         <div class="flags"><span class="p">${esc(p.proposal_id)} · ${esc(p.source)} · ${time}</span></div></div>
         <div class="out">
-          <button onclick="decideProposal('${p.proposal_id}','confirm')">Confirm</button>
-          <button onclick="decideProposal('${p.proposal_id}','reject')">Reject</button>
+          <button onclick="decideProposal('${p.proposal_id}','confirm')">${T("Confirm")}</button>
+          <button onclick="decideProposal('${p.proposal_id}','reject')">${T("Reject")}</button>
         </div></div>`;
     }).join("");
   }
-  html += `<h3 style="margin-top:14px">Proposed edges</h3>
-    <div class="p-sub">Graph relations the judge proposes wait here too — the memory graph is judged, not written.</div>`;
+  html += `<h3 style="margin-top:14px">${T("Proposed edges")}</h3>
+    <div class="p-sub">${T("Graph relations the judge proposes wait here too — the memory graph is judged, not written.")}</div>`;
   if (!edges.length) {
-    html += '<div class="empty-hint">No edge proposals.</div>';
+    html += `<div class="empty-hint">${T("No edge proposals.")}</div>`;
   } else {
     html += edges.map(e => {
       const time = (e.at || "").slice(5, 16).replace("T", " ");
@@ -603,8 +730,8 @@ async function openProposals() {
           ${esc(e.src)} → ${esc(e.dst)}</div>
         <div class="flags"><span class="p">${esc(e.edge_id)} · p=${esc(e.confidence)} · ${esc(e.source)} · ${time}</span></div></div>
         <div class="out">
-          <button onclick="decideEdge('${e.edge_id}','confirm')">Confirm</button>
-          <button onclick="decideEdge('${e.edge_id}','reject')">Reject</button>
+          <button onclick="decideEdge('${e.edge_id}','confirm')">${T("Confirm")}</button>
+          <button onclick="decideEdge('${e.edge_id}','reject')">${T("Reject")}</button>
         </div></div>`;
     }).join("");
   }
@@ -615,12 +742,12 @@ async function decideEdge(id, decision) {
   try {
     const res = await api("/api/edge-confirm", {edge_id: id, decision: decision,
                                                 by: "console-human"});
-    $("meta-right").textContent = (decision === "reject" ? "edge rejected "
-                                    : "edge confirmed ") + id;
+    $("meta-right").textContent = (decision === "reject" ? T("edge rejected ")
+                                    : T("edge confirmed ")) + id;
     await refreshSide();
     await openProposals();
     if (!state.current) renderFirstRun();
-  } catch (e) { $("meta-right").textContent = "edge-confirm: " + e.message; }
+  } catch (e) { $("meta-right").textContent = T("edge-confirm: ") + e.message; }
 }
 
 async function decideProposal(id, decision) {
@@ -628,31 +755,30 @@ async function decideProposal(id, decision) {
     const res = await api("/api/confirm", {proposal_id: id, decision: decision,
                                            by: "console-human"});
     if (decision === "reject") {
-      $("meta-right").textContent = "rejected " + id;
+      $("meta-right").textContent = T("rejected ") + id;
     } else if (res.created) {
-      $("meta-right").textContent = "confirmed → " + res.record.record_id;
+      $("meta-right").textContent = T("confirmed → ") + res.record.record_id;
     } else {
-      $("meta-right").textContent = "already recorded as " + res.record.record_id;
+      $("meta-right").textContent = T("already recorded as ") + res.record.record_id;
     }
     await refreshSide();
     await openProposals();
     if (!state.current) renderFirstRun();
-  } catch (e) { $("meta-right").textContent = "confirm: " + e.message; }
+  } catch (e) { $("meta-right").textContent = T("confirm: ") + e.message; }
 }
 
 async function openCalibration() {
   const r = await api("/api/calibrate");
   let html = `<button class="close" onclick="closeOverlays()">✕</button>
-    <h3>Calibration</h3>
-    <div class="p-sub">${r.n_scored} scored · ${r.n_outcomes} outcomes recorded</div>`;
+    <h3>${T("Calibration")}</h3>
+    <div class="p-sub">${r.n_scored} ${T("scored")} · ${r.n_outcomes} ${T("outcomes recorded")}</div>`;
   if (!r.n_scored) {
-    html += `<div class="empty-hint">No scored outcomes yet. Click upheld or overturned on an
-      <b>admit</b> record — review and exclude outcomes are recorded but not scored in v1.</div>`;
+    html += `<div class="empty-hint">${T("No scored outcomes yet. Click upheld or overturned on an <b>admit</b> record — review and exclude outcomes are recorded but not scored in v1.")}</div>`;
   } else {
     html += `<div class="stats">
-      <div class="stat"><div class="val">${r.overall_upheld_rate}</div><div class="lbl">upheld rate</div></div>
+      <div class="stat"><div class="val">${r.overall_upheld_rate}</div><div class="lbl">${T("upheld rate")}</div></div>
       <div class="stat"><div class="val">${r.brier}</div><div class="lbl">Brier</div></div>
-      <div class="stat"><div class="val">${r.n_scored}</div><div class="lbl">scored</div></div></div>
+      <div class="stat"><div class="val">${r.n_scored}</div><div class="lbl">${T("scored")}</div></div></div>
       <div style="margin-bottom:12px">`;
     for (const [bucket, d] of Object.entries(r.buckets)) {
       if (!d.n) continue;
@@ -664,13 +790,13 @@ async function openCalibration() {
     html += `</div>`;
     const authors = Object.entries(r.by_author || {});
     if (authors.length) {
-      html += `<h3 style="margin-top:6px">By author</h3>
-        <table><tr><th>author</th><th>n</th><th>upheld</th><th>Brier</th></tr>` +
+      html += `<h3 style="margin-top:6px">${T("By author")}</h3>
+        <table><tr><th>${T("author")}</th><th>${T("n")}</th><th>${T("upheld rate")}</th><th>Brier</th></tr>` +
         authors.map(([a, d]) =>
           `<tr><td>${esc(a)}</td><td>${d.n}</td><td>${d.upheld_rate}</td><td>${d.brier}</td></tr>`).join("") +
         `</table>`;
     }
-    html += `<div style="margin-top:14px"><button class="tool" onclick='downloadCalibration()'>Export JSON</button></div>`;
+    html += `<div style="margin-top:14px"><button class="tool" onclick='downloadCalibration()'>${T("Export JSON")}</button></div>`;
   }
   window.__calibration = r;
   showPanel(html, false);
@@ -693,9 +819,9 @@ async function openRecord(recordId) {
     <h3>${esc(record?.text || recordId)}</h3>
     <div class="p-sub">${esc(recordId)}</div>`;
   if (!rows.length) {
-    html += '<div class="empty-hint">This record has not appeared in a sealed judgment yet.</div>';
+    html += `<div class="empty-hint">${T("This record has not appeared in a sealed judgment yet.")}</div>`;
   } else {
-    html += `<table><tr><th>when</th><th>action</th><th>p(admit)</th></tr>` +
+    html += `<table><tr><th>${T("when")}</th><th>${T("action")}</th><th>p(admit)</th></tr>` +
       rows.map(r => `<tr><td>${(r.created_at || "").slice(5,16).replace("T"," ")}</td>
         <td>${r.action}</td><td>${r.p_admit ?? "—"}</td></tr>`).join("") + `</table>`;
   }
@@ -707,12 +833,12 @@ function openRecordForm() {
     .map(a => `<option value="${esc(a.name)}" ${a.name === state.currentAgent ? "selected" : ""}>${esc(a.name)} · ${esc(a.kind)}</option>`)
     .join("");
   showPanel(`<button class="close" onclick="closeOverlays()">✕</button>
-    <h3>Record a decision</h3>
-    <div class="p-sub">one standalone sentence — no conversation context</div>
+    <h3>${T("Record a decision")}</h3>
+    <div class="p-sub">${T("one standalone sentence — no conversation context")}</div>
     <div class="form-row">
       <textarea id="rec-text" placeholder="All storage must use PostgreSQL."></textarea>
       <select id="rec-agent">${options || '<option value="console">console</option>'}</select>
-      <button onclick="submitRecord()">Record</button>
+      <button onclick="submitRecord()">${T("Record")}</button>
     </div>`, true);
   setTimeout(() => $("rec-text")?.focus(), 50);
 }
@@ -726,10 +852,10 @@ async function submitRecord() {
     await refreshSide();
     renderFirstRun();
     if (res.duplicate) {
-      $("meta-right").textContent = "already recorded as " + res.record.record_id +
-        " · similarity " + res.similarity;
+      $("meta-right").textContent = T("already recorded as ") + res.record.record_id +
+        T(" · similarity ") + res.similarity;
     }
-  } catch (e) { $("meta-right").textContent = "record: " + e.message; }
+  } catch (e) { $("meta-right").textContent = T("record: ") + e.message; }
 }
 
 /* ---------- agents ---------- */
@@ -738,14 +864,14 @@ async function loadAgents() {
   if (!state.currentAgent && state.agents.length)
     state.currentAgent = state.agents[0].name;
   if (!state.agents.length) {
-    $("agents").innerHTML = '<div style="font-size:11px;color:var(--faint);padding:4px 6px">no identities yet</div>';
+    $("agents").innerHTML = `<div style="font-size:11px;color:var(--faint);padding:4px 6px">${T("no identities yet")}</div>`;
     return;
   }
   $("agents").innerHTML = state.agents.map(a => {
     const sel = state.currentAgent === a.name ? " sel" : "";
     const marker = a.registered
       ? `<span class="kind">${esc(a.kind)}</span>`
-      : '<span class="unreg">unregistered</span>';
+      : `<span class="unreg">${T("unregistered")}</span>`;
     const safe = String(a.name).replace(/'/g, "");
     return `<div class="agent${sel}" onclick="selectAgent('${safe}')">
       <span>${esc(a.name)}</span>${marker}<span class="count">${a.records}</span></div>`;
@@ -765,12 +891,12 @@ async function registerAgent() {
     state.currentAgent = name;
     localStorage.setItem("agent", name);
     await loadAgents();
-  } catch (e) { $("meta-right").textContent = "register: " + e.message; }
+  } catch (e) { $("meta-right").textContent = T("register: ") + e.message; }
 }
 function toggleSettings() {
   state.settingsOpen = !state.settingsOpen;
   $("settings").classList.toggle("hidden", !state.settingsOpen);
-  $("settings-toggle").textContent = "Settings " + (state.settingsOpen ? "▾" : "▸");
+  $("settings-toggle").textContent = T("Settings") + " " + (state.settingsOpen ? "▾" : "▸");
 }
 
 /* ---------- chains ---------- */
@@ -779,12 +905,12 @@ async function refreshSide() {
   state.records = c.records; state.judgments = c.judgments; state.outcomes = c.outcomes;
   state.pending = (c.pending_proposals || 0) + (c.pending_edges || 0);
   const btn = $("btn-proposals");
-  btn.textContent = state.pending ? `Proposals (${state.pending})` : "Proposals";
+  btn.textContent = state.pending ? `${T("Proposals")} (${state.pending})` : T("Proposals");
   btn.disabled = state.pending === 0;
   $("chains").innerHTML =
-    `<span><span class="dot"></span>${c.records} records</span>` +
-    `<span><span class="dot"></span>${c.judgments} judgments</span>` +
-    `<span><span class="dot"></span>${c.outcomes} outcomes</span>` +
+    `<span><span class="dot"></span>${c.records} ${T("records")}</span>` +
+    `<span><span class="dot"></span>${c.judgments} ${T("judgments")}</span>` +
+    `<span><span class="dot"></span>${c.outcomes} ${T("outcomes")}</span>` +
     (c.degraded ? `<span style="color:var(--warn-text)">⚠ ${c.degraded}</span>` : "");
 }
 
@@ -809,6 +935,7 @@ $("task").addEventListener("input", e => {
 
 /* ---------- init ---------- */
 (async function init() {
+  applyStaticLang();
   await loadAgents();
   await refreshSide();
   await loadHistory();
