@@ -104,6 +104,10 @@ def main() -> int:
     # by comparing record sources against registered agents that only speak MCP.
     proposal_confirmed_ids = {r.get("record_id") for r in prop_decisions
                               if r.get("decision") == "confirmed"}
+    # human direct writes (console/CLI "+ record") carry a by= attestation;
+    # they are the human surface, not ungated agent writes
+    direct_ids = {r.get("record_id") for r in read_jsonl(store / "direct_writes.jsonl")
+                  if r.get("type") == "direct_write"}
     baseline_ids = set()  # filled from day0.json if present
     day0 = ROOT / "results" / "day0.json"
     if day0.exists():
@@ -112,7 +116,8 @@ def main() -> int:
     new_records = [r for r in records_all if r["record_id"] not in baseline_ids]
     via_proposal = {r.get("record_id") for r in proposal_confirmed_ids}
     bypass = [r["record_id"] for r in new_records
-              if r["record_id"] not in via_proposal]
+              if r["record_id"] not in via_proposal
+              and r["record_id"] not in direct_ids]
 
     summary = {
         "schema": "real_use_001_summary_v1",

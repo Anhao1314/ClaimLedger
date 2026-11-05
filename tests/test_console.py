@@ -1,4 +1,5 @@
 """Offline tests for the memory console: handler-level, hermetic, no network."""
+import json
 import os
 import tempfile
 import unittest
@@ -7,8 +8,9 @@ from unittest import mock
 
 from jev_first import contracts
 from jev_first import proposals as proposal_log
+from jev_first.policy import ADMIT
 from jev_first.web import Console
-from tests.test_jev_first import make_records
+from tests.test_jev_first import fake_core, make_records
 
 
 class ConsoleTests(unittest.TestCase):
@@ -183,6 +185,43 @@ class ConsoleTests(unittest.TestCase):
             "proposal_id": proposal["proposal_id"], "decision": "confirm",
             "by": "human"})
         self.assertIn("already decided", again["error"])
+
+    def test_console_direct_write_is_attested(self):
+        """Human "+ Record" writes must carry a by= attestation so the audit
+        can tell them apart from agent proposals (G4 false-positive fix)."""
+        result = self.console.api_record({"text": "Use PostgreSQL.",
+                                          "source": "console", "by": "eason"})
+        self.assertTrue(result["created"])
+        rows = [json.loads(l) for l in
+                open(self.base / "direct_writes.jsonl") if l.strip()]
+        self.assertEqual(rows[0]["type"], "direct_write")
+        self.assertEqual(rows[0]["by"], "eason")
+        self.assertEqual(rows[0]["record_id"], result["record"]["record_id"])
+
+    def test_console_decide_proposes_edges(self):
+        """P0 fix: the console decide surface must feed the graph exactly like
+        the MCP surface does."""
+        from dataclasses import replace
+        from unittest import mock
+        from jev_first import edges as edge_log
+        from jev_first.judge import EdgeDecision
+        from jev_first.judge import judge as judge_fn
+        records = make_records(["Use PostgreSQL.", "SQLite is deprecated."])
+        for r in records:
+            self.console.store.append(r["text"], "agent")
+        base = judge_fn("t", records, model="jev-test",
+                        caller=fake_core({r["record_id"]: (ADMIT, 0.9)
+                                          for r in records}, {}))
+        judgment = replace(base, edges=[EdgeDecision(
+            src=records[0]["record_id"], dst=records[1]["record_id"],
+            label="contradicts", p=0.9, action="proposed",
+            via="single-question")])
+        with mock.patch("jev_first.web.judge", return_value=judgment), \
+                mock.patch.dict(os.environ, {"TYPESAFE_API_KEY": "test"}):
+            result = self.console.api_decide({"task": "storage choice"})
+        self.assertEqual(len(result["edges"]), 1)
+        self.assertEqual(result["edges"][0]["edge_type"], "contradicts")
+        self.assertEqual(edge_log.verify(self.console.edges_path), 1)
 
     def test_edge_proposal_round_trip(self):
         """Proposed graph edges confirm through the same human gate."""

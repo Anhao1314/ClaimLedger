@@ -208,6 +208,17 @@ class NearDuplicateTests(unittest.TestCase):
         self.assertIsNotNone(found)
         self.assertEqual(found[0]["record_id"], "rec_a")
 
+    def test_value_twin_conflicts_are_not_merged(self):
+        """A2A finding, fixed: a containment-similar pair differing only in a
+        content value is two conflicting decisions — the guard must let both
+        enter memory or the relation stage never sees the conflict."""
+        records = make_records(["Deployments must happen only on Tuesdays."])
+        self.assertIsNone(find_near_duplicate(
+            records, "Deployments must happen only on Fridays."))
+        # identical text is still a duplicate — escape requires a real diff
+        self.assertIsNotNone(find_near_duplicate(
+            records, "Deployments must happen only on Tuesdays."))
+
     def test_negation_is_not_merged(self):
         records = [{"record_id": "rec_a",
                     "text": "All new services must emit structured logs.",

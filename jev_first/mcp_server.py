@@ -239,22 +239,11 @@ class MemoryServer:
         return {k: v for k, v in payload.items() if v is not None}
 
     def _propose_edges(self, judgment, *, judgment_hash: str) -> list:
-        """Append policy-cleared edge proposals to the log. Idempotent: a
-        judgment that re-runs must not duplicate an already-proposed edge."""
+        """Append policy-cleared edge proposals — shared helper in edges.py so
+        every decide surface (MCP, console, CLI) grows the graph identically."""
         from . import edges as edge_log
-        proposed = []
-        for decision in judgment.edges:
-            if decision.action != "proposed":
-                continue
-            source = "jev" if decision.via == "single-question" else f"jev:{decision.via}"
-            body = edge_log.propose_edge(
-                self.edges_path, src=decision.src, dst=decision.dst,
-                edge_type=decision.label, confidence=decision.p,
-                source=source, judgment_hash=judgment_hash,
-                direction=decision.direction)
-            if body is not None:
-                proposed.append(body)
-        return proposed
+        return edge_log.propose_judgment_edges(
+            self.edges_path, judgment, judgment_hash=judgment_hash)
 
     def _tool_brief(self, args: Mapping[str, Any]) -> Dict[str, Any]:
         from .brief import render_brief

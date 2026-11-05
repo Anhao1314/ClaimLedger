@@ -58,6 +58,8 @@ def main(argv=None) -> int:
     p_record.add_argument("--source", required=True)
     p_record.add_argument("--scope")
     p_record.add_argument("--at")
+    p_record.add_argument("--by", default="cli-human",
+                           help="human operator signature for the direct-write attestation")
 
     p_propose = sub.add_parser("propose", help="propose a record for human confirmation")
     p_propose.add_argument("--store", required=True)
@@ -116,6 +118,7 @@ def main(argv=None) -> int:
     p_decide.add_argument("--cache", help="judgment cache path")
     p_decide.add_argument("--no-cache", action="store_true")
     p_decide.add_argument("--log", help="sealed judgment log path")
+    p_decide.add_argument("--edges", help="edges.jsonl path; policy-cleared edges get proposed")
     p_decide.add_argument("--on-error", choices=("raise", "review"), default="review")
 
     p_verify = sub.add_parser("verify", help="verify the record hash chain")
@@ -183,7 +186,11 @@ def main(argv=None) -> int:
             return 0
         record = store.append(args.text, args.source,
                               at=args.at, scope=args.scope)
-        print(json.dumps(record, ensure_ascii=False, indent=2))
+        from .records import attest_direct_write
+        attest = attest_direct_write(
+            Path(args.store).parent / "direct_writes.jsonl", record, by=args.by)
+        print(json.dumps({"record": record, "attestation": attest},
+                         ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "propose":
@@ -324,6 +331,12 @@ def main(argv=None) -> int:
         sealed = None
         if args.log:
             sealed = log.append_judgment(args.log, judgment.to_dict())
+        if args.edges:
+            from . import edges as edge_log
+            proposed = edge_log.propose_judgment_edges(
+                args.edges, judgment,
+                judgment_hash=sealed["judgment_hash"] if sealed else "")
+            print(f"edges proposed: {len(proposed)}")
         _print_decision(judgment, sealed)
         return 0
 

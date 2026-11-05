@@ -28,6 +28,7 @@ GENESIS = "0" * 64
 NEAR_DUPLICATE_THRESHOLD = 0.65
 NEAR_DUPLICATE_MIN_SHARED = 4
 NEAR_DUPLICATE_MIN_JACCARD = 0.5
+NEAR_DUPLICATE_DIFF_ESCAPE = 2
 _STOPWORDS = frozenset(
     "the a an of to for in on at by with and or is are was were be been "
     "this that it its as from always".split())
@@ -114,11 +115,40 @@ def find_near_duplicate(records: List[Dict[str, Any]], text: str, *,
         score = max(candidates)
         if score[0] < threshold or score[1] < min_jaccard:
             continue
+        # Value-twin escape: a pair that is near-identical EXCEPT for a couple
+        # of content tokens ("only on Tuesdays" vs "only on Fridays") is two
+        # conflicting decisions, not a restatement — merging it here would
+        # silently delete the very conflict the relation stage exists to catch.
+        # Wrong retention (an extra proposal for a human) is visible; wrong
+        # suppression is not, so the escape errs toward retention.
+        if (0 < len(target - other) <= NEAR_DUPLICATE_DIFF_ESCAPE
+                and 0 < len(other - target) <= NEAR_DUPLICATE_DIFF_ESCAPE):
+            continue
         if best is None or score > best[0]:
             best = (score, record, score[0])
     if best is None:
         return None
     return best[1], round(best[2], 3)
+
+
+def attest_direct_write(path, record: Dict[str, Any], by: str) -> Dict[str, Any]:
+    """Declare that `record` entered the store through the HUMAN surface.
+
+    Records are append-only text with no status field, so a human direct write
+    and an agent proposal are indistinguishable inside records.jsonl. This
+    sidecar attestation (plain append, by= signature) is what keeps the audit
+    honest: "this record is human-authored, not an ungated agent write."
+    """
+    import json as _json
+    from datetime import datetime, timezone as _tz
+    body = {"type": "direct_write", "record_id": record["record_id"],
+            "source": record.get("source"), "by": by,
+            "at": datetime.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with open(target, "a", encoding="utf-8") as handle:
+        handle.write(_json.dumps(body, ensure_ascii=False, sort_keys=True) + "\n")
+    return body
 
 
 def body_hash(record: Dict[str, Any]) -> str:

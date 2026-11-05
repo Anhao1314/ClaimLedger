@@ -45,6 +45,7 @@ class Console:
         self.agents_path = directory / "agents.jsonl"
         self.proposals_path = directory / "proposals.jsonl"
         self.edges_path = directory / "edges.jsonl"
+        self.direct_writes_path = directory / "direct_writes.jsonl"
         self.last: Optional[Dict[str, Any]] = None
 
     # ---- endpoints ---------------------------------------------------------
@@ -69,6 +70,8 @@ class Console:
         from . import edges as edge_log
         brief = render_brief(judgment, confirmed_edges=edge_log.confirmed(self.edges_path))
         sealed = jlog.append_judgment(self.log_path, judgment.to_dict())
+        proposed = edge_log.propose_judgment_edges(
+            self.edges_path, judgment, judgment_hash=sealed["judgment_hash"])
         outcomes = {o["record_id"]: o["verdict"]
                     for o in read_outcomes(self.outcomes_path)
                     if o.get("judgment_hash") == sealed["judgment_hash"]}
@@ -85,6 +88,7 @@ class Console:
             "used_bytes": judgment.used_bytes, "budget_bytes": judgment.budget_bytes,
             "omitted": judgment.omitted, "selection": stats,
             "brief_text": brief["text"], "brief_bytes": brief["bytes"],
+            "edges": proposed,
             "judgment_hash": sealed["judgment_hash"], "outcomes": outcomes,
         }
 
@@ -92,6 +96,7 @@ class Console:
         text = str(body["text"])
         source = str(body.get("source", "console"))
         scope = body.get("scope")
+        by = str(body.get("by", "console-human"))
         records = self.store.load()
         existing = find_near_duplicate(records, text, scope=scope)
         if existing:
@@ -99,7 +104,9 @@ class Console:
             return {"record": record, "created": False, "duplicate": "near",
                     "similarity": similarity, "total_records": len(records)}
         record = self.store.append(text, source, scope=scope)
-        return {"record": record, "created": True,
+        from .records import attest_direct_write
+        attest = attest_direct_write(self.direct_writes_path, record, by=by)
+        return {"record": record, "created": True, "attestation": attest,
                 "total_records": len(records) + 1}
 
     def api_records(self) -> List[Dict[str, Any]]:

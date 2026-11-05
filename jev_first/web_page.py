@@ -392,6 +392,7 @@ const ZH = {
   "no judgments yet": "尚无判定",
   "sealed": "已封存",
   "Copied ✓": "已复制 ✓",
+  "Agent view — the exact text the agent reads": "Agent 视角——agent 实际读到的原文",
   "copy failed: ": "复制失败：",
   "Pending proposals": "待确认提案",
   "Agent writes wait here until a human confirms or rejects.": "agent 的写入在这里等待人确认或拒绝。",
@@ -576,6 +577,10 @@ function render(j) {
   if (j.degraded) {
     html += `<div class="section degraded"><div class="section-title">${T("⚠ Degraded")}</div>` +
       `<div style="font-size:12.5px">${T("Judge unreachable — every record is review.")}</div></div>`;
+  }
+  if (j.brief_text) {
+    html += `<details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px;color:var(--muted)">${T("Agent view — the exact text the agent reads")}</summary>` +
+      `<pre style="white-space:pre-wrap;font:11.5px var(--mono);margin:8px 0 0;color:var(--muted)">${esc(j.brief_text)}</pre></details>`;
   }
   html += "</div></div>";
 
@@ -847,7 +852,8 @@ async function submitRecord() {
   const text = $("rec-text").value.trim();
   if (!text) return;
   try {
-    const res = await api("/api/record", {text: text, source: $("rec-agent").value});
+    const res = await api("/api/record", {text: text, source: $("rec-agent").value,
+                                           by: "console-human"});
     closeOverlays();
     await refreshSide();
     renderFirstRun();

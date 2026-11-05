@@ -200,6 +200,30 @@ def verify(path: os.PathLike | str) -> int:
     return count
 
 
+def propose_judgment_edges(path: os.PathLike | str, judgment,
+                           *, judgment_hash: str) -> list:
+    """Append policy-cleared edge proposals for one sealed judgment.
+
+    Shared by every decide surface (MCP, console, CLI) so the graph grows the
+    same way regardless of which surface ran the judgment. Idempotent: a
+    judgment that re-runs must not duplicate an already-proposed edge. Only
+    `proposed` actions are appended; review/none decisions stay decisions.
+    """
+    proposed = []
+    for decision in getattr(judgment, "edges", []) or []:
+        if decision.action != "proposed":
+            continue
+        source = "jev" if decision.via == "single-question" else f"jev:{decision.via}"
+        body = propose_edge(
+            path, src=decision.src, dst=decision.dst,
+            edge_type=decision.label, confidence=decision.p,
+            source=source, judgment_hash=judgment_hash,
+            direction=decision.direction)
+        if body is not None:
+            proposed.append(body)
+    return proposed
+
+
 def _append(path: os.PathLike | str, body: Mapping[str, Any]) -> None:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
