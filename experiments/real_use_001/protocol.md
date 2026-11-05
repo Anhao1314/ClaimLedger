@@ -72,3 +72,25 @@ decision to extend is a new, explicit decision.
 
 No new experiments on this store, no schema changes, no prompt changes, no console redesign.
 Anything the window reveals becomes a *candidate* change, decided after day 14.
+
+---
+
+## STATUS: SUSPENDED (2026-11-06, Day 1)
+
+Suspended by owner decision before Day 1 usage began — skipped in favor of the
+next build phase. Gates G1–G4 are **withdrawn, not claimed**: no result exists and
+none will be reported for this protocol. What the partial window did produce
+(2026-11-05, Day 0 + same-day A2A work) and remains valid as operational evidence:
+
+- 9 sealed judgments, 13 records, 2 confirmed proposals (1 from `doubao-work` via
+  the live cross-vendor A2A), 1 outcome, all chains verified.
+- A live cross-vendor A2A (Doubao Work reading zcode-authored records; a
+  doubao-work proposal held pending until human confirmation) — verified from the
+  audit trails, not self-reports.
+- Real-use observations logged in `~/.jev-work/friction.md` (lexical cross-language
+  gap, dedupe-vs-conflict tension, wording fate) — these feed the post-window fix
+  batch, which this suspension unblocks.
+
+Any future re-run of a real-use protocol gets a fresh freeze; this file's gates
+are dead. The 14-day discipline itself is preserved in the record: the window
+held its "log, don't fix" rule for every observation it produced.
