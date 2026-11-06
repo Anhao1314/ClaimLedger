@@ -1,0 +1,13 @@
+{
+ "id": "probe_errorcode",
+ "title": "Error response",
+ "target": "errors.py",
+ "blocked": false,
+ "system": "explicit",
+ "runs": 3,
+ "relevant": [
+  "Errors must include a stable machine-readable code."
+ ],
+ "strata": "cross_lingual",
+ "source_task": "09_error_code"
+}

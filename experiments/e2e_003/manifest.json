@@ -1,9 +1,96 @@
 {
   "files": {
+    "embed.py": {
+      "sha256": "017bc3f1403c4ca5f1e06a8e5c3b98239d96270f9304d87dd0a81e831d609005"
+    },
+    "embeddings.json": {
+      "sha256": "adc7abec6a0f59131cc882f0e07734acbc9d8f59a3d19d490b73c6d8d8d8213f"
+    },
+    "embeddings.npz": {
+      "sha256": "cddc6083e010a4fa03d4e9e58135e04bd4dc1c2b5ce1fd46b204e03918963e42"
+    },
+    "probe_tasks/probe_console/check.py": {
+      "sha256": "a1d5d537494bfe748bbc2a4c50bda68fe912cfdc24d2cf538e635287a1722a91"
+    },
+    "probe_tasks/probe_console/meta.json": {
+      "sha256": "e34cfd61bcf863bd3770deba6239e0a0bd4c5b874bdabfa3207ffaa3c54be7c7"
+    },
+    "probe_tasks/probe_console/task.md": {
+      "sha256": "61e50c74d4be5526258ebc297b2cb16f464c114e96f5060fd2448d51df325c1a"
+    },
+    "probe_tasks/probe_errorcode/check.py": {
+      "sha256": "1ba88f7e1324cce8c8249dac092b2894ae52699c5e59e362179dbf51b4749515"
+    },
+    "probe_tasks/probe_errorcode/meta.json": {
+      "sha256": "10804b911bbbda767d071059b2fbac8a905bfbc803bc2e333d66ec58299fcaf5"
+    },
+    "probe_tasks/probe_errorcode/task.md": {
+      "sha256": "77352dcc647696ebbcc3b1b07ff115a6342fbac865afc70ea0100aff0a635ab1"
+    },
+    "probe_tasks/probe_keypath/check.py": {
+      "sha256": "e09010737ebfd9a4bdc0d7faede2bcb43b0f17044d01088fa6eacd0954e33270"
+    },
+    "probe_tasks/probe_keypath/meta.json": {
+      "sha256": "2bdd5dc5d17e30cae0832b668c392cf34a84f03efaff67520a443ca89f020b8e"
+    },
+    "probe_tasks/probe_keypath/task.md": {
+      "sha256": "b65e63367f12db91d7cedfb9fa7bb605b132e1ed8e12ddb8b9dbf8d1cd4846d2"
+    },
+    "probe_tasks/probe_logs/check.py": {
+      "sha256": "a1d5d537494bfe748bbc2a4c50bda68fe912cfdc24d2cf538e635287a1722a91"
+    },
+    "probe_tasks/probe_logs/meta.json": {
+      "sha256": "15bff42994f57a91b4a9d02041ea28a8962719832fa3b7066ca86910f5ad09d1"
+    },
+    "probe_tasks/probe_logs/task.md": {
+      "sha256": "e033d749d530f6ba7b76df3490ae88b1fcef1d11dc379e1da31fd3396b0ece93"
+    },
+    "probe_tasks/probe_margin/check.py": {
+      "sha256": "d80915f7fbe1df5857f227cc4e77a8224b243b411ffb26a2d74284a1f1191202"
+    },
+    "probe_tasks/probe_margin/meta.json": {
+      "sha256": "d9bf5eaae6fabc33ad506631cd0486c12622f2b1fb7ade79847b53c345f082cf"
+    },
+    "probe_tasks/probe_margin/task.md": {
+      "sha256": "927764c242846af91fa2571a06b33532ae93e4740d372bef0f48a5890f1f6a7b"
+    },
+    "probe_tasks/probe_preregister/check.py": {
+      "sha256": "f2c4eaa71a421dd2337362fc7d7219473720c9696659943c65ffee520ec2da78"
+    },
+    "probe_tasks/probe_preregister/meta.json": {
+      "sha256": "fbd34513153b5df8840f39c7a171d7cd878e464c2c1f0cf7ae00ac45918ef50f"
+    },
+    "probe_tasks/probe_preregister/task.md": {
+      "sha256": "b38bb6d75d78b9fccc575fa79fa444e0cb09e86406062e6c99dc8d9458cbd578"
+    },
+    "probe_tasks/probe_retry/check.py": {
+      "sha256": "da16ef407e55b4eb3ec6e8f2ec16d6edd3ee8d56e488b725a4a28add884bda06"
+    },
+    "probe_tasks/probe_retry/meta.json": {
+      "sha256": "ca0997dddb689016eb3ae69e7c3b497b8981a54b349598737193bf9becd117de"
+    },
+    "probe_tasks/probe_retry/task.md": {
+      "sha256": "a23e210149e8d16add8b64fb1cd0ad657782936499b456f6a48a672f462dab54"
+    },
+    "probe_tasks/probe_storage/check.py": {
+      "sha256": "82dbad587dbe0179f69f11e158aacf9608508b50eb7672fcb351deadf3cfd990"
+    },
+    "probe_tasks/probe_storage/meta.json": {
+      "sha256": "4064c0a176097f3aad9aa2326b09d3f81113a10382685dfe4c16b05011989617"
+    },
+    "probe_tasks/probe_storage/task.md": {
+      "sha256": "8ee2107a56b33ebb68e4975a2e2a8b8832a0d926a992ff5239380574380dec1f"
+    },
     "protocol.md": {
-      "sha256": "c2aa3c2e0f2ff188da7fbcf1e99e086243bdc993a6b81698f4c64a983254eb43"
+      "sha256": "ed673a96b253b4d5ba8a7009fe0ba0cfff876bce8e69db65700e3e9e81e15500"
+    },
+    "run.py": {
+      "sha256": "4a97c67985593a903bbe3e0397c8386d1ffdf513d0490495df6a3b06ccab2101"
+    },
+    "score.py": {
+      "sha256": "19dd0e62b38462db8ebfacc9da1be4c4726b5b057d9af5f968fa6e4fdcec55ae"
     }
   },
-  "frozen_at": "2026-11-05",
+  "frozen_at": "2026-11-07 (pre-first-JEV-call)",
   "note": "protocol frozen before any embedding/call; tasks/records/checkers inherited from e2e_002 freeze.json (sha256 there)"
 }

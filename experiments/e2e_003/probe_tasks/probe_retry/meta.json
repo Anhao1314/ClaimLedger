@@ -1,0 +1,13 @@
+{
+ "id": "probe_retry",
+ "title": "Retry helper",
+ "target": "retry.py",
+ "blocked": false,
+ "system": "explicit",
+ "runs": 3,
+ "relevant": [
+  "Retries must be capped at 3."
+ ],
+ "strata": "cross_lingual",
+ "source_task": "02_retry_cap"
+}

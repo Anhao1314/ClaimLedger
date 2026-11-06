@@ -1,0 +1,13 @@
+{
+ "id": "probe_keypath",
+ "title": "API key path",
+ "target": "secrets.py",
+ "blocked": false,
+ "system": "explicit",
+ "runs": 3,
+ "relevant": [
+  "API keys must live in ~/.config/claimledger/*.env and never enter the repository."
+ ],
+ "strata": "cross_lingual",
+ "source_task": "11_key_path"
+}

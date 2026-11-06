@@ -1,0 +1,13 @@
+{
+ "id": "probe_preregister",
+ "title": "Threshold tuning",
+ "target": "policy.py",
+ "blocked": false,
+ "system": "explicit",
+ "runs": 3,
+ "relevant": [
+  "Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results."
+ ],
+ "strata": "cross_lingual",
+ "source_task": "12_preregister"
+}

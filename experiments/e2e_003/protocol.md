@@ -106,3 +106,12 @@ cached to disk with the model hash.
    weight than rate comparisons; Wilson CIs reported throughout.
 5. The real-use store (`~/.jev-work`) is never touched; this experiment runs
    entirely on the frozen v8 corpus.
+
+## Amendment (pre-first-call, 2026-11-06)
+
+The frozen probe family list named "deployment" as one of the eight families;
+no v8 checker exists for the deployment record (it appears only in D-arm
+irrelevant blocks), so the authored probe set substitutes the **error-code**
+family (task 09_error_code, checker fully language-independent). All other
+families map 1:1: storage→01, retries→02, logging→15, API keys→11, margin
+wording→10, console scope→04, benchmark rigor→12.

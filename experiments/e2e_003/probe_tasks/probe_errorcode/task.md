@@ -1,0 +1,5 @@
+# 错误响应
+
+在 `errors.py` 中实现 `error_response(message)`。返回一个包含 `message` 和项目错误码的字典。
+
+只在一个 python 代码块中输出 `errors.py` 的完整内容。

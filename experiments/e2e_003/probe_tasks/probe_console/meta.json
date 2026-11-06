@@ -1,0 +1,14 @@
+{
+ "id": "probe_console",
+ "title": "Console proposals panel",
+ "target": null,
+ "blocked": true,
+ "system": "explicit",
+ "runs": 3,
+ "relevant": [
+  "The console must not add any new panels.",
+  "The console must add a proposals panel."
+ ],
+ "strata": "cross_lingual",
+ "source_task": "04_console_panel"
+}

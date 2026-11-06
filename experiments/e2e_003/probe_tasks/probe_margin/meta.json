@@ -1,0 +1,13 @@
+{
+ "id": "probe_margin",
+ "title": "Margin description",
+ "target": "describe.py",
+ "blocked": false,
+ "system": "explicit",
+ "runs": 3,
+ "relevant": [
+  "The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2."
+ ],
+ "strata": "cross_lingual",
+ "source_task": "10_margin_language"
+}
