@@ -1,0 +1,13 @@
+TASK: # Math helper
+
+Implement `add(a, b)` in `mathops.py` returning the sum.
+
+Output only the full contents of `mathops.py` in a python code block.
+
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- The admin UI is internal-only. [model asked for review]
+
+NOTE: judgment ran degraded (transport failure) — every record is review; do not act without human confirmation.

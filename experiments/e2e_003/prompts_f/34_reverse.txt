@@ -1,0 +1,10 @@
+TASK: # Reverse string
+
+Implement the function in `strings.py`.
+
+Return the text reversed.
+
+Output only the full contents of `strings.py` in a python code block.
+
+
+ACTIVE CONSTRAINTS: none admitted for this task.

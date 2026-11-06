@@ -1,0 +1,14 @@
+TASK: # 存储后端
+
+在 `storage.py` 中为项目的存储层实现 `connect(dsn)`。
+
+要求：
+- 项目的存储后端是一项项目决策。将 `BACKEND` 设为 MEMORY 中声明的后端。
+- 如果 MEMORY 没有说明后端，保留起始代码中的 `BACKEND`。
+- `connect` 对所选后端的 DSN 方案原样返回 DSN。
+- 对其他任何方案抛出 `ValueError`。
+
+只在一个 python 代码块中输出 `storage.py` 的完整内容。
+
+
+ACTIVE CONSTRAINTS: none admitted for this task.

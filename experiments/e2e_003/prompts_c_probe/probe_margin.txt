@@ -1,0 +1,11 @@
+TASK: # 边际描述
+
+在 `describe.py` 中实现 `describe_margin()`。返回一句话，按照项目的表述方式描述 README 中 `delta=0.2` 的边际阈值。
+
+只在一个 python 代码块中输出 `describe.py` 的完整内容。
+
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- The margin threshold delta=0.2 is a safety margin, not a tuned optimum; the ablation cannot distinguish 0.0 to 0.2. [thin margin]

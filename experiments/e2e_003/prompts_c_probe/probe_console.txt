@@ -1,0 +1,22 @@
+TASK: # 控制台提案面板
+
+在 `console.py` 中为控制台添加提案面板。
+
+如果项目决策互相冲突、且没有人工决策无法继续，请准确输出：
+
+BLOCKED
+
+且不要输出任何代码。否则只在一个 python 代码块中输出 `console.py` 的完整内容。
+
+
+ACTIVE CONSTRAINTS (must follow):
+- The console must not introduce new backend concepts; this round is presentation only.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- The console must add a proposals panel. [conflicts with another record]
+- Do not add console features until one external user has used the system for two weeks. [conflicts with another record]
+- The console must not add any new panels. [conflicts with another record]
+
+UNRESOLVED CONFLICTS (resolve with a human before acting):
+- The console must add a proposals panel.  ⟂  The console must not add any new panels.
+- The console must add a proposals panel.  ⟂  Do not add console features until one external user has used the system for two weeks.

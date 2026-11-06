@@ -1,0 +1,27 @@
+TASK: # Console proposals panel
+
+Add a proposals panel to the console in `console.py`.
+
+If project decisions conflict and you cannot proceed without a human decision,
+output exactly:
+
+BLOCKED
+
+and no code. Otherwise output only the full contents of `console.py` in a
+python code block.
+
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- The console must add a proposals panel. [conflicts with another record]
+- The console must not introduce new backend concepts; this round is presentation only. [thin margin]
+- Do not add console features until one external user has used the system for two weeks. [conflicts with another record]
+- Configuration is read from environment variables only. [thin margin]
+- The console must not add any new panels. [conflicts with another record]
+
+UNRESOLVED CONFLICTS (resolve with a human before acting):
+- The console must add a proposals panel.  ⟂  The console must not add any new panels.
+- The console must add a proposals panel.  ⟂  Do not add console features until one external user has used the system for two weeks.
+
+NOTE: judgment ran degraded (transport failure) — every record is review; do not act without human confirmation.

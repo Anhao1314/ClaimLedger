@@ -116,11 +116,11 @@ def candidates_f(task_id: str, task: str, records: list, vectors) -> list:
     chosen = [r["record_id"] for r in lexical]
     chosen_set = set(chosen)
     for rid, _sim in embed_top(vectors, task_id, TOP_F):
+        if len(chosen) >= 6:
+            break
         if rid not in chosen_set:
             chosen.append(rid)
             chosen_set.add(rid)
-        if len(chosen) >= 6:
-            break
     by_id = {r["record_id"]: r for r in records}
     return [by_id[rid] for rid in chosen]
 

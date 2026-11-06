@@ -1,0 +1,13 @@
+TASK: # Log retention
+
+Set `RETENTION_DAYS` in `logging_config.py` to the project's log retention
+period. The value is a number of days.
+
+Output only the full contents of `logging_config.py` in a python code block.
+
+
+ACTIVE CONSTRAINTS (must follow):
+- Logs are retained for 30 days. [governing]
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- Configuration is read from environment variables only. [thin margin]

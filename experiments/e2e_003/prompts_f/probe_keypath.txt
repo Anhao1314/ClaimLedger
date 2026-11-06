@@ -1,0 +1,15 @@
+TASK: # API 密钥路径
+
+在 `secrets.py` 中实现 `key_path()`。返回项目存放 API 密钥的文件系统路径。
+
+只在一个 python 代码块中输出 `secrets.py` 的完整内容。
+
+
+ACTIVE CONSTRAINTS (must follow):
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository. [governing]
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- API v1 must remain unchanged. [thin margin]
+- The API must support cursor pagination. [model asked for review]
+
+NOTE: judgment ran degraded (transport failure) — every record is review; do not act without human confirmation.
