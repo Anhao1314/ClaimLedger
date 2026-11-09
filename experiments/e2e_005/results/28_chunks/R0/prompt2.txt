@@ -1,0 +1,54 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+(none)
+
+TASK:
+# Chunks
+
+Implement the function in `chunk.py`.
+
+Split a sequence into consecutive lists of at most `size` items.
+
+Output only the full contents of `chunk.py` in a python code block.
+
+
+YOUR PREVIOUS ATTEMPT:
+```python
+"""Utilities for splitting sequences into chunks."""
+
+from typing import List, Sequence, TypeVar
+
+T = TypeVar("T")
+
+
+def chunk(sequence: Sequence[T], size: int) -> List[List[T]]:
+    """Split a sequence into consecutive lists of at most `size` items."""
+    if size <= 0:
+        raise ValueError("size must be a positive integer")
+
+    return [
+        list(sequence[i:i + size])
+        for i in range(0, len(sequence), size)
+    ]
+```
+
+TEST FEEDBACK (the test failed):
+Traceback (most recent call last):
+  File "/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e5_pfz71imx/check.py", line 2, in <module>
+    assert chunk.chunks([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4], [5]]
+AttributeError: module 'chunk' has no attribute 'chunks'
+
+Fix the code so the tests pass. Output only the full corrected file in a python code block.

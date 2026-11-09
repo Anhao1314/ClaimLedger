@@ -1,0 +1,14 @@
+```python
+def parse_bool(value: str) -> bool:
+    if isinstance(value, str):
+        normalized = value.casefold()
+        if normalized == "true":
+            return True
+        if normalized == "false":
+            return False
+
+    raise ValueError("Expected 'true' or 'false'")
+
+
+parse = parse_bool
+```

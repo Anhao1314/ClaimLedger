@@ -1,0 +1,26 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: Implement arithmetic addition for two numbers
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+TASK:
+# Math helper
+
+Implement `add(a, b)` in `mathops.py` returning the sum.
+
+Output only the full contents of `mathops.py` in a python code block.
+

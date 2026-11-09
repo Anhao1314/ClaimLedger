@@ -394,6 +394,7 @@ question set, and every difference is measurable at the output. [Full analysis](
 | Threshold sensitivity (offline, zero calls) | proposal precision **1.0 across T = 0.55–0.90** (plateau — 0.80 is not fitted); cascade safety gap **0.63 vs 0.10** | [threshold-sweep](experiments/edges_v1/results/threshold-sweep.json) |
 | End-to-end delivery (40 tasks × 4 arms × 3 runs) | judged brief **0.875** vs no-memory / irrelevant controls **0.525** (McNemar p = 0.0005 / 0.0013); conflicts caught **10/10 vs 1/10** | [e2e_002](experiments/e2e_002/results.md) |
 | RAG vs judged composition (40 tasks + 8 probes × 3 arms × 3 runs) | **task-success parity** (E pure RAG 35/40 ≈ C 35/40, F 34/40 non-inferior); H2/H5 failed as pre-registered — conflict probes are blocked-tasks the generator solves itself; composition's judge became the bottleneck on a cross-lingual probe | [e2e_003](experiments/e2e_003/results.md) |
+| Test-repair loop (30 executable tasks × 2 arms) | generate → run checker → repair with stderr feedback: **27/30 without memory** (McNemar vs one-shot **p=0.031**), **30/30 with the judged brief** (3/3 initial failures repaired, zero regressions) | [e2e_005](experiments/e2e_005/results.md) |
 
 Known limitation, recorded honestly: the candidate selector is lexical, so a record with zero
 token overlap is not selected. Semantic recall is deferred to a topic field (contract v2).

@@ -1,0 +1,53 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+(none)
+
+TASK:
+# Maximum
+
+Implement the function in `maxlist.py`.
+
+Return the largest value in a non-empty list.
+
+Output only the full contents of `maxlist.py` in a python code block.
+
+
+YOUR PREVIOUS ATTEMPT:
+```python
+def maxlist(values):
+    """Return the largest value in a non-empty list."""
+    if not values:
+        raise ValueError("maxlist() requires a non-empty list")
+
+    largest = values[0]
+    for value in values[1:]:
+        if value > largest:
+            largest = value
+    return largest
+
+
+def max_list(values):
+    """Return the largest value in a non-empty list."""
+    return maxlist(values)
+```
+
+TEST FEEDBACK (the test failed):
+Traceback (most recent call last):
+  File "/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e5_afb2xm5y/check.py", line 2, in <module>
+    assert maxlist.maximum([3, 9, 4]) == 9
+AttributeError: module 'maxlist' has no attribute 'maximum'
+
+Fix the code so the tests pass. Output only the full corrected file in a python code block.

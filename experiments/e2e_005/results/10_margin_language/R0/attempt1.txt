@@ -1,0 +1,9 @@
+```python
+def describe_margin():
+    """Return a README-ready description of the delta=0.2 margin threshold."""
+    return (
+        "The project treats a prediction as confident only when the top score "
+        "exceeds the runner-up by at least the delta=0.2 margin; otherwise the "
+        "model abstains from answering."
+    )
+```

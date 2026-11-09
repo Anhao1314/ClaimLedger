@@ -1,0 +1,17 @@
+```python
+import re
+from datetime import date
+
+
+def parse_date(s):
+    """Parse an ISO date in YYYY-MM-DD form and return a datetime.date."""
+    if not isinstance(s, str):
+        raise ValueError("date must be a string in YYYY-MM-DD format")
+
+    match = re.fullmatch(r"([0-9]{4})-([0-9]{2})-([0-9]{2})", s)
+    if match is None:
+        raise ValueError("date must be in YYYY-MM-DD format")
+
+    year, month, day = (int(part) for part in match.groups())
+    return date(year, month, day)
+```

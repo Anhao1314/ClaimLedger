@@ -1,0 +1,32 @@
+```python
+"""Logging configuration for the project."""
+
+import logging
+from logging.handlers import TimedRotatingFileHandler
+from pathlib import Path
+
+# Number of days to retain log files before they are deleted.
+RETENTION_DAYS = 30
+
+LOG_DIR = Path(__file__).resolve().parent / "logs"
+LOG_FILE = LOG_DIR / "app.log"
+
+
+def configure_logging(level: int = logging.INFO) -> logging.Logger:
+    """Configure and return the root logger with daily rotating file logs."""
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    handler = TimedRotatingFileHandler(
+        filename=LOG_FILE,
+        when="midnight",
+        interval=1,
+        backupCount=RETENTION_DAYS,
+        encoding="utf-8",
+    )
+    handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(name)s - %(message)s")
+    )
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+    root_logger.addHandler(handler)
+    return root_logger
+```

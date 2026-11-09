@@ -1,0 +1,11 @@
+```python
+def flatten(lst):
+    """Return a new list with one level of nesting expanded."""
+    result = []
+    for item in lst:
+        if isinstance(item, list):
+            result.extend(item)
+        else:
+            result.append(item)
+    return result
+```

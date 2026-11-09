@@ -1,0 +1,117 @@
+{
+  "A_baseline": {
+    "k": 21,
+    "n": 30,
+    "rate": 0.7
+  },
+  "C_baseline": {
+    "k": 26,
+    "n": 30,
+    "rate": 0.8667
+  },
+  "H1": {
+    "a_only": 6,
+    "b_only": 0,
+    "n_pairs": 6,
+    "p": 0.0312
+  },
+  "H2": {
+    "a_only": 4,
+    "b_only": 0,
+    "n_pairs": 4,
+    "p": 0.125
+  },
+  "R0_final": {
+    "k": 27,
+    "n": 30,
+    "rate": 0.9
+  },
+  "R1_final": {
+    "k": 30,
+    "n": 30,
+    "rate": 1.0
+  },
+  "delta_R1_minus_R0": 3,
+  "first_attempt": {
+    "R0": {
+      "k": 23,
+      "n": 30,
+      "rate": 0.7667
+    },
+    "R1": {
+      "k": 27,
+      "n": 30,
+      "rate": 0.9
+    }
+  },
+  "gates": {
+    "E5-H1_repair_beats_oneshot_no_memory": {
+      "A_baseline": {
+        "k": 21,
+        "n": 30,
+        "rate": 0.7
+      },
+      "R0": {
+        "k": 27,
+        "n": 30,
+        "rate": 0.9
+      },
+      "mcnemar": {
+        "a_only": 6,
+        "b_only": 0,
+        "n_pairs": 6,
+        "p": 0.0312
+      },
+      "pass": true
+    },
+    "E5-H2_repair_not_worse_with_memory": {
+      "C_baseline": {
+        "k": 26,
+        "n": 30,
+        "rate": 0.8667
+      },
+      "R1": {
+        "k": 30,
+        "n": 30,
+        "rate": 1.0
+      },
+      "mcnemar": {
+        "a_only": 4,
+        "b_only": 0,
+        "n_pairs": 4,
+        "p": 0.125
+      },
+      "pass": true
+    },
+    "E5-H3_memory_adds_value_in_loop": {
+      "R0": {
+        "k": 27,
+        "n": 30,
+        "rate": 0.9
+      },
+      "R1": {
+        "k": 30,
+        "n": 30,
+        "rate": 1.0
+      },
+      "delta_tasks": 3,
+      "pass": true
+    }
+  },
+  "mean_iterations_to_pass": {
+    "R0": 1.15,
+    "R1": 1.1
+  },
+  "n_tasks": 30,
+  "repair_view": {
+    "R0": {
+      "initial_fail": 7,
+      "repaired": 4
+    },
+    "R1": {
+      "initial_fail": 3,
+      "repaired": 3
+    }
+  },
+  "schema": "e2e_005_score_v1"
+}

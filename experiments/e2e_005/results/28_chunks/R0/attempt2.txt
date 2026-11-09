@@ -1,0 +1,23 @@
+```python
+"""Utilities for splitting sequences into chunks."""
+
+from typing import List, Sequence, TypeVar
+
+T = TypeVar("T")
+
+
+def chunks(sequence: Sequence[T], size: int) -> List[List[T]]:
+    """Split a sequence into consecutive lists of at most `size` items."""
+    if size <= 0:
+        raise ValueError("size must be a positive integer")
+
+    return [
+        list(sequence[i:i + size])
+        for i in range(0, len(sequence), size)
+    ]
+
+
+def chunk(sequence: Sequence[T], size: int) -> List[List[T]]:
+    """Alias for `chunks`."""
+    return chunks(sequence, size)
+```

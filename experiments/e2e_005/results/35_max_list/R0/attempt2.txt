@@ -1,0 +1,22 @@
+```python
+def maximum(values):
+    """Return the largest value in a non-empty list."""
+    if not values:
+        raise ValueError("maximum() requires a non-empty list")
+
+    largest = values[0]
+    for value in values[1:]:
+        if value > largest:
+            largest = value
+    return largest
+
+
+def maxlist(values):
+    """Return the largest value in a non-empty list."""
+    return maximum(values)
+
+
+def max_list(values):
+    """Return the largest value in a non-empty list."""
+    return maximum(values)
+```

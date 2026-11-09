@@ -1,0 +1,21 @@
+```python
+def dedupe(items):
+    """Remove duplicates while preserving first-seen order."""
+    result = []
+    seen_hashable = set()
+    seen_unhashable = []
+
+    for item in items:
+        try:
+            if item in seen_hashable or item in seen_unhashable:
+                continue
+            seen_hashable.add(item)
+        except TypeError:
+            if item in result:
+                continue
+            seen_unhashable.append(item)
+
+        result.append(item)
+
+    return result
+```

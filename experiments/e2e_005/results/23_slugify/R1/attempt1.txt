@@ -1,0 +1,10 @@
+```python
+def slugify(text: str) -> str:
+    slug = []
+    for char in text.lower():
+        if char.isalnum():
+            slug.append(char)
+        elif slug and slug[-1] != "-":
+            slug.append("-")
+    return "".join(slug).strip("-")
+```

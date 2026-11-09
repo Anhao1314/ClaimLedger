@@ -1,0 +1,42 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: Reverse string
+
+NO RELEVANT RECORDS: nothing in memory matches this task lexically. The candidates below were selected by recency, not relevance, and none were admitted.
+
+TASK:
+# Reverse string
+
+Implement the function in `strings.py`.
+
+Return the text reversed.
+
+Output only the full contents of `strings.py` in a python code block.
+
+
+YOUR PREVIOUS ATTEMPT:
+```python
+def reverse_string(text: str) -> str:
+    return text[::-1]
+```
+
+TEST FEEDBACK (the test failed):
+Traceback (most recent call last):
+  File "/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e5_bec5gy5q/check.py", line 2, in <module>
+    assert strings.reverse("abc") == "cba"
+AttributeError: module 'strings' has no attribute 'reverse'
+
+Fix the code so the tests pass. Output only the full corrected file in a python code block.

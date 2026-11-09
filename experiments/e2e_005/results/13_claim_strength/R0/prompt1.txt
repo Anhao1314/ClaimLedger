@@ -1,0 +1,25 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+(none)
+
+TASK:
+# Claim strength
+
+Implement `claim_strength(n)` in `claims.py`. Return `"weak"` when the sample
+size is below the project's threshold, otherwise `"strong"`.
+
+Output only the full contents of `claims.py` in a python code block.
+

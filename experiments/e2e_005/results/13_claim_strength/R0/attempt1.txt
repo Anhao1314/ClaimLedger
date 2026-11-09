@@ -1,0 +1,9 @@
+```python
+SAMPLE_SIZE_THRESHOLD = 30
+
+
+def claim_strength(n):
+    if n < SAMPLE_SIZE_THRESHOLD:
+        return "weak"
+    return "strong"
+```

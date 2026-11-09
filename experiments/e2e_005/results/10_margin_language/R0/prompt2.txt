@@ -1,0 +1,44 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+(none)
+
+TASK:
+# Margin description
+
+Implement `describe_margin()` in `describe.py`. Return one sentence describing
+the `delta=0.2` margin threshold for the README. Use the project's framing.
+
+Output only the full contents of `describe.py` in a python code block.
+
+
+YOUR PREVIOUS ATTEMPT:
+```python
+def describe_margin():
+    """Return a README-ready description of the delta=0.2 margin threshold."""
+    return (
+        "The project treats a prediction as confident only when the top score "
+        "exceeds the runner-up by at least the delta=0.2 margin; otherwise the "
+        "model abstains from answering."
+    )
+```
+
+TEST FEEDBACK (the test failed):
+Traceback (most recent call last):
+  File "/private/var/folders/6x/2c3dc9h12332f39bgtg2z25r0000gn/T/e2e5_hiwr0vyw/check.py", line 4, in <module>
+    assert "safety margin" in text, text
+AssertionError: the project treats a prediction as confident only when the top score exceeds the runner-up by at least the delta=0.2 margin; otherwise the model abstains from answering.
+
+Fix the code so the tests pass. Output only the full corrected file in a python code block.

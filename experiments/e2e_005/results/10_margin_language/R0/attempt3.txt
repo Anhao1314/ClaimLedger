@@ -1,0 +1,9 @@
+```python
+def describe_margin():
+    """Return a README-ready description of the delta=0.2 margin threshold."""
+    return (
+        "The delta=0.2 margin is a fixed safety threshold, not a tuned optimum: "
+        "a prediction is treated as confident only when the top score exceeds "
+        "the runner-up by at least that margin; otherwise the model abstains."
+    )
+```

@@ -1,0 +1,18 @@
+```python
+"""Storage connection helpers."""
+
+BACKEND = "postgresql"
+
+_POSTGRES_DSN_PREFIXES = ("postgresql://", "postgres://")
+
+
+def connect(dsn):
+    """Validate and return a DSN for the configured storage backend."""
+    if BACKEND not in ("postgresql", "postgres"):
+        raise ValueError(f"unsupported storage backend: {BACKEND!r}")
+
+    if not isinstance(dsn, str) or not dsn.startswith(_POSTGRES_DSN_PREFIXES):
+        raise ValueError("expected a PostgreSQL DSN (postgresql:// or postgres://)")
+
+    return dsn
+```

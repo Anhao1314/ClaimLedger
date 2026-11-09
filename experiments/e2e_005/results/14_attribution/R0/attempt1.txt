@@ -1,0 +1,35 @@
+```python
+"""Identity and authentication helpers."""
+
+from collections.abc import Mapping
+
+_MISSING = object()
+
+
+def _registry_value(agent_registry, name):
+    if isinstance(agent_registry, Mapping):
+        return agent_registry.get(name, _MISSING)
+    return getattr(agent_registry, name, _MISSING)
+
+
+def is_authenticated(agent_registry=None):
+    """Return whether the agent registry authenticates identities."""
+    if agent_registry is None:
+        agent_registry = globals().get("agent_registry")
+    if agent_registry is None:
+        agent_registry = globals().get("registry")
+    if agent_registry is None:
+        return False
+
+    value = _MISSING
+    for name in ("authenticates_identities", "authenticate_identities"):
+        value = _registry_value(agent_registry, name)
+        if value is not _MISSING:
+            break
+    else:
+        return False
+
+    if callable(value):
+        value = value()
+    return bool(value)
+```

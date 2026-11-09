@@ -1,0 +1,5 @@
+```python
+def count_vowels(text):
+    """Return the number of vowels (a, e, i, o, u) in text."""
+    return sum(char.lower() in "aeiou" for char in text)
+```

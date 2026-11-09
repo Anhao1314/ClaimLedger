@@ -1,0 +1,7 @@
+```python
+def describe_margin():
+    return (
+        "The delta=0.2 margin threshold is a safety margin, not a tuned optimum; "
+        "the ablation cannot distinguish it from values between 0.0 and 0.2."
+    )
+```

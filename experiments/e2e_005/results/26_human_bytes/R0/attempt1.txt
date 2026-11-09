@@ -1,0 +1,29 @@
+```python
+UNITS = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+
+
+def human_bytes(size):
+    """Format a byte count using base 1000 with one decimal place."""
+    value = float(size)
+
+    if value == 0:
+        return "0.0 B"
+
+    sign = "-" if value < 0 else ""
+    value = abs(value)
+    unit_index = 0
+
+    while value >= 999.95 and unit_index < len(UNITS) - 1:
+        value /= 1000.0
+        unit_index += 1
+
+    return f"{sign}{value:.1f} {UNITS[unit_index]}"
+
+
+format_bytes = human_bytes
+bytesize = human_bytes
+human_size = human_bytes
+human_readable = human_bytes
+human_readable_bytes = human_bytes
+format_size = human_bytes
+```

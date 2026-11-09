@@ -1,0 +1,12 @@
+```python
+from pathlib import Path
+
+
+def key_path() -> Path:
+    """Return the path to the project's API key file."""
+    config_dir = Path.home() / ".config" / "claimledger"
+    env_files = sorted(config_dir.glob("*.env"))
+    if env_files:
+        return env_files[0]
+    return config_dir / "api_key.env"
+```
