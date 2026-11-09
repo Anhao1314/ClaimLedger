@@ -71,3 +71,60 @@ def select_candidates(records: Sequence[Mapping[str, Any]], task: str, *,
         "limit": limit,
     }
     return selected, stats
+
+def select_hybrid(records: Sequence[Mapping[str, Any]], task: str, *,
+                  embedder: Optional[Any] = None,
+                  scope: Optional[str] = None,
+                  limit: int = 6) -> tuple:
+    """Lexical candidates ∪ dense-vector candidates — the recall entry.
+
+    The judgment layer still owns precision; the embedding channel only widens
+    recall, following the same bias as the lexical path (a missed record is
+    fatal, an irrelevant one is cheap). ``embedder`` is any callable mapping a
+    list of texts to a sequence of float vectors (L2-normalized recommended;
+    cosine is computed defensively). With no embedder — or when it raises —
+    this degrades to exactly ``select_candidates`` (fail open).
+
+    Stats gain ``embedding_hits`` (records with positive cosine),
+    ``embedding_added`` (how many the union actually gained) and
+    ``embedding_error`` (set when the embedder failed and the path degraded).
+    """
+    lexical, stats = select_candidates(records, task, scope=scope, limit=limit)
+    stats = dict(stats, embedding_hits=0, embedding_added=0,
+                 embedding_error=None)
+    if embedder is None:
+        return lexical, stats
+
+    in_scope = [r for r in records
+                if scope is None or r.get("scope") in (None, scope)]
+    if not in_scope:
+        return lexical, stats
+    try:
+        rec_vecs = list(embedder([str(r["text"]) for r in in_scope]))
+        task_vec = list(embedder([task])[0])
+    except Exception as exc:  # noqa: BLE001 - recall must never die on an embedder
+        stats["embedding_error"] = f"{type(exc).__name__}: {exc}"[:120]
+        return lexical, stats
+
+    def cosine(a: Sequence[float], b: Sequence[float]) -> float:
+        dot = sum(x * y for x, y in zip(a, b))
+        na = sum(x * x for x in a) ** 0.5
+        nb = sum(x * x for x in b) ** 0.5
+        return dot / (na * nb) if na and nb else 0.0
+
+    sims = sorted(((cosine(v, task_vec), r) for v, r in zip(rec_vecs, in_scope)),
+                  key=lambda item: item[0], reverse=True)
+    stats["embedding_hits"] = sum(1 for sim, _ in sims if sim > 0)
+    chosen = list(lexical)
+    chosen_ids = {str(r.get("record_id")) for r in chosen}
+    for _sim, record in sims:
+        if len(chosen) >= limit:
+            break
+        rid = str(record.get("record_id"))
+        if rid in chosen_ids:
+            continue
+        chosen.append(record)
+        chosen_ids.add(rid)
+        stats["embedding_added"] += 1
+    stats["selected"] = len(chosen)
+    return chosen, stats

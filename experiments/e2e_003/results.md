@@ -40,7 +40,7 @@ On this corpus (55 decision records, 40 tasks), the retrieval method barely move
 |---|---|---|
 | E pure RAG | **3/3** | embedding rank 2 = the PG record → stuffed → model sets `BACKEND="postgresql"` |
 | F composition | **0/3** | same candidate included, but the admit question judged it **not applicable** to the Chinese task → brief says "none admitted" → model keeps starter `sqlite` |
-| C judged (lexical) | 0/3 | lexical missed the record entirely |
+| C judged (lexical) | 0/3 | the record was a lexical hit, but the admit question rejected it (same conservatism as F) |
 
 **The composition's weakest link is the judge, not the retriever.** On cross-lingual tasks the conservative admit stage discards exactly the records embedding retrieval was added to find. Pure RAG beats the composition on this probe. This is the honest counter-result the experiment existed to expose.
 
@@ -63,3 +63,38 @@ On this corpus (55 decision records, 40 tasks), the retrieval method barely move
 - Starter fix post-first-call (probe boilerplate only, task texts/checkers unchanged — manifest note).
 - Task 07's "no code block" failure is inherited (C failed 3/3 in e2e_002; E/F一致), not new.
 - n=40 + 8; CIs wide; H3's margin (2.5pp) is inside noise but was pre-registered as non-inferiority, not superiority.
+
+## Post-hoc candidate audit (added 2026-11-07, frozen artifacts only)
+
+Reconstructed F's candidate sets from the frozen vectors and `select_candidates`
+to quantify the embedding channel's actual contribution:
+
+- **Embedding added candidates on 9/48 tasks** — on the other 39 the lexical
+  channel already filled the 6-slot cap (or fell back to recency), so F's
+  candidates were **identical to C's by construction**; the brief text
+  differences on those tasks are judge sampling noise, not hybrid recall.
+- **On most of the 9, the added candidates were noise**: probe_storage gained
+  "mobile client caches the last 20 items" (cosine rank 1) while the relevant
+  PostgreSQL record was **already a lexical hit** — the judge, not retrieval,
+  rejected it. probe_margin gained five unrelated records; 40_dedupe gained
+  "API v1 must be removed in Q4".
+
+Corrections this forces:
+
+1. **The H5 "lexical blind spot" story is wrong for probe_storage** — the
+   record was retrieved lexically and rejected by admission. The judge-bottleneck
+   finding stands and sharpens: on this corpus **retrieval was never the binding
+   constraint on the probes; admission was**.
+2. **"Hybrid retrieval helped" is not supported by this experiment** — the
+   embedding channel contributed on 9/48 tasks and contributed noise on most.
+   Any F-vs-C difference elsewhere is within judge noise.
+3. The parity headline is explained mechanically: F ≈ C because their candidate
+   sets were mostly identical, and where they differed the additions rarely
+   mattered. The experiment's real finding remains the **admit-stage
+   conservatism**, which now has a cleaner evidence chain.
+
+Select function consequence: `select_hybrid` (product, added 2026-11-07) unions
+dense recall into the candidate cap with the same recall bias and fail-open
+semantics — but this corpus gives no evidence that dense recall improves
+outcomes on English decision records; its value-case remains cross-lingual and
+low-overlap tasks, which needs a cleaner probe design to measure.

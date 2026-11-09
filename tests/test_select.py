@@ -8,7 +8,7 @@ from jev_first import contracts, judge, log
 from jev_first.cache import Cache
 from jev_first.policy import ADMIT
 from jev_first.records import RecordStore
-from jev_first.select import select_candidates
+from jev_first.select import select_candidates, select_hybrid
 
 from tests.test_jev_first import fake_core
 
@@ -35,6 +35,71 @@ def build_store(path, items):
                      at=f"2026-11-0{(i % 9) + 1}T00:00:00Z")
     return store
 
+
+
+class HybridSelectTests(unittest.TestCase):
+    def setUp(self):
+        from jev_first import contracts as _c
+        self.records = [dict(r) for r in _c and [
+            {"record_id": "rec_a", "text": "All storage must use PostgreSQL.",
+             "at": "2026-11-01T00:00:00Z", "scope": None},
+            {"record_id": "rec_b", "text": "The team wiki lives at wiki.internal.",
+             "at": "2026-11-02T00:00:00Z", "scope": None},
+            {"record_id": "rec_c", "text": "Standups are at 09:30 every weekday.",
+             "at": "2026-11-03T00:00:00Z", "scope": None},
+        ]]
+
+    def test_no_embedder_is_lexical_exactly(self):
+        lexical, _ = select_candidates(self.records, "storage backend")
+        hybrid, stats = select_hybrid(self.records, "storage backend")
+        self.assertEqual([r["record_id"] for r in hybrid],
+                         [r["record_id"] for r in lexical])
+        self.assertEqual(stats["embedding_added"], 0)
+        self.assertIsNone(stats["embedding_error"])
+
+    def test_embedding_recall_fills_with_low_lexical_hits(self):
+        """When lexical hits leave headroom under the cap, the dense channel
+        adds its best candidates — the recall gap the lexical path cannot
+        close. (With a full cap the union cannot widen; documented behavior.)"""
+        def embedder(texts):
+            vecs = []
+            for t in texts:
+                if "storage" in t.lower():
+                    vecs.append([1.0, 0.0, 0.0])
+                elif "文档" in t or "wiki" in t.lower():
+                    vecs.append([0.95, 0.05, 0.0])
+                else:
+                    vecs.append([0.0, 1.0, 0.0])
+            return vecs
+        task = "文档仓库在哪里 storage 后端"  # lexical hits only rec_a
+        lexical, lstats = select_candidates(self.records, task, limit=3)
+        self.assertEqual([r["record_id"] for r in lexical], ["rec_a"])
+        self.assertEqual(lstats["lexical_hits"], 1)
+        hybrid, stats = select_hybrid(self.records, task, embedder=embedder,
+                                      limit=3)
+        ids = [r["record_id"] for r in hybrid]
+        self.assertIn("rec_b", ids)  # dense recall, zero lexical overlap
+        self.assertEqual(stats["embedding_added"], 2)
+        # cap still respected
+        self.assertLessEqual(len(ids), 3)
+
+    def test_cap_respected_and_no_duplicates(self):
+        def embedder(texts):
+            return [[1.0, 0.0] for _ in texts]
+        hybrid, stats = select_hybrid(self.records, "storage", embedder=embedder,
+                                      limit=3)
+        ids = [r["record_id"] for r in hybrid]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertLessEqual(len(ids), 3)
+
+    def test_embedder_failure_fails_open(self):
+        def boom(texts):
+            raise RuntimeError("model unavailable")
+        hybrid, stats = select_hybrid(self.records, "storage", embedder=boom)
+        lexical, _ = select_candidates(self.records, "storage")
+        self.assertEqual([r["record_id"] for r in hybrid],
+                         [r["record_id"] for r in lexical])
+        self.assertIn("model unavailable", stats["embedding_error"])
 
 class SelectTests(unittest.TestCase):
     def setUp(self):
