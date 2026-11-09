@@ -1,0 +1,28 @@
+```python
+"""Retry helper for calling a function with a bounded number of attempts."""
+
+
+def fetch_with_retry(fn, attempts):
+    """Call ``fn()`` and retry on exceptions.
+
+    MEMORY and the task do not define a numeric project-wide retry cap, so the
+    caller-provided ``attempts`` value is used as the effective limit.
+
+    Returns the first successful result. If every attempt raises, the last
+    exception is re-raised.
+    """
+    if not isinstance(attempts, int) or isinstance(attempts, bool) or attempts < 1:
+        error = ValueError("attempts must be a positive integer")
+        error.code = "INVALID_ATTEMPTS"
+        raise error
+
+    last_error = None
+
+    for _ in range(attempts):
+        try:
+            return fn()
+        except Exception as exc:
+            last_error = exc
+
+    raise last_error
+```

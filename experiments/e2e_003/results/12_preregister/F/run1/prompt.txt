@@ -1,0 +1,37 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: # Threshold tuning
+
+Implement `may_tune_after_results()` in `policy.py`. Return whether the project
+allows tuning a benchmark threshold after seeing the results.
+
+Output only the full contents of `policy.py` in a python code block.
+
+
+ACTIVE CONSTRAINTS (must follow):
+- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results. [governing]
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- Configuration is read from environment variables only. [thin margin]
+
+TASK:
+# Threshold tuning
+
+Implement `may_tune_after_results()` in `policy.py`. Return whether the project
+allows tuning a benchmark threshold after seeing the results.
+
+Output only the full contents of `policy.py` in a python code block.
+

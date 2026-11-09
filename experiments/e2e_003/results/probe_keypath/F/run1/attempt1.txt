@@ -1,0 +1,12 @@
+```python
+from pathlib import Path
+
+
+def key_path() -> Path:
+    """Return the filesystem path for the project's API key file.
+
+    API keys are stored outside the repository, under the user's
+    ~/.config/claimledger directory.
+    """
+    return Path.home() / ".config" / "claimledger" / "api_keys.env"
+```

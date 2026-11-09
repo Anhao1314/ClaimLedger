@@ -1,0 +1,373 @@
+```python
+"""PostgreSQL-backed storage for analytics events."""
+
+from __future__ import annotations
+
+import base64
+import gettext
+import json
+import re
+from contextlib import contextmanager
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple
+
+import psycopg2
+from psycopg2.extras import Json, RealDictCursor
+
+_ = gettext.gettext
+
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
+_REDACTED = "[REDACTED]"
+
+_PII_KEY_NAMES = frozenset(
+    {
+        "name",
+        "first_name",
+        "last_name",
+        "full_name",
+        "email",
+        "e_mail",
+        "phone",
+        "mobile",
+        "telephone",
+        "address",
+        "street",
+        "city",
+        "zip",
+        "postal_code",
+        "ssn",
+        "social_security_number",
+        "passport",
+        "credit_card",
+        "card_number",
+        "iban",
+        "ip",
+        "ip_address",
+        "user_id",
+        "anonymous_id",
+        "device_id",
+        "cookie",
+        "session_id",
+    }
+)
+
+_PII_KEY_TOKENS = frozenset(
+    {
+        "email",
+        "phone",
+        "mobile",
+        "telephone",
+        "address",
+        "street",
+        "ssn",
+        "passport",
+        "iban",
+        "cookie",
+    }
+)
+
+_PII_ID_TOKENS = frozenset({"user", "anonymous", "device", "session"})
+_PII_NAME_EXCLUSIONS = frozenset({"event", "product", "plan", "screen"})
+
+_PII_VALUE_PATTERNS = (
+    re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE),
+    re.compile(r"\b(?:\+?\d[\d .-]{7,}\d)\b"),
+    re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
+    re.compile(r"\b(?:\d[ -]*?){13,19}\b"),
+    re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b"),
+)
+
+
+@dataclass(frozen=True)
+class EventPage:
+    items: List[Dict[str, Any]]
+    next_cursor: Optional[str]
+
+
+def _normalise_key(key: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", key.strip().lower()).strip("_")
+
+
+def _is_pii_key(key: str) -> bool:
+    normalised = _normalise_key(key)
+    if normalised in _PII_KEY_NAMES:
+        return True
+
+    tokens = set(normalised.split("_"))
+    if tokens & _PII_KEY_TOKENS:
+        return True
+
+    if "name" in tokens and not (tokens & _PII_NAME_EXCLUSIONS):
+        return True
+
+    if "id" in tokens and (tokens & _PII_ID_TOKENS):
+        return True
+
+    return False
+
+
+def _redact_string(value: str) -> str:
+    for pattern in _PII_VALUE_PATTERNS:
+        value = pattern.sub(_REDACTED, value)
+    return value
+
+
+def redact_pii(value: Any) -> Any:
+    """Return a copy of *value* with PII removed before persistence."""
+    if isinstance(value, Mapping):
+        redacted: Dict[str, Any] = {}
+        for key, item in value.items():
+            key_string = str(key)
+            if _is_pii_key(key_string):
+                redacted[key_string] = _REDACTED if item is not None else None
+            else:
+                redacted[key_string] = redact_pii(item)
+        return redacted
+
+    if isinstance(value, list):
+        return [redact_pii(item) for item in value]
+
+    if isinstance(value, tuple):
+        return tuple(redact_pii(item) for item in value)
+
+    if isinstance(value, str):
+        return _redact_string(value)
+
+    return value
+
+
+def _coerce_datetime(value: Any, *, field_name: str) -> datetime:
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError(
+                _("Invalid timestamp for {field}.").format(field=field_name)
+            ) from exc
+    else:
+        raise ValueError(
+            _("Invalid timestamp for {field}.").format(field=field_name)
+        )
+
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+
+    return parsed.astimezone(timezone.utc)
+
+
+def _prepare_event(
+    event: Mapping[str, Any],
+) -> Tuple[str, Optional[str], Optional[str], Dict[str, Any], datetime]:
+    if not isinstance(event, Mapping):
+        raise ValueError(_("Event must be a mapping."))
+
+    event_name = event.get("event_name", event.get("name"))
+    if not event_name:
+        raise ValueError(_("Missing required field: event_name."))
+
+    properties = event.get("properties", {})
+    if properties is None:
+        properties = {}
+    if not isinstance(properties, Mapping):
+        raise ValueError(_("Event properties must be an object."))
+
+    occurred_at_raw = event.get("occurred_at")
+    if occurred_at_raw is None:
+        occurred_at = datetime.now(timezone.utc)
+    else:
+        occurred_at = _coerce_datetime(
+            occurred_at_raw,
+            field_name="occurred_at",
+        )
+
+    redacted_identifiers = redact_pii(
+        {
+            "user_id": event.get("user_id"),
+            "anonymous_id": event.get("anonymous_id"),
+        }
+    )
+
+    return (
+        _redact_string(str(event_name)),
+        redacted_identifiers.get("user_id"),
+        redacted_identifiers.get("anonymous_id"),
+        redact_pii(dict(properties)),
+        occurred_at,
+    )
+
+
+def _encode_cursor(created_at: datetime, event_id: int) -> str:
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+
+    payload = {
+        "created_at": created_at.astimezone(timezone.utc).isoformat(),
+        "id": int(event_id),
+    }
+    raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def _decode_cursor(cursor: str) -> Tuple[datetime, int]:
+    if not isinstance(cursor, str) or not cursor:
+        raise ValueError(_("Invalid pagination cursor."))
+
+    try:
+        padding = "=" * (-len(cursor) % 4)
+        raw = base64.urlsafe_b64decode((cursor + padding).encode("ascii"))
+        payload = json.loads(raw.decode("utf-8"))
+        created_at = datetime.fromisoformat(payload["created_at"])
+        event_id = int(payload["id"])
+    except Exception as exc:
+        raise ValueError(_("Invalid pagination cursor.")) from exc
+
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+
+    return created_at.astimezone(timezone.utc), event_id
+
+
+def _serialize_datetime(value: Any) -> Any:
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc).isoformat()
+    return value
+
+
+def _row_to_event(row: Mapping[str, Any]) -> Dict[str, Any]:
+    return {
+        "id": row["id"],
+        "event_name": row["event_name"],
+        "user_id": row["user_id"],
+        "anonymous_id": row["anonymous_id"],
+        "properties": row["properties"] or {},
+        "occurred_at": _serialize_datetime(row["occurred_at"]),
+        "created_at": _serialize_datetime(row["created_at"]),
+    }
+
+
+class AnalyticsStorage:
+    """PostgreSQL storage for analytics events."""
+
+    def __init__(self, dsn: str, *, connection_factory: Any = psycopg2.connect) -> None:
+        if not dsn:
+            raise ValueError(_("A PostgreSQL DSN is required."))
+        self._dsn = dsn
+        self._connection_factory = connection_factory
+
+    @contextmanager
+    def _connection(self) -> Iterator[Any]:
+        connection = self._connection_factory(self._dsn)
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def init_schema(self) -> None:
+        with self._connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS analytics_events (
+                        id BIGSERIAL PRIMARY KEY,
+                        event_name TEXT NOT NULL,
+                        user_id TEXT,
+                        anonymous_id TEXT,
+                        properties JSONB NOT NULL DEFAULT '{}'::jsonb,
+                        occurred_at TIMESTAMPTZ NOT NULL,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                    )
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS analytics_events_created_at_id_idx
+                    ON analytics_events (created_at DESC, id DESC)
+                    """
+                )
+
+    def store_event(self, event: Mapping[str, Any]) -> int:
+        (
+            event_name,
+            user_id,
+            anonymous_id,
+            properties,
+            occurred_at,
+        ) = _prepare_event(event)
+
+        with self._connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO analytics_events
+                        (event_name, user_id, anonymous_id, properties, occurred_at)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (
+                        event_name,
+                        user_id,
+                        anonymous_id,
+                        Json(properties),
+                        occurred_at,
+                    ),
+                )
+                event_id = cursor.fetchone()[0]
+
+        return int(event_id)
+
+    def list_events(
+        self,
+        *,
+        limit: int = DEFAULT_PAGE_SIZE,
+        cursor: Optional[str] = None,
+    ) -> EventPage:
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+            raise ValueError(_("limit must be a positive integer."))
+
+        effective_limit = min(limit, MAX_PAGE_SIZE)
+
+        where_sql = ""
+        params: List[Any] = []
+
+        if cursor is not None:
+            created_at, event_id = _decode_cursor(cursor)
+            where_sql = "WHERE (created_at, id) < (%s, %s)"
+            params.extend([created_at, event_id])
+
+        params.append(effective_limit + 1)
+
+        sql = f"""
+            SELECT id, event_name, user_id, anonymous_id, properties,
+                   occurred_at, created_at
+            FROM analytics_events
+            {where_sql}
+            ORDER BY created_at DESC, id DESC
+            LIMIT %s
+        """
+
+        with self._connection() as connection:
+            with connection.cursor(cursor_factory=RealDictCursor) as cursor_obj:
+                cursor_obj.execute(sql, params)
+                rows = cursor_obj.fetchall()
+
+        has_more = len(rows) > effective_limit
+        page_rows = rows[:effective_limit]
+        items = [_row_to_event(row) for row in page_rows]
+
+        next_cursor: Optional[str] = None
+        if has_more and page_rows:
+            last_row = page_rows[-1]
+            next_cursor = _encode_cursor(last_row["created_at"], last_row["id"])
+
+        return EventPage(items=items, next_cursor=next_cursor)
+```

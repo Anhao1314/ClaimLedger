@@ -1,0 +1,38 @@
+```python
+"""Storage backend selection and DSN validation."""
+
+from urllib.parse import urlsplit
+
+BACKEND = "postgresql"
+
+# PostgreSQL DSNs commonly use either the standard ``postgresql`` URI scheme
+# or the widely supported ``postgres`` alias. Both refer to the same backend.
+_SCHEMES = {
+    "postgresql": frozenset({"postgresql", "postgres"}),
+    "postgres": frozenset({"postgres", "postgresql"}),
+}
+
+
+def connect(dsn: str) -> str:
+    """Return *dsn* unchanged when it targets the configured backend.
+
+    Raises:
+        ValueError: If the DSN does not use a valid scheme for ``BACKEND``.
+    """
+    if not isinstance(dsn, str):
+        raise ValueError("invalid_dsn: DSN must be a string")
+
+    try:
+        scheme = urlsplit(dsn).scheme.lower()
+    except ValueError as exc:
+        raise ValueError(f"invalid_dsn: {exc}") from exc
+
+    allowed = _SCHEMES.get(BACKEND, frozenset({BACKEND}))
+    if scheme not in allowed:
+        raise ValueError(
+            "unsupported_dsn_scheme: "
+            f"expected one of {sorted(allowed)!r}, got {scheme!r}"
+        )
+
+    return dsn
+```

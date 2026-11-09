@@ -1,0 +1,13 @@
+```python
+"""Utilities for locating the project's stored API key."""
+
+from pathlib import Path
+
+# The API key is stored in a file alongside this module.
+API_KEY_FILENAME = "api_key"
+
+
+def key_path() -> Path:
+    """Return the filesystem path where the project stores its API key."""
+    return Path(__file__).resolve().parent / API_KEY_FILENAME
+```

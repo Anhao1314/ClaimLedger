@@ -1,0 +1,29 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- API keys must live in ~/.config/claimledger/*.env and never enter the repository.
+- Attribution is not authentication: the agent registry carries no keys or signatures.
+- Rate limits apply per API key.
+- The API must support cursor pagination.
+- All HTTP handlers must return JSON.
+
+TASK:
+# API key path
+
+Implement `key_path()` in `secrets.py`. Return the filesystem path where the
+project stores its API key.
+
+Output only the full contents of `secrets.py` in a python code block.
+

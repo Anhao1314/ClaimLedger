@@ -1,0 +1,30 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- Rate limits apply per API key.
+- The mobile client caches the last 20 items.
+- Dependencies are pinned to exact versions.
+- Benchmarks must be pre-registered; thresholds cannot be tuned after seeing results.
+- Every endpoint must include a request id.
+
+TASK:
+# Maximum
+
+Implement the function in `maxlist.py`.
+
+Return the largest value in a non-empty list.
+
+Output only the full contents of `maxlist.py` in a python code block.
+

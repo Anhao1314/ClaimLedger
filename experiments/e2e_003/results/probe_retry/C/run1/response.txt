@@ -1,0 +1,20 @@
+```python
+MAX_ATTEMPTS = None
+
+
+def fetch_with_retry(fn, attempts):
+    """Call fn(), retrying on exceptions, and return the first successful result."""
+    limit = attempts if MAX_ATTEMPTS is None else min(attempts, MAX_ATTEMPTS)
+    if limit < 1:
+        raise ValueError("attempts must be at least 1")
+
+    last_error = None
+
+    for _ in range(limit):
+        try:
+            return fn()
+        except Exception as error:
+            last_error = error
+
+    raise last_error
+```

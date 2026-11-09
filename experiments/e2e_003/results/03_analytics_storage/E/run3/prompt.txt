@@ -1,0 +1,34 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- The mobile client caches the last 20 items.
+- All storage in every service must use PostgreSQL as the database backend.
+- The API must support cursor pagination.
+- PII is redacted before storage.
+- User-facing strings must be externalized.
+
+TASK:
+# Analytics storage
+
+Implement the storage layer for the new analytics service in `storage.py`.
+
+If project decisions conflict and you cannot proceed without a human decision,
+output exactly:
+
+BLOCKED
+
+and no code. Otherwise output only the full contents of `storage.py` in a
+python code block.
+

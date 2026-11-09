@@ -1,0 +1,28 @@
+```python
+"""Storage backend selection and connection helpers."""
+
+BACKEND = "postgresql"
+ERROR_CODE_UNSUPPORTED_SCHEME = "ERR_UNSUPPORTED_STORAGE_SCHEME"
+
+
+def connect(dsn: str) -> str:
+    """Return the DSN unchanged when it uses the configured backend scheme.
+
+    Raises:
+        ValueError: If the DSN does not use the configured backend's scheme.
+            The error message includes a stable machine-readable code.
+    """
+    if not isinstance(dsn, str):
+        raise ValueError(
+            f"{ERROR_CODE_UNSUPPORTED_SCHEME}: DSN must be a string"
+        )
+
+    scheme, separator, _ = dsn.partition("://")
+    if not separator or scheme != BACKEND:
+        raise ValueError(
+            f"{ERROR_CODE_UNSUPPORTED_SCHEME}: unsupported DSN scheme "
+            f"{scheme!r}; expected {BACKEND!r}"
+        )
+
+    return dsn
+```

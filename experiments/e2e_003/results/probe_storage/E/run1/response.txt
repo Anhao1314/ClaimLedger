@@ -1,0 +1,30 @@
+```python
+"""Storage layer."""
+
+BACKEND = "postgresql"
+
+_DSN_SCHEMES = {
+    "postgresql": "postgresql",
+}
+
+
+def connect(dsn):
+    """Return the DSN unchanged when it targets the configured backend."""
+    if not isinstance(dsn, str):
+        raise ValueError("invalid_dsn: DSN must be a string")
+
+    scheme, separator, _ = dsn.partition("://")
+    if not separator or not scheme:
+        raise ValueError("invalid_dsn: DSN must include a URI scheme")
+
+    expected_scheme = _DSN_SCHEMES.get(BACKEND)
+    if expected_scheme is None:
+        raise ValueError(f"unsupported_backend: {BACKEND}")
+
+    if scheme.lower() != expected_scheme:
+        raise ValueError(
+            f"unsupported_dsn_scheme: expected {expected_scheme}://"
+        )
+
+    return dsn
+```

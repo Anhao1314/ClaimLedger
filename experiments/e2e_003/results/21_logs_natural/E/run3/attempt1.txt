@@ -1,0 +1,1 @@
+I cannot proceed safely because MEMORY contains conflicting decisions: one requires all new services to emit structured logs, while another forbids new services from emitting structured logs. A human must resolve which policy applies before I can write `answer.py`.

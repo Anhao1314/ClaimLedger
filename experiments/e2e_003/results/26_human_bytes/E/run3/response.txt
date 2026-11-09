@@ -1,0 +1,36 @@
+```python
+"""Base-1000 byte-size formatting helpers."""
+
+_BYTE_UNIT = "B"
+_UNITS = ("KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+
+
+def human_bytes(size):
+    """Return a human-readable byte count using base 1000."""
+    sign = "-" if size < 0 else ""
+    value = abs(float(size))
+
+    if value < 1000:
+        return f"{sign}{int(value)} {_BYTE_UNIT}"
+
+    unit_index = -1
+    for unit_index, _unit in enumerate(_UNITS):
+        value /= 1000.0
+        if value < 1000:
+            break
+
+    text = f"{value:.1f}"
+    if float(text) >= 1000 and unit_index < len(_UNITS) - 1:
+        value /= 1000.0
+        unit_index += 1
+        text = f"{value:.1f}"
+
+    return f"{sign}{text} {_UNITS[unit_index]}"
+
+
+format_bytes = human_bytes
+human_size = human_bytes
+human_readable = human_bytes
+bytes_to_human = human_bytes
+format_size = human_bytes
+```

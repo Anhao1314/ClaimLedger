@@ -1,0 +1,153 @@
+```python
+"""Console presentation helpers.
+
+This module is intentionally presentation-only.  It renders proposal data that
+has already been obtained by the application; it does not define storage, API,
+or domain concepts.
+"""
+
+from __future__ import annotations
+
+import os
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass
+from typing import Any
+
+DEFAULT_PANEL_WIDTH = 80
+MIN_PANEL_WIDTH = 20
+MAX_PANEL_WIDTH = 240
+
+_PROPOSER_KEYS = (
+    "proposer",
+    "proposer_identity",
+    "proposed_by",
+    "submitted_by",
+    "author",
+    "creator",
+    "created_by",
+    "owner",
+)
+
+
+@dataclass(frozen=True)
+class ConsoleConfig:
+    """Presentation configuration for the console."""
+
+    width: int = DEFAULT_PANEL_WIDTH
+    proposals_title: str = "Proposals"
+    show_empty_proposals: bool = True
+
+    @classmethod
+    def from_env(cls) -> "ConsoleConfig":
+        """Build configuration exclusively from environment variables."""
+        return cls(
+            width=_read_int_env(
+                ("CONSOLE_WIDTH", "CONSOLE_PANEL_WIDTH"),
+                DEFAULT_PANEL_WIDTH,
+                minimum=MIN_PANEL_WIDTH,
+                maximum=MAX_PANEL_WIDTH,
+            ),
+            proposals_title=_read_str_env(
+                ("CONSOLE_PROPOSALS_TITLE", "PROPOSALS_PANEL_TITLE"),
+                "Proposals",
+            ),
+            show_empty_proposals=_read_bool_env(
+                ("CONSOLE_SHOW_EMPTY_PROPOSALS", "CONSOLE_PROPOSALS_SHOW_EMPTY"),
+                True,
+            ),
+        )
+
+
+class Console:
+    """Small console renderer used by the presentation layer."""
+
+    def __init__(self, config: ConsoleConfig | None = None) -> None:
+        self.config = config or ConsoleConfig.from_env()
+
+    def render_proposals_panel(
+        self,
+        proposals: Iterable[Mapping[str, Any]] | Mapping[str, Any] | None,
+    ) -> str:
+        return render_proposals_panel(proposals, config=self.config)
+
+    def print_proposals_panel(
+        self,
+        proposals: Iterable[Mapping[str, Any]] | Mapping[str, Any] | None,
+    ) -> None:
+        print(self.render_proposals_panel(proposals))
+
+
+def render_proposals_panel(
+    proposals: Iterable[Mapping[str, Any]] | Mapping[str, Any] | None,
+    *,
+    config: ConsoleConfig | None = None,
+) -> str:
+    """Render the proposals panel, including each proposal's proposer identity."""
+    config = config or ConsoleConfig.from_env()
+    items = _normalise_proposals(proposals)
+
+    title = config.proposals_title.strip() or "Proposals"
+    lines = [title, "=" * min(max(len(title), 1), config.width)]
+
+    if not items:
+        if config.show_empty_proposals:
+            lines.append("(no proposals)")
+        return "\n".join(lines)
+
+    for index, proposal in enumerate(items, start=1):
+        if not isinstance(proposal, Mapping):
+            lines.append(f"{index}. {str(proposal)}")
+            lines.append("   Proposer: (unknown)")
+            continue
+
+        identifier = _first_text(proposal, ("id", "proposal_id", "number", "slug"))
+        title_text = (
+            _first_text(proposal, ("title", "name", "summary"))
+            or "(untitled proposal)"
+        )
+
+        heading = f"{index}."
+        if identifier:
+            heading += f" [{identifier}]"
+        lines.append(f"{heading} {title_text}")
+
+        proposer = _proposer_identity(proposal)
+        lines.append(f"   Proposer: {proposer or '(unknown)'}")
+
+        status = _first_text(proposal, ("status", "state"))
+        if status:
+            lines.append(f"   Status: {status}")
+
+    return "\n".join(lines)
+
+
+def print_proposals_panel(
+    proposals: Iterable[Mapping[str, Any]] | Mapping[str, Any] | None,
+    *,
+    config: ConsoleConfig | None = None,
+) -> None:
+    print(render_proposals_panel(proposals, config=config))
+
+
+def _normalise_proposals(
+    proposals: Iterable[Mapping[str, Any]] | Mapping[str, Any] | None,
+) -> list[Any]:
+    if proposals is None:
+        return []
+    if isinstance(proposals, Mapping):
+        if any(key in proposals for key in ("id", "proposal_id", "title", "proposer")):
+            return [proposals]
+        return list(proposals.values())
+    return list(proposals)
+
+
+def _proposer_identity(proposal: Mapping[str, Any]) -> str:
+    for key in _PROPOSER_KEYS:
+        if key in proposal:
+            identity = _identity_text(proposal[key])
+            if identity:
+                return identity
+
+    name = _first_text(
+        proposal,
+        ("proposer_name",

@@ -1,0 +1,53 @@
+```python
+"""Human-readable byte formatting utilities."""
+
+_BASE = 1000
+_UNITS = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+_BYTE_FORMAT = "{sign}{size} {unit}"
+_SCALED_FORMAT = "{sign}{value:.1f} {unit}"
+
+__all__ = ["human_bytes", "format_bytes", "human_size", "bytesize"]
+
+
+def human_bytes(size):
+    """Format a byte count using base 1000.
+
+    Byte values below 1000 are shown as whole bytes. Larger values use one
+    decimal place and the appropriate unit, for example ``1500`` becomes
+    ``"1.5 KB"``.
+    """
+    if not isinstance(size, (int, float)):
+        raise TypeError("size must be a number")
+
+    sign = "-" if size < 0 else ""
+    value = abs(size)
+
+    if value < _BASE:
+        if isinstance(value, float) and not value.is_integer():
+            return _BYTE_FORMAT.format(
+                sign=sign,
+                size=f"{value:g}",
+                unit=_UNITS[0],
+            )
+        return _BYTE_FORMAT.format(
+            sign=sign,
+            size=int(value),
+            unit=_UNITS[0],
+        )
+
+    unit_index = 0
+    while value >= _BASE and unit_index < len(_UNITS) - 1:
+        value /= _BASE
+        unit_index += 1
+
+    return _SCALED_FORMAT.format(
+        sign=sign,
+        value=value,
+        unit=_UNITS[unit_index],
+    )
+
+
+format_bytes = human_bytes
+human_size = human_bytes
+bytesize = human_bytes
+```

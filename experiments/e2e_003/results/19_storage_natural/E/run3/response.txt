@@ -1,0 +1,377 @@
+```python
+"""PostgreSQL-backed storage layer for the analytics service.
+
+All configuration is read from environment variables.  The storage API uses
+cursor-based pagination and does not contain any user-facing strings.
+"""
+
+from __future__ import annotations
+
+import base64
+import json
+import os
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from typing import Any, Iterable, Iterator, Mapping, Optional
+
+import psycopg2
+from psycopg2.extras import Json, RealDictCursor, execute_values
+from psycopg2.pool import ThreadedConnectionPool
+
+
+_SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS analytics_events (
+    id BIGSERIAL PRIMARY KEY,
+    event_type TEXT NOT NULL,
+    user_id TEXT,
+    session_id TEXT,
+    properties JSONB NOT NULL DEFAULT '{}'::jsonb,
+    occurred_at TIMESTAMPTZ NOT NULL,
+    received_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS analytics_events_occurred_at_id_idx
+    ON analytics_events (occurred_at DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS analytics_events_event_type_occurred_at_idx
+    ON analytics_events (event_type, occurred_at DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS analytics_events_user_id_occurred_at_idx
+    ON analytics_events (user_id, occurred_at DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS analytics_events_session_id_occurred_at_idx
+    ON analytics_events (session_id, occurred_at DESC, id DESC);
+"""
+
+_DEFAULT_PAGE_SIZE = 50
+_MAX_PAGE_SIZE = 500
+_ALLOWED_BUCKETS = frozenset({"hour", "day", "week", "month"})
+
+
+def _read_int_env(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise RuntimeError(f"Invalid integer environment variable: {name}") from exc
+
+
+def _as_datetime(value: Any) -> datetime:
+    if isinstance(value, datetime):
+        result = value
+    else:
+        text = str(value)
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        result = datetime.fromisoformat(text)
+
+    if result.tzinfo is None:
+        result = result.replace(tzinfo=timezone.utc)
+
+    return result.astimezone(timezone.utc)
+
+
+def _optional_datetime(value: Any) -> Optional[datetime]:
+    if value is None:
+        return None
+    return _as_datetime(value)
+
+
+def _coerce_page_size(limit: int) -> int:
+    try:
+        size = int(limit)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("limit must be an integer") from exc
+
+    if size < 1 or size > _MAX_PAGE_SIZE:
+        raise ValueError("limit is outside the supported range")
+
+    return size
+
+
+def _encode_cursor(occurred_at: datetime, event_id: int) -> str:
+    payload = json.dumps(
+        {"occurred_at": _as_datetime(occurred_at).isoformat(), "id": event_id},
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+
+
+def _decode_cursor(cursor: str) -> tuple[datetime, int]:
+    if not isinstance(cursor, str) or cursor == "":
+        raise ValueError("cursor is invalid")
+
+    padding = "=" * (-len(cursor) % 4)
+    try:
+        raw = base64.urlsafe_b64decode(cursor + padding)
+        data = json.loads(raw.decode("utf-8"))
+        occurred_at = _as_datetime(data["occurred_at"])
+        event_id = int(data["id"])
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise ValueError("cursor is invalid") from exc
+
+    return occurred_at, event_id
+
+
+def _normalize_event(event: Mapping[str, Any]) -> tuple[str, Optional[str], Optional[str], Json, datetime]:
+    event_type = event.get("event_type")
+    if not isinstance(event_type, str) or event_type.strip() == "":
+        raise ValueError("event_type is required")
+
+    user_id = event.get("user_id")
+    if user_id is not None:
+        user_id = str(user_id)
+
+    session_id = event.get("session_id")
+    if session_id is not None:
+        session_id = str(session_id)
+
+    properties = event.get("properties")
+    if properties is None:
+        properties = {}
+    if not isinstance(properties, Mapping):
+        raise ValueError("properties must be a mapping")
+
+    occurred_at = event.get("occurred_at")
+    if occurred_at is None:
+        occurred_at = datetime.now(timezone.utc)
+    else:
+        occurred_at = _as_datetime(occurred_at)
+
+    return event_type, user_id, session_id, Json(dict(properties)), occurred_at
+
+
+class AnalyticsStorage:
+    """Storage for analytics events using PostgreSQL."""
+
+    def __init__(self) -> None:
+        dsn = os.environ.get("ANALYTICS_DATABASE_URL")
+        if not dsn:
+            raise RuntimeError("ANALYTICS_DATABASE_URL is not configured")
+
+        min_connections = _read_int_env("ANALYTICS_DB_POOL_MIN", 1)
+        max_connections = _read_int_env("ANALYTICS_DB_POOL_MAX", 10)
+        if min_connections < 1:
+            raise RuntimeError("ANALYTICS_DB_POOL_MIN must be at least 1")
+        if max_connections < min_connections:
+            raise RuntimeError("ANALYTICS_DB_POOL_MAX must be >= ANALYTICS_DB_POOL_MIN")
+
+        self._pool = ThreadedConnectionPool(
+            min_connections,
+            max_connections,
+            dsn=dsn,
+        )
+
+    def close(self) -> None:
+        self._pool.closeall()
+
+    @contextmanager
+    def _connection(self) -> Iterator[Any]:
+        connection = self._pool.getconn()
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            self._pool.putconn(connection)
+
+    def initialize_schema(self) -> None:
+        with self._connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(_SCHEMA_SQL)
+
+    def record_event(self, event: Mapping[str, Any]) -> int:
+        event_type, user_id, session_id, properties, occurred_at = _normalize_event(event)
+
+        with self._connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO analytics_events
+                        (event_type, user_id, session_id, properties, occurred_at)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (event_type, user_id, session_id, properties, occurred_at),
+                )
+                row = cursor.fetchone()
+                return int(row[0])
+
+    def record_events(self, events: Iterable[Mapping[str, Any]]) -> list[int]:
+        rows = [_normalize_event(event) for event in events]
+        if not rows:
+            return []
+
+        with self._connection() as connection:
+            with connection.cursor() as cursor:
+                inserted = execute_values(
+                    cursor,
+                    """
+                    INSERT INTO analytics_events
+                        (event_type, user_id, session_id, properties, occurred_at)
+                    VALUES %s
+                    RETURNING id
+                    """,
+                    rows,
+                    template="(%s, %s, %s, %s, %s)",
+                    fetch=True,
+                )
+                return [int(row[0]) for row in inserted]
+
+    def list_events(
+        self,
+        *,
+        event_type: Optional[str] = None,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        since: Optional[Any] = None,
+        until: Optional[Any] = None,
+        limit: int = _DEFAULT_PAGE_SIZE,
+        cursor: Optional[str] = None,
+    ) -> dict[str, Any]:
+        page_size = _coerce_page_size(limit)
+
+        where: list[str] = []
+        params: list[Any] = []
+
+        if event_type is not None:
+            where.append("event_type = %s")
+            params.append(event_type)
+
+        if user_id is not None:
+            where.append("user_id = %s")
+            params.append(str(user_id))
+
+        if session_id is not None:
+            where.append("session_id = %s")
+            params.append(str(session_id))
+
+        since_dt = _optional_datetime(since)
+        if since_dt is not None:
+            where.append("occurred_at >= %s")
+            params.append(since_dt)
+
+        until_dt = _optional_datetime(until)
+        if until_dt is not None:
+            where.append("occurred_at <= %s")
+            params.append(until_dt)
+
+        if cursor is not None:
+            cursor_occurred_at, cursor_id = _decode_cursor(cursor)
+            where.append("(occurred_at, id) < (%s, %s)")
+            params.extend([cursor_occurred_at, cursor_id])
+
+        where_sql = ""
+        if where:
+            where_sql = "WHERE " + " AND ".join(where)
+
+        params.append(page_size + 1)
+
+        with self._connection() as connection:
+            with connection.cursor(cursor_factory=RealDictCursor) as cursor_obj:
+                cursor_obj.execute(
+                    f"""
+                    SELECT
+                        id,
+                        event_type,
+                        user_id,
+                        session_id,
+                        properties,
+                        occurred_at,
+                        received_at
+                    FROM analytics_events
+                    {where_sql}
+                    ORDER BY occurred_at DESC, id DESC
+                    LIMIT %s
+                    """,
+                    params,
+                )
+                rows = cursor_obj.fetchall()
+
+        has_more = len(rows) > page_size
+        page_rows = rows[:page_size]
+
+        next_cursor: Optional[str] = None
+        if has_more and page_rows:
+            last = page_rows[-1]
+            next_cursor = _encode_cursor(last["occurred_at"], int(last["id"]))
+
+        return {
+            "items": [dict(row) for row in page_rows],
+            "next_cursor": next_cursor,
+        }
+
+    def aggregate_events(
+        self,
+        *,
+        event_type: Optional[str] = None,
+        user_id: Optional[str] = None,
+        since: Optional[Any] = None,
+        until: Optional[Any] = None,
+        bucket: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        if bucket is not None and bucket not in _ALLOWED_BUCKETS:
+            raise ValueError("bucket is invalid")
+
+        where: list[str] = []
+        params: list[Any] = []
+
+        if event_type is not None:
+            where.append("event_type = %s")
+            params.append(event_type)
+
+        if user_id is not None:
+            where.append("user_id = %s")
+            params.append(str(user_id))
+
+        since_dt = _optional_datetime(since)
+        if since_dt is not None:
+            where.append("occurred_at >= %s")
+            params.append(since_dt)
+
+        until_dt = _optional_datetime(until)
+        if until_dt is not None:
+            where.append("occurred_at <= %s")
+            params.append(until_dt)
+
+        where_sql = ""
+        if where:
+            where_sql = "WHERE " + " AND ".join(where)
+
+        if bucket is None:
+            bucket_select = "NULL::timestamptz AS bucket_start"
+        else:
+            bucket_select = f"date_trunc('{bucket}', occurred_at) AS bucket_start"
+
+        with self._connection() as connection:
+            with connection.cursor(cursor_factory=RealDictCursor) as cursor_obj:
+                cursor_obj.execute(
+                    f"""
+                    SELECT
+                        {bucket_select},
+                        COUNT(*)::bigint AS event_count
+                    FROM analytics_events
+                    {where_sql}
+                    GROUP BY 1
+                    ORDER BY 1 NULLS LAST
+                    """,
+                    params,
+                )
+                return [dict(row) for row in cursor_obj.fetchall()]
+
+    def delete_events_before(self, cutoff: Any) -> int:
+        cutoff_dt = _as_datetime(cutoff)
+
+        with self._connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "DELETE FROM analytics_events WHERE occurred_at < %s",
+                    (cutoff_dt,),
+                )
+                return int(cursor.rowcount)
+```

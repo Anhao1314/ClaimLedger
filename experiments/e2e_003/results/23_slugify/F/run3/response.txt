@@ -1,0 +1,7 @@
+```python
+import re
+
+
+def slugify(text: str) -> str:
+    return re.sub(r"[\W_]+", "-", text.lower()).strip("-")
+```

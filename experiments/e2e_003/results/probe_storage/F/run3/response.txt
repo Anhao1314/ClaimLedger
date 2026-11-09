@@ -1,0 +1,12 @@
+```python
+from urllib.parse import urlparse
+
+BACKEND = "sqlite"
+
+
+def connect(dsn):
+    scheme = urlparse(dsn).scheme
+    if scheme.lower() != BACKEND.lower():
+        raise ValueError(f"Unsupported DSN scheme: {scheme!r}")
+    return dsn
+```

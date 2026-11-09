@@ -1,0 +1,25 @@
+```python
+from typing import Iterable, List, TypeVar
+
+T = TypeVar("T")
+
+
+def paginate(items: Iterable[T], limit: int) -> List[List[T]]:
+    """Return pages containing at most `limit` items each."""
+    if limit <= 0:
+        raise ValueError
+
+    pages: List[List[T]] = []
+    page: List[T] = []
+
+    for item in items:
+        page.append(item)
+        if len(page) == limit:
+            pages.append(page)
+            page = []
+
+    if page:
+        pages.append(page)
+
+    return pages
+```

@@ -1,0 +1,32 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- API v1 must be removed in Q4.
+- API v1 must remain unchanged.
+- All HTTP handlers must return JSON.
+- The API must support cursor pagination.
+- Dependencies are pinned to exact versions.
+
+TASK:
+# API v1 compatibility
+
+Add `v2_handler(payload)` to `handlers.py`, returning
+`{"ok": True, "version": 2, "echo": payload}`.
+
+You may refactor shared logic, but `v1_handler` must keep its exact current
+output for every payload.
+
+Output only the full contents of `handlers.py` in a python code block.
+

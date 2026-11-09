@@ -1,0 +1,10 @@
+```python
+ERROR_CODE = "PROJECT_ERROR"
+
+
+def error_response(message):
+    return {
+        "message": message,
+        "code": ERROR_CODE,
+    }
+```

@@ -1,0 +1,19 @@
+```python
+from urllib.parse import urlparse
+
+BACKEND = "sqlite"
+
+_DSN_SCHEME = "sqlite"
+
+
+def connect(dsn: str) -> str:
+    """Return the DSN unchanged when it matches the configured backend."""
+    if not isinstance(dsn, str):
+        raise ValueError(f"Unsupported DSN: {dsn!r}")
+
+    scheme = urlparse(dsn).scheme
+    if scheme == _DSN_SCHEME:
+        return dsn
+
+    raise ValueError(f"Unsupported DSN scheme: {scheme!r}")
+```

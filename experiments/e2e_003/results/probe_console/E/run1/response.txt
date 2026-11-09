@@ -1,0 +1,144 @@
+```python
+"""Presentation helpers for the application console.
+
+This module only renders data supplied by the caller. It does not fetch or
+persist proposals, and it introduces no backend concepts.
+"""
+
+from __future__ import annotations
+
+import os
+from collections.abc import Mapping
+from typing import Any, Iterable, Optional, Sequence
+
+_PROPOSALS_PANEL_FLAGS = (
+    "CONSOLE_PROPOSALS_PANEL",
+    "CONSOLE_PROPOSALS_PANEL_ENABLED",
+    "PROPOSALS_PANEL",
+    "PROPOSALS_PANEL_ENABLED",
+    "ENABLE_PROPOSALS_PANEL",
+    "FEATURE_PROPOSALS_PANEL",
+)
+
+_TRUE_VALUES = {"1", "true", "t", "yes", "y", "on"}
+_FALSE_VALUES = {"", "0", "false", "f", "no", "n", "off"}
+
+
+def _read_flag(name: str) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return False
+    value = raw.strip().lower()
+    if value in _TRUE_VALUES:
+        return True
+    if value in _FALSE_VALUES:
+        return False
+    return False
+
+
+def proposals_panel_enabled() -> bool:
+    """Return whether the proposals panel is enabled by environment config."""
+    for flag in _PROPOSALS_PANEL_FLAGS:
+        if flag in os.environ:
+            return _read_flag(flag)
+    return False
+
+
+def _field(record: Any, *names: str) -> Any:
+    if isinstance(record, Mapping):
+        for name in names:
+            value = record.get(name)
+            if value not in (None, ""):
+                return value
+    else:
+        for name in names:
+            value = getattr(record, name, None)
+            if value not in (None, ""):
+                return value
+    return None
+
+
+def proposal_proposer(proposal: Any) -> str:
+    """Return the proposal's proposer identity for display."""
+    value = _field(
+        proposal,
+        "proposer",
+        "proposer_id",
+        "proposer_name",
+        "submitted_by",
+        "author",
+        "owner",
+        "created_by",
+    )
+    if isinstance(value, Mapping):
+        nested = _field(value, "name", "display_name", "id", "email")
+        if nested is not None:
+            return str(nested)
+    if value is None:
+        return "Unknown proposer"
+    return str(value)
+
+
+def proposal_title(proposal: Any) -> str:
+    value = _field(proposal, "title", "subject", "name", "id")
+    return str(value) if value is not None else "(untitled proposal)"
+
+
+def render_proposals_panel(proposals: Optional[Iterable[Any]]) -> list[str]:
+    """Render the proposals panel lines.
+
+    The panel is omitted entirely unless its feature flag is enabled.
+    """
+    if not proposals_panel_enabled():
+        return []
+
+    proposal_list = list(proposals or [])
+    lines = ["Proposals", "---------"]
+    if not proposal_list:
+        lines.append("No proposals.")
+        return lines
+
+    for proposal in proposal_list:
+        lines.append(
+            f"- {proposal_title(proposal)} | proposer: {proposal_proposer(proposal)}"
+        )
+    return lines
+
+
+def render_console(
+    proposals: Optional[Iterable[Any]] = None,
+    panels: Optional[Sequence[str]] = None,
+) -> str:
+    """Render the console, appending the proposals panel when enabled."""
+    lines = [str(panel) for panel in (panels or [])]
+    proposals_panel = render_proposals_panel(proposals)
+    if proposals_panel:
+        if lines:
+            lines.append("")
+        lines.extend(proposals_panel)
+    return "\n".join(lines)
+
+
+def display_console(
+    proposals: Optional[Iterable[Any]] = None,
+    panels: Optional[Sequence[str]] = None,
+) -> str:
+    """Print the rendered console and return the rendered text."""
+    text = render_console(proposals=proposals, panels=panels)
+    if text:
+        print(text)
+    return text
+
+
+def main() -> int:
+    display_console()
+    return 0
+
+
+# Simple alias for integrations that refer to the panel directly.
+proposals_panel = render_proposals_panel
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```

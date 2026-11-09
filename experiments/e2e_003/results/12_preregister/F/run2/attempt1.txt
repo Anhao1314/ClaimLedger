@@ -1,0 +1,9 @@
+```python
+def may_tune_after_results() -> bool:
+    """Return whether a benchmark threshold may be tuned after seeing results.
+
+    Benchmark thresholds are pre-registered, so tuning after results is not
+    permitted.
+    """
+    return False
+```

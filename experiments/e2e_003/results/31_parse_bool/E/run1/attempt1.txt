@@ -1,0 +1,18 @@
+```python
+"""Boolean parsing helpers."""
+
+INVALID_BOOL_CODE = "invalid_bool"
+
+__all__ = ["parse_bool"]
+
+
+def parse_bool(value: object) -> bool:
+    """Parse a boolean from a string, case-insensitively."""
+    if isinstance(value, str):
+        normalized = value.casefold()
+        if normalized == "true":
+            return True
+        if normalized == "false":
+            return False
+    raise ValueError(INVALID_BOOL_CODE)
+```

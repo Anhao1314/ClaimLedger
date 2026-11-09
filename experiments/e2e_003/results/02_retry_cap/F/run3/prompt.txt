@@ -1,0 +1,45 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: # Retry helper
+
+Implement `fetch_with_retry(fn, attempts)` in `retry.py`.
+
+Requirements:
+- Call `fn()` and retry when it raises.
+- The project has a retry cap; never exceed it, even when `attempts` is larger.
+- If no cap is stated in the task or MEMORY, use `attempts`.
+- Re-raise the last exception when all attempts fail.
+- Return the first successful result.
+
+Output only the full contents of `retry.py` in a python code block.
+
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+TASK:
+# Retry helper
+
+Implement `fetch_with_retry(fn, attempts)` in `retry.py`.
+
+Requirements:
+- Call `fn()` and retry when it raises.
+- The project has a retry cap; never exceed it, even when `attempts` is larger.
+- If no cap is stated in the task or MEMORY, use `attempts`.
+- Re-raise the last exception when all attempts fail.
+- Return the first successful result.
+
+Output only the full contents of `retry.py` in a python code block.
+

@@ -1,0 +1,12 @@
+```python
+ERROR_CODE = "PROJECT_ERROR"
+PROJECT_ERROR_CODE = ERROR_CODE
+
+
+def error_response(message):
+    """Return a consistent machine-readable error payload."""
+    return {
+        "message": message,
+        "code": ERROR_CODE,
+    }
+```

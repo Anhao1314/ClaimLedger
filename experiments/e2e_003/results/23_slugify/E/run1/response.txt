@@ -1,0 +1,9 @@
+```python
+import re
+
+
+def slugify(text: str) -> str:
+    """Convert text into a lowercase, hyphen-separated slug."""
+    slug = re.sub(r"[^a-z0-9]+", "-", text.lower())
+    return slug.strip("-")
+```

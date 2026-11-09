@@ -1,0 +1,16 @@
+```python
+import hashlib
+
+
+def sha256_hex(text: str) -> str:
+    """Return the lowercase hexadecimal SHA-256 digest of UTF-8 encoded text."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def hash_text(text: str) -> str:
+    """Return the lowercase hexadecimal SHA-256 digest of UTF-8 encoded text."""
+    return sha256_hex(text)
+
+
+sha256 = sha256_hex
+```

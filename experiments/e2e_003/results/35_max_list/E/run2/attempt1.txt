@@ -1,0 +1,25 @@
+```python
+def maximum(values):
+    """Return the largest value in a non-empty list."""
+    largest = values[0]
+    for value in values[1:]:
+        if value > largest:
+            largest = value
+    return largest
+
+
+def max_list(values):
+    return maximum(values)
+
+
+def maxlist(values):
+    return maximum(values)
+
+
+def find_max(values):
+    return maximum(values)
+
+
+def get_max(values):
+    return maximum(values)
+```

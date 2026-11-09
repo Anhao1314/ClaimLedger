@@ -1,0 +1,5 @@
+```python
+def describe_margin() -> str:
+    """Return a one-sentence description of the README margin threshold."""
+    return "The README defines the margin threshold as delta=0.2."
+```

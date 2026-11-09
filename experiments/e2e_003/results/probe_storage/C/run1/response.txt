@@ -1,0 +1,36 @@
+```python
+"""Storage backend selection and connection helper."""
+
+from urllib.parse import urlsplit
+
+# Preserved from the starting code because MEMORY did not declare a backend.
+BACKEND = "sqlite"
+
+
+def _scheme(dsn: str) -> str:
+    """Return the DSN scheme in lower case."""
+    return urlsplit(dsn).scheme.lower()
+
+
+def connect(dsn: str) -> str:
+    """Return *dsn* unchanged when it targets the configured backend.
+
+    Raises:
+        ValueError: If *dsn* uses any other scheme.
+    """
+    scheme = _scheme(dsn)
+    allowed = {BACKEND.lower()}
+
+    # PostgreSQL DSNs are commonly written with either scheme.
+    if BACKEND.lower() == "postgres":
+        allowed.add("postgresql")
+    elif BACKEND.lower() == "postgresql":
+        allowed.add("postgres")
+
+    if scheme in allowed:
+        return dsn
+
+    raise ValueError(
+        f"Unsupported DSN scheme {scheme!r}; expected {BACKEND!r}"
+    )
+```

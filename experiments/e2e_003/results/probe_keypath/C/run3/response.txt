@@ -1,0 +1,13 @@
+```python
+from pathlib import Path
+
+KEY_FILENAME = "api_keys.env"
+
+
+def key_path() -> Path:
+    """Return the filesystem path where the project stores its API keys.
+
+    API keys are kept outside the repository, in the user's config directory.
+    """
+    return Path.home() / ".config" / "claimledger" / KEY_FILENAME
+```

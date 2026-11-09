@@ -1,0 +1,18 @@
+```python
+from datetime import date
+import re
+
+_ISO_DATE_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+
+
+def parse_date(s):
+    """Parse an ISO date string in YYYY-MM-DD format into a date."""
+    if not isinstance(s, str):
+        raise ValueError("date must be a string in YYYY-MM-DD format")
+    if not _ISO_DATE_RE.fullmatch(s):
+        raise ValueError("date must be in YYYY-MM-DD format")
+    try:
+        return date.fromisoformat(s)
+    except ValueError:
+        raise ValueError("invalid date")
+```

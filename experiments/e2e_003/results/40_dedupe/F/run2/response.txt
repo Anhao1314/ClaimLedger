@@ -1,0 +1,26 @@
+```python
+from typing import Iterable, TypeVar
+
+T = TypeVar("T")
+
+
+def dedupe(items: Iterable[T]) -> list[T]:
+    """Return items with duplicates removed, preserving first-seen order."""
+    seen_hashable = set()
+    seen_unhashable = []
+    result = []
+
+    for item in items:
+        try:
+            if item in seen_hashable:
+                continue
+            seen_hashable.add(item)
+        except TypeError:
+            if item in seen_unhashable:
+                continue
+            seen_unhashable.append(item)
+
+        result.append(item)
+
+    return result
+```

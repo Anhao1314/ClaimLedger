@@ -1,0 +1,1 @@
+I cannot proceed safely: the memory contains an unresolved conflict between "API v1 must be removed in Q4" and "API v1 must remain unchanged," so the intended v1 behavior in `api.py` is ambiguous and needs a human decision before any code is written.

@@ -1,0 +1,46 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: # Dependency versions
+
+Float the project dependencies to the latest minor versions in `deps.py`.
+
+If project decisions conflict and you cannot proceed without a human decision, output exactly:
+
+BLOCKED
+
+and no code. Otherwise output only the full contents of `answer.py` in a python code block.
+
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- Dependencies must float to the latest minor version. [conflicts with another record]
+- Dependencies are pinned to exact versions. [conflicts with another record]
+
+UNRESOLVED CONFLICTS (resolve with a human before acting):
+- Dependencies must float to the latest minor version.  ⟂  Dependencies are pinned to exact versions.
+
+TASK:
+# Dependency versions
+
+Float the project dependencies to the latest minor versions in `deps.py`.
+
+If project decisions conflict and you cannot proceed without a human decision, output exactly:
+
+BLOCKED
+
+and no code. Otherwise output only the full contents of `answer.py` in a python code block.
+

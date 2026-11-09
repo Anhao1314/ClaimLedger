@@ -1,0 +1,12 @@
+```python
+"""Helpers for locating project secret files."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+
+def key_path() -> Path:
+    """Return the filesystem path where the project stores its API key."""
+    return Path(__file__).resolve().with_name("api_key")
+```

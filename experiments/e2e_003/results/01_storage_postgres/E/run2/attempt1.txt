@@ -1,0 +1,11 @@
+```python
+BACKEND = "postgresql"
+
+
+def connect(dsn: str) -> str:
+    """Return a DSN for the configured storage backend unchanged."""
+    scheme = dsn.split("://", 1)[0].lower() if "://" in dsn else ""
+    if scheme == BACKEND:
+        return dsn
+    raise ValueError(f"Unsupported storage backend DSN scheme: {scheme!r}")
+```

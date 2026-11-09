@@ -1,0 +1,24 @@
+```python
+def chunk(seq, size):
+    """Split *seq* into consecutive lists of at most *size* items."""
+    if not isinstance(size, int) or isinstance(size, bool):
+        raise TypeError("size must be an integer")
+    if size <= 0:
+        raise ValueError("size must be positive")
+
+    result = []
+    current = []
+    for item in seq:
+        current.append(item)
+        if len(current) == size:
+            result.append(current)
+            current = []
+
+    if current:
+        result.append(current)
+
+    return result
+
+
+chunks = chunk
+```

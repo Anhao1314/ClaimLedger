@@ -1,0 +1,238 @@
+```python
+"""Presentation-only console panels.
+
+The console renders data supplied by callers.  It does not define storage,
+networking, mutation, or any other backend behavior.  Presentation settings are
+read from environment variables only.
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+from typing import Any, Iterable, Mapping, Optional, TextIO
+
+DEFAULT_PANEL_TITLE = "Proposals"
+DEFAULT_PANEL_WIDTH = 80
+
+_PROPOSER_KEYS = (
+    "proposer_identity",
+    "proposer",
+    "proposer_name",
+    "proposer_id",
+    "author",
+    "author_name",
+    "submitted_by",
+    "submitted_by_name",
+    "owner",
+)
+
+_TITLE_KEYS = (
+    "title",
+    "name",
+    "summary",
+    "subject",
+    "proposal_title",
+    "id",
+    "proposal_id",
+)
+
+_NESTED_IDENTITY_KEYS = (
+    "name",
+    "display_name",
+    "identity",
+    "username",
+    "email",
+    "id",
+)
+
+
+def _first_env_int(names: Iterable[str], default: int) -> int:
+    for name in names:
+        raw = os.environ.get(name)
+        if raw is None or not raw.strip():
+            continue
+        try:
+            value = int(raw)
+        except ValueError:
+            continue
+        if value > 0:
+            return value
+    return default
+
+
+def _panel_width(width: Optional[int] = None) -> int:
+    if width is not None:
+        return max(40, int(width))
+    return max(
+        40,
+        _first_env_int(
+            ("PROPOSALS_PANEL_WIDTH", "CONSOLE_PANEL_WIDTH", "CONSOLE_WIDTH"),
+            DEFAULT_PANEL_WIDTH,
+        ),
+    )
+
+
+def _panel_title(title: Optional[str] = None) -> str:
+    if title is not None:
+        return str(title)
+    for name in ("PROPOSALS_PANEL_TITLE", "CONSOLE_PROPOSALS_TITLE"):
+        value = os.environ.get(name)
+        if value is not None and value.strip():
+            return value.strip()
+    return DEFAULT_PANEL_TITLE
+
+
+def _record_value(record: Any, key: str) -> Any:
+    if isinstance(record, Mapping):
+        return record.get(key)
+    return getattr(record, key, None)
+
+
+def _identity_text(value: Any) -> str:
+    if isinstance(value, Mapping):
+        for key in _NESTED_IDENTITY_KEYS:
+            nested = value.get(key)
+            if nested is not None:
+                text = str(nested).strip()
+                if text:
+                    return text
+    return str(value).strip()
+
+
+def proposer_identity(proposal: Any) -> str:
+    """Return the proposer identity to display for a proposal record."""
+    for key in _PROPOSER_KEYS:
+        value = _record_value(proposal, key)
+        if value is not None:
+            text = _identity_text(value)
+            if text:
+                return text
+    return "Unknown proposer"
+
+
+def _display_text(value: Any, default: str) -> str:
+    if value is None:
+        return default
+    text = str(value).strip()
+    return text if text else default
+
+
+def proposal_title(proposal: Any) -> str:
+    for key in _TITLE_KEYS:
+        value = _record_value(proposal, key)
+        if value is not None:
+            text = str(value).strip()
+            if text:
+                return text
+    return "(untitled proposal)"
+
+
+def _fit(text: str, width: int) -> str:
+    if width <= 0:
+        return ""
+    if len(text) <= width:
+        return text
+    if width <= 3:
+        return text[:width]
+    return text[: width - 3] + "..."
+
+
+def render_proposals_panel(
+    proposals: Optional[Iterable[Any]],
+    *,
+    title: Optional[str] = None,
+    width: Optional[int] = None,
+) -> str:
+    """Render the proposals panel as text.
+
+    Proposer identity is included for every proposal because it is required by
+    the console presentation contract.
+    """
+    panel_width = _panel_width(width)
+    panel_title = _panel_title(title)
+    rows = [(proposal_title(proposal), proposer_identity(proposal)) for proposal in (proposals or [])]
+
+    if not rows:
+        return "\n".join([panel_title, "=" * len(panel_title), "No proposals."])
+
+    proposal_header = "Proposal"
+    proposer_header = "Proposer"
+    max_proposal = max([len(proposal_header)] + [len(row[0]) for row in rows])
+    max_proposer = max([len(proposer_header)] + [len(row[1]) for row in rows])
+
+    gap = 3
+    proposer_width = min(max_proposer, max(12, panel_width // 3))
+    proposal_width = max(12, panel_width - proposer_width - gap)
+
+    proposal_width = min(proposal_width, max_proposal)
+    proposer_width = min(proposer_width, max_proposer)
+
+    proposal_width = max(proposal_width, len(proposal_header))
+    proposer_width = max(proposer_width, len(proposer_header))
+
+    separator = "-" * (proposal_width + gap + proposer_width)
+    lines = [
+        panel_title,
+        "=" * len(panel_title),
+        f"{proposal_header:<{proposal_width}}{' ' * gap}{proposer_header}",
+        separator,
+    ]
+
+    for proposal_text, proposer_text in rows:
+        lines.append(
+            f"{_fit(proposal_text, proposal_width):<{proposal_width}}"
+            f"{' ' * gap}{_fit(proposer_text, proposer_width)}"
+        )
+
+    lines.append(separator)
+    return "\n".join(lines)
+
+
+def print_proposals_panel(
+    proposals: Optional[Iterable[Any]],
+    *,
+    stream: Optional[TextIO] = None,
+    title: Optional[str] = None,
+    width: Optional[int] = None,
+) -> str:
+    """Print the proposals panel and return the rendered text."""
+    text = render_proposals_panel(proposals, title=title, width=width)
+    print(text, file=stream or sys.stdout)
+    return text
+
+
+render_proposals = render_proposals_panel
+show_proposals_panel = print_proposals_panel
+
+
+class Console:
+    """Small presentation console for rendering panels."""
+
+    def __init__(self, stream: Optional[TextIO] = None, width: Optional[int] = None):
+        self.stream = stream if stream is not None else sys.stdout
+        self.width = width
+
+    def render_proposals_panel(self, proposals: Optional[Iterable[Any]]) -> str:
+        return render_proposals_panel(proposals, width=self.width)
+
+    def show_proposals(self, proposals: Optional[Iterable[Any]]) -> str:
+        text = self.render_proposals_panel(proposals)
+        print(text, file=self.stream)
+        return text
+
+    render_proposals = render_proposals_panel
+    show_proposals_panel = show_proposals
+    print_proposals_panel = show_proposals
+    add_proposals_panel = show_proposals
+
+    def render_panel(self, name: str, data: Any = None) -> str:
+        if name in {"proposals", "proposal"}:
+            return self.render_proposals_panel(data)
+        raise ValueError(f"Unknown console panel: {name}")
+
+    def show_panel(self, name: str, data: Any = None) -> str:
+        text = self.render_panel(name, data)
+        print(text, file=self.stream)
+        return text
+```

@@ -1,0 +1,18 @@
+```python
+"""Filesystem locations for ClaimLedger secrets."""
+
+from pathlib import Path
+
+__all__ = ["key_path"]
+
+API_KEYS_FILENAME = "api_keys.env"
+
+
+def key_path() -> Path:
+    """Return the path to the ClaimLedger API keys file.
+
+    API keys are stored outside the repository, under the user's config
+    directory, and never inside the project checkout.
+    """
+    return Path.home() / ".config" / "claimledger" / API_KEYS_FILENAME
+```

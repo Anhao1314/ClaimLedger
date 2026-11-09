@@ -1,0 +1,15 @@
+```python
+def fetch_with_retry(fn, attempts):
+    last_exception = None
+
+    for _ in range(attempts):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exception = exc
+
+    if last_exception is not None:
+        raise last_exception
+
+    raise ValueError("attempts must be at least 1")
+```

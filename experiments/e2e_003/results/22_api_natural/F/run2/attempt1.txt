@@ -1,0 +1,1 @@
+I can't proceed safely: the records contain an unresolved conflict over whether API v1 must be removed in Q4 or must remain unchanged, and I don't have the current contents of `api.py` to modify. A human needs to resolve the conflict and provide the file before any code is written.

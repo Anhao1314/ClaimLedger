@@ -1,0 +1,33 @@
+```python
+"""Human-readable descriptions of the project's margin semantics."""
+
+from __future__ import annotations
+
+from typing import Final
+
+__all__ = ["MARGIN_DELTA", "MARGIN_DESCRIPTION_KEY", "describe_margin"]
+
+# Margin threshold documented in the README.
+MARGIN_DELTA: Final[float] = 0.2
+
+# Externalized user-facing strings, addressed by stable message keys.
+MESSAGES: Final[dict[str, str]] = {
+    "margin.describe.threshold": (
+        "The margin threshold is delta={delta}: values are treated as equal "
+        "when their absolute difference is at most {delta}."
+    ),
+}
+
+MARGIN_DESCRIPTION_KEY: Final[str] = "margin.describe.threshold"
+
+
+def _format_delta(delta: float) -> str:
+    """Render a delta without trailing zeros (0.2 -> "0.2")."""
+    return f"{delta:g}"
+
+
+def describe_margin() -> str:
+    """Return one sentence describing the README margin threshold (delta=0.2)."""
+    delta = _format_delta(MARGIN_DELTA)
+    return MESSAGES[MARGIN_DESCRIPTION_KEY].format(delta=delta)
+```

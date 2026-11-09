@@ -1,0 +1,12 @@
+```python
+def maxlist(values):
+    largest = values[0]
+    for value in values[1:]:
+        if value > largest:
+            largest = value
+    return largest
+
+# Common alternative names for the same function.
+max_list = maxlist
+maximum = maxlist
+```

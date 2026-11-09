@@ -1,0 +1,11 @@
+```python
+def dedupe(items):
+    """Remove duplicates from items while preserving first-seen order."""
+    seen = set()
+    result = []
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            result.append(item)
+    return result
+```

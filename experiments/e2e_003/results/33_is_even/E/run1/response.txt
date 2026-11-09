@@ -1,0 +1,8 @@
+```python
+def is_even(n):
+    return n % 2 == 0
+
+
+def parity(n):
+    return is_even(n)
+```

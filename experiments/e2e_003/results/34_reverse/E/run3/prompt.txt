@@ -1,0 +1,30 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- Configuration is read from environment variables only.
+- User-facing strings must be externalized.
+- All HTTP handlers must return JSON.
+- Errors must include a stable machine-readable code.
+- Dependencies are pinned to exact versions.
+
+TASK:
+# Reverse string
+
+Implement the function in `strings.py`.
+
+Return the text reversed.
+
+Output only the full contents of `strings.py` in a python code block.
+

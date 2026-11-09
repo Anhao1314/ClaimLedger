@@ -1,0 +1,331 @@
+```python
+"""PostgreSQL-backed storage for the analytics service."""
+
+from __future__ import annotations
+
+import base64
+import json
+import os
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+import psycopg2
+from psycopg2.extras import Json, RealDictCursor, execute_values
+from psycopg2.pool import ThreadedConnectionPool
+
+_DEFAULT_PAGE_SIZE = 20
+_MAX_PAGE_SIZE = 100
+
+_SCHEMA_STATEMENTS = (
+    """
+    CREATE TABLE IF NOT EXISTS analytics_events (
+        id BIGSERIAL PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        user_id TEXT,
+        occurred_at TIMESTAMPTZ NOT NULL,
+        properties JSONB NOT NULL DEFAULT '{}'::jsonb,
+        received_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS analytics_events_cursor_idx
+        ON analytics_events (occurred_at DESC, id DESC)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS analytics_events_type_cursor_idx
+        ON analytics_events (event_type, occurred_at DESC, id DESC)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS analytics_events_user_cursor_idx
+        ON analytics_events (user_id, occurred_at DESC, id DESC)
+    """,
+)
+
+
+class StorageConfigurationError(RuntimeError):
+    """Raised when required storage configuration is missing or invalid."""
+
+
+class InvalidCursor(ValueError):
+    """Raised when a cursor cannot be decoded."""
+
+
+def _required_env(*names: str) -> str:
+    for name in names:
+        value = os.environ.get(name)
+        if value:
+            return value
+    raise StorageConfigurationError(
+        "ANALYTICS_DATABASE_URL or DATABASE_URL must be configured"
+    )
+
+
+def _read_int_env(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None or raw.strip() == "":
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise StorageConfigurationError(f"{name} must be an integer") from exc
+
+
+def _normalize_limit(limit: Optional[int]) -> int:
+    if limit is None:
+        return _DEFAULT_PAGE_SIZE
+    if not isinstance(limit, int) or isinstance(limit, bool):
+        raise ValueError
+    if limit < 1:
+        raise ValueError
+    return min(limit, _MAX_PAGE_SIZE)
+
+
+def _coerce_occurred_at(value: Any) -> datetime:
+    if value is None:
+        return datetime.now(timezone.utc)
+    if isinstance(value, str):
+        value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if not isinstance(value, datetime):
+        raise ValueError
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value
+
+
+def encode_cursor(occurred_at: datetime, event_id: int) -> str:
+    if occurred_at.tzinfo is None:
+        occurred_at = occurred_at.replace(tzinfo=timezone.utc)
+    payload = json.dumps(
+        [occurred_at.astimezone(timezone.utc).isoformat(), int(event_id)],
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+
+
+def decode_cursor(cursor: str) -> Tuple[datetime, int]:
+    try:
+        padding = "=" * (-len(cursor) % 4)
+        raw = base64.urlsafe_b64decode((cursor + padding).encode("ascii"))
+        occurred_at_raw, event_id_raw = json.loads(raw.decode("utf-8"))
+        occurred_at = datetime.fromisoformat(str(occurred_at_raw))
+        if occurred_at.tzinfo is None:
+            occurred_at = occurred_at.replace(tzinfo=timezone.utc)
+        return occurred_at, int(event_id_raw)
+    except Exception as exc:
+        raise InvalidCursor from exc
+
+
+class AnalyticsStorage:
+    """PostgreSQL storage for analytics events with cursor pagination."""
+
+    def __init__(self) -> None:
+        self._dsn = _required_env("ANALYTICS_DATABASE_URL", "DATABASE_URL")
+
+        min_connections = _read_int_env("ANALYTICS_DB_POOL_MIN", 1)
+        max_connections = _read_int_env("ANALYTICS_DB_POOL_MAX", 10)
+        connect_timeout = _read_int_env("ANALYTICS_DB_CONNECT_TIMEOUT", 10)
+
+        if min_connections < 1:
+            min_connections = 1
+        if max_connections < min_connections:
+            max_connections = min_connections
+
+        self._pool: Optional[ThreadedConnectionPool] = ThreadedConnectionPool(
+            min_connections,
+            max_connections,
+            dsn=self._dsn,
+            connect_timeout=connect_timeout,
+            application_name="analytics-storage",
+        )
+
+        try:
+            self._initialize_schema()
+        except Exception:
+            self._pool.closeall()
+            self._pool = None
+            raise
+
+    def _initialize_schema(self) -> None:
+        pool = self._require_pool()
+        conn = pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                for statement in _SCHEMA_STATEMENTS:
+                    cur.execute(statement)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            pool.putconn(conn)
+
+    def _require_pool(self) -> ThreadedConnectionPool:
+        if self._pool is None:
+            raise RuntimeError("storage is closed")
+        return self._pool
+
+    @contextmanager
+    def _connection(self):
+        pool = self._require_pool()
+        conn = pool.getconn()
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            pool.putconn(conn)
+
+    def record_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        rows = self.record_events((event,))
+        return rows[0]
+
+    def record_events(
+        self, events: Iterable[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        values = []
+
+        for event in events:
+            if not isinstance(event, dict):
+                raise ValueError
+
+            event_type = event.get("event_type")
+            if not isinstance(event_type, str) or not event_type.strip():
+                raise ValueError
+            event_type = event_type.strip()
+
+            user_id = event.get("user_id")
+            if user_id is not None and not isinstance(user_id, str):
+                user_id = str(user_id)
+
+            occurred_at = _coerce_occurred_at(event.get("occurred_at"))
+
+            properties = event.get("properties")
+            if properties is None:
+                properties = {}
+            if not isinstance(properties, dict):
+                raise ValueError
+
+            values.append(
+                (event_type, user_id, occurred_at, Json(properties))
+            )
+
+        if not values:
+            return []
+
+        sql = """
+            INSERT INTO analytics_events (
+                event_type,
+                user_id,
+                occurred_at,
+                properties
+            )
+            VALUES %s
+            RETURNING
+                id,
+                event_type,
+                user_id,
+                occurred_at,
+                properties,
+                received_at
+        """
+
+        with self._connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                rows = execute_values(
+                    cur,
+                    sql,
+                    values,
+                    template="(%s, %s, %s, %s)",
+                    page_size=1000,
+                    fetch=True,
+                )
+                return [dict(row) for row in rows]
+
+    def list_events(
+        self,
+        *,
+        limit: Optional[int] = None,
+        cursor: Optional[str] = None,
+        event_type: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        page_size = _normalize_limit(limit)
+
+        params: Dict[str, Any] = {"limit": page_size + 1}
+        where: List[str] = []
+
+        if event_type is not None:
+            where.append("event_type = %(event_type)s")
+            params["event_type"] = event_type
+
+        if user_id is not None:
+            where.append("user_id = %(user_id)s")
+            params["user_id"] = user_id
+
+        if cursor:
+            cursor_occurred_at, cursor_event_id = decode_cursor(cursor)
+            where.append(
+                "(occurred_at, id) < "
+                "(%(cursor_occurred_at)s, %(cursor_event_id)s)"
+            )
+            params["cursor_occurred_at"] = cursor_occurred_at
+            params["cursor_event_id"] = cursor_event_id
+
+        sql = """
+            SELECT
+                id,
+                event_type,
+                user_id,
+                occurred_at,
+                properties,
+                received_at
+            FROM analytics_events
+        """
+
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+
+        sql += " ORDER BY occurred_at DESC, id DESC LIMIT %(limit)s"
+
+        with self._connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(sql, params)
+                rows = [dict(row) for row in cur.fetchall()]
+
+        has_more = len(rows) > page_size
+        if has_more:
+            rows = rows[:page_size]
+
+        next_cursor = None
+        if has_more and rows:
+            last = rows[-1]
+            next_cursor = encode_cursor(last["occurred_at"], last["id"])
+
+        return {
+            "items": rows,
+            "next_cursor": next_cursor,
+            "has_more": has_more,
+        }
+
+    def ping(self) -> bool:
+        with self._connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                result = cur.fetchone()
+                return result is not None and result[0] == 1
+
+    def close(self) -> None:
+        if self._pool is not None:
+            self._pool.closeall()
+            self._pool = None
+
+    def __enter__(self) -> "AnalyticsStorage":
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> bool:
+        self.close()
+        return False
+```

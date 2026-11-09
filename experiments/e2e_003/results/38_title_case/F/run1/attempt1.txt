@@ -1,0 +1,21 @@
+```python
+import re
+
+
+def title_case(text: str) -> str:
+    """Capitalize the first character of each whitespace-separated word."""
+    parts = re.split(r"(\s+)", text)
+    result = []
+
+    for part in parts:
+        if not part or part.isspace():
+            result.append(part)
+        else:
+            result.append(part[0].upper() + part[1:].lower())
+
+    return "".join(result)
+
+
+def titlecase(text: str) -> str:
+    return title_case(text)
+```

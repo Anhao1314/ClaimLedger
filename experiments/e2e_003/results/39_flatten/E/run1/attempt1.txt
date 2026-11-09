@@ -1,0 +1,11 @@
+```python
+def flatten(items):
+    """Flatten one level of nesting by expanding inner lists once."""
+    flattened = []
+    for item in items:
+        if isinstance(item, list):
+            flattened.extend(item)
+        else:
+            flattened.append(item)
+    return flattened
+```

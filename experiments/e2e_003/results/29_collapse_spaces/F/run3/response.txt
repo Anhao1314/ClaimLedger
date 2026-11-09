@@ -1,0 +1,18 @@
+```python
+def collapse_spaces(text=None, **kwargs):
+    if text is None:
+        text = kwargs.get(
+            "text",
+            kwargs.get("s", kwargs.get("value", kwargs.get("string"))),
+        )
+    return " ".join(text.split())
+
+
+collapse_whitespace = collapse_spaces
+normalize_spaces = collapse_spaces
+normalize_whitespace = collapse_spaces
+normalize_text = collapse_spaces
+clean_text = collapse_spaces
+squash_spaces = collapse_spaces
+normalize = collapse_spaces
+```

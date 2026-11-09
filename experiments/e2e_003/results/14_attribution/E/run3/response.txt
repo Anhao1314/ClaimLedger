@@ -1,0 +1,10 @@
+```python
+def is_authenticated():
+    """
+    Return whether the agent registry authenticates identities.
+
+    The registry provides attribution only; it does not carry keys or
+    signatures, and therefore does not authenticate identities.
+    """
+    return False
+```

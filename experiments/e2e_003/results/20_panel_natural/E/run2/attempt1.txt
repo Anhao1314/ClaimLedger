@@ -1,0 +1,1 @@
+I can’t safely produce `answer.py` because `console.py` and the proposal data/API shape aren’t available, so any implementation would have to invent integration points and risk violating the presentation-only constraint. Please provide `console.py` (or the relevant presentation contract) and confirm whether the deliverable should be `answer.py` or the updated `console.py`.

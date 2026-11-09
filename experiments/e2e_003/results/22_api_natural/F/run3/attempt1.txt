@@ -1,0 +1,1 @@
+I cannot proceed safely: the memory contains an unresolved conflict between "API v1 must be removed in Q4" and "API v1 must remain unchanged," and neither record is admitted, so I have no authorized basis for removing or preserving the v1 API. A human needs to resolve which directive governs (and confirm that Q4 is the current/appropriate window) before any code is written.

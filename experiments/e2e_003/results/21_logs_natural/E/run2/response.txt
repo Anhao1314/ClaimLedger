@@ -1,0 +1,1 @@
+I cannot proceed safely because MEMORY contains directly conflicting requirements: “All new services must emit structured logs” and “New services must not emit structured logs.” A human decision is needed to resolve which logging policy applies.

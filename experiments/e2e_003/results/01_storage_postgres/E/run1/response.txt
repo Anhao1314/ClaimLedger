@@ -1,0 +1,9 @@
+```python
+BACKEND = "postgresql"
+
+
+def connect(dsn):
+    if dsn.startswith(f"{BACKEND}://"):
+        return dsn
+    raise ValueError(f"Unsupported DSN scheme: {dsn}")
+```

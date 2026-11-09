@@ -1,0 +1,23 @@
+```python
+"""Utilities for parsing boolean strings."""
+
+INVALID_BOOL_ERROR_CODE = "invalid_bool"
+
+
+def parse_bool(value: str) -> bool:
+    """Parse ``true`` or ``false`` case-insensitively.
+
+    Raises:
+        ValueError: If ``value`` is not a case-insensitive match for
+            ``true`` or ``false``. The exception message is a stable,
+            machine-readable error code.
+    """
+    if isinstance(value, str):
+        normalized = value.lower()
+        if normalized == "true":
+            return True
+        if normalized == "false":
+            return False
+
+    raise ValueError(INVALID_BOOL_ERROR_CODE)
+```

@@ -1,0 +1,32 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- 控制台的 proposals 面板必须显示提案人身份。
+- The console must add a proposals panel.
+- Errors must include a stable machine-readable code.
+- New services must not emit structured logs.
+- All new services must emit structured logs.
+
+TASK:
+# 结构化日志
+
+在 `logging_setup.py` 中为新的服务添加结构化日志。
+
+如果项目决策互相冲突、且没有人工决策无法继续，请准确输出：
+
+BLOCKED
+
+且不要输出任何代码。否则只在一个 python 代码块中输出 `answer.py` 的完整内容。
+

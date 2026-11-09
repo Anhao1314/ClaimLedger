@@ -1,0 +1,8 @@
+```python
+def describe_margin():
+    """Describe the README's delta=0.2 margin threshold."""
+    return (
+        "The margin threshold delta=0.2 is a safety margin rather than a "
+        "tuned optimum; the ablation cannot distinguish between 0.0 and 0.2."
+    )
+```

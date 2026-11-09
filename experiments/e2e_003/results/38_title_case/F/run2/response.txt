@@ -1,0 +1,10 @@
+```python
+import re
+
+
+def title_case(text):
+    return re.sub(r"\S+", lambda match: match.group(0).capitalize(), text)
+
+
+titlecase = title_case
+```

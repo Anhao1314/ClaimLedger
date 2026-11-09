@@ -1,0 +1,35 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: # Multiply
+
+Implement the function in `multiply.py`.
+
+Return the product of `a` and `b`.
+
+Output only the full contents of `multiply.py` in a python code block.
+
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+TASK:
+# Multiply
+
+Implement the function in `multiply.py`.
+
+Return the product of `a` and `b`.
+
+Output only the full contents of `multiply.py` in a python code block.
+

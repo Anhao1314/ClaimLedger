@@ -1,0 +1,156 @@
+```python
+"""Presentation-only console helpers.
+
+The proposals panel renders records supplied by the caller. It does not create,
+fetch, or persist proposals.
+"""
+from __future__ import annotations
+
+import os
+from collections.abc import Mapping
+from typing import Any, Iterable, List, Optional, Sequence
+
+_TRUTHY = frozenset({"1", "true", "t", "yes", "y", "on"})
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    key_name = name.upper().replace("-", "_")
+    for env_name in (
+        "CONSOLE_FEATURE_{}".format(key_name),
+        "CONSOLE_{}_ENABLED".format(key_name),
+    ):
+        raw = os.environ.get(env_name)
+        if raw is not None:
+            return raw.strip().lower() in _TRUTHY
+    return default
+
+
+def feature_enabled(name: str) -> bool:
+    """Return whether a console feature is enabled.
+
+    Feature flags are read from environment variables only and default to off.
+    """
+    return _env_flag(name, default=False)
+
+
+_IDENTITY_FIELDS = (
+    "proposer_name",
+    "proposer_id",
+    "proposer",
+    "proposed_by",
+    "submitted_by",
+    "author_name",
+    "author",
+    "creator",
+    "owner",
+)
+
+
+def _identity_from(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+
+    if isinstance(value, Mapping):
+        for key in (
+            "name",
+            "display_name",
+            "displayName",
+            "id",
+            "email",
+            "handle",
+            "username",
+        ):
+            candidate = value.get(key)
+            if candidate not in (None, ""):
+                return str(candidate)
+        return None
+
+    text = str(value).strip()
+    return text or None
+
+
+def proposer_identity(proposal: Mapping[str, Any]) -> str:
+    """Return the proposer identity for a proposal presented in the console."""
+    for field in _IDENTITY_FIELDS:
+        identity = _identity_from(proposal.get(field))
+        if identity:
+            return identity
+    return "Unknown"
+
+
+class ProposalsPanel:
+    """Console panel that presents proposals and their proposer identity."""
+
+    title = "Proposals"
+
+    def __init__(
+        self,
+        proposals: Optional[Iterable[Mapping[str, Any]]] = None,
+    ) -> None:
+        self.proposals = list(proposals or [])
+
+    def render(self) -> str:
+        lines = [self.title, "=" * len(self.title)]
+
+        if not self.proposals:
+            lines.append("No proposals.")
+            return "\n".join(lines)
+
+        for index, proposal in enumerate(self.proposals, start=1):
+            title = (
+                proposal.get("title")
+                or proposal.get("name")
+                or "Proposal {}".format(index)
+            )
+            lines.append("{}. {}".format(index, title))
+            lines.append("   Proposer: {}".format(proposer_identity(proposal)))
+
+            status = proposal.get("status")
+            if status:
+                lines.append("   Status: {}".format(status))
+
+            summary = proposal.get("summary") or proposal.get("description")
+            if summary:
+                lines.append("   {}".format(summary))
+
+            lines.append("")
+
+        return "\n".join(lines).rstrip()
+
+
+def render_proposals_panel(
+    proposals: Optional[Iterable[Mapping[str, Any]]] = None,
+) -> str:
+    return ProposalsPanel(proposals).render()
+
+
+class Console:
+    def __init__(
+        self,
+        proposals: Optional[Iterable[Mapping[str, Any]]] = None,
+    ) -> None:
+        self.proposals = list(proposals or [])
+
+    def enabled_panels(self) -> List[str]:
+        panels: List[str] = []
+        if feature_enabled("proposals"):
+            panels.append(ProposalsPanel(self.proposals).render())
+        return panels
+
+    def render(self) -> str:
+        rendered = self.enabled_panels()
+        if not rendered:
+            return "Console ready."
+        return "\n\n".join(rendered)
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    # Presentation only: proposals are supplied by the caller, not fetched here.
+    _ = argv
+    print(Console().render())
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```

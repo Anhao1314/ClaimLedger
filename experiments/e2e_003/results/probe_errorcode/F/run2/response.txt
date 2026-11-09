@@ -1,0 +1,13 @@
+```python
+"""Error response helpers."""
+
+PROJECT_ERROR_CODE = "PROJECT_ERROR"
+
+
+def error_response(message):
+    """Return a machine-readable error response."""
+    return {
+        "message": message,
+        "code": PROJECT_ERROR_CODE,
+    }
+```

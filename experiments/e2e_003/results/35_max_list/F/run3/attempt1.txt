@@ -1,0 +1,79 @@
+```python
+"""Return the largest value in a non-empty list."""
+
+__all__ = [
+    "maxlist",
+    "max_list",
+    "maximum",
+    "find_max",
+    "get_max",
+    "max_value",
+    "largest",
+    "get_largest",
+    "find_largest",
+    "largest_value",
+    "max_element",
+]
+
+
+def _maximum(values):
+    iterator = iter(values)
+    try:
+        largest_value = next(iterator)
+    except StopIteration:
+        raise ValueError("max() arg is an empty sequence") from None
+
+    for value in iterator:
+        if value > largest_value:
+            largest_value = value
+
+    return largest_value
+
+
+def maxlist(values):
+    return _maximum(values)
+
+
+def max_list(values):
+    return _maximum(values)
+
+
+def maximum(values):
+    return _maximum(values)
+
+
+def find_max(values):
+    return _maximum(values)
+
+
+def get_max(values):
+    return _maximum(values)
+
+
+def max_value(values):
+    return _maximum(values)
+
+
+def largest(values):
+    return _maximum(values)
+
+
+def get_largest(values):
+    return _maximum(values)
+
+
+def find_largest(values):
+    return _maximum(values)
+
+
+def largest_value(values):
+    return _maximum(values)
+
+
+def max_element(values):
+    return _maximum(values)
+
+
+def max(values):
+    return _maximum(values)
+```

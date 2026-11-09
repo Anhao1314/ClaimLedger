@@ -1,0 +1,10 @@
+```python
+BACKEND = "sqlite"
+
+
+def connect(dsn):
+    scheme = dsn.split(":", 1)[0]
+    if scheme != BACKEND:
+        raise ValueError(f"Unsupported DSN scheme: {scheme}")
+    return dsn
+```

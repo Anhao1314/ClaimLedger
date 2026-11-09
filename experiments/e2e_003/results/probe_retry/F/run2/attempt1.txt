@@ -1,0 +1,27 @@
+```python
+"""Retry helper."""
+
+# No explicit project-wide retry limit is specified in the task or MEMORY.
+RETRY_LIMIT = None
+
+
+def fetch_with_retry(fn, attempts):
+    """Call fn() and retry on exceptions, up to the allowed attempt limit.
+
+    Returns the first successful result. If every attempt fails, the last
+    exception is re-raised.
+    """
+    if attempts < 1:
+        raise ValueError("attempts must be at least 1")
+
+    limit = attempts if RETRY_LIMIT is None else min(attempts, RETRY_LIMIT)
+    last_exception = None
+
+    for _ in range(limit):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exception = exc
+
+    raise last_exception
+```

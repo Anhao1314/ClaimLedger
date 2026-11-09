@@ -1,0 +1,19 @@
+```python
+BACKEND = "sqlite"
+
+_SCHEME_ALIASES = {
+    "sqlite": {"sqlite"},
+    "postgres": {"postgres", "postgresql"},
+    "postgresql": {"postgres", "postgresql"},
+}
+
+
+def connect(dsn: str) -> str:
+    scheme = dsn.split("://", 1)[0].lower() if "://" in dsn else dsn.split(":", 1)[0].lower()
+    allowed_schemes = _SCHEME_ALIASES.get(BACKEND, {BACKEND})
+
+    if scheme in allowed_schemes:
+        return dsn
+
+    raise ValueError(f"Unsupported DSN scheme {scheme!r} for backend {BACKEND!r}")
+```

@@ -92,5 +92,12 @@
     }
   },
   "frozen_at": "2026-11-07 (pre-first-JEV-call)",
-  "note": "protocol frozen before any embedding/call; tasks/records/checkers inherited from e2e_002 freeze.json (sha256 there)"
+  "note": "protocol frozen before any embedding/call; tasks/records/checkers inherited from e2e_002 freeze.json (sha256 there)",
+  "post_call_fixes": [
+    {
+      "at": "2026-11-07",
+      "fix": "probe starter.py copied from source tasks \u2014 the probe authoring omitted starter boilerplate, so all 54 probe jobs (E/F/C \u00d7 6 target probes \u00d7 3 runs) failed with FileNotFoundError. Task texts and checkers unchanged; starter files are v8 boilerplate.",
+      "rerun": "failed slots retried via --resume"
+    }
+  ]
 }

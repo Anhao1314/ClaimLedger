@@ -1,0 +1,35 @@
+```python
+"""Utilities for removing duplicate values while preserving order."""
+
+from __future__ import annotations
+
+from typing import Iterable, List, TypeVar
+
+T = TypeVar("T")
+
+
+def dedupe(items: Iterable[T]) -> List[T]:
+    """Return *items* with duplicates removed, keeping first-seen order.
+
+    Hashable values are tracked with a set for O(1) membership checks.
+    Unhashable values fall back to an equality scan, so the function works
+    for both kinds of input.
+    """
+    result: List[T] = []
+    seen_hashable = set()
+    seen_unhashable: List[T] = []
+
+    for item in items:
+        try:
+            if item in seen_hashable:
+                continue
+            seen_hashable.add(item)
+        except TypeError:
+            if any(item == existing for existing in seen_unhashable):
+                continue
+            seen_unhashable.append(item)
+
+        result.append(item)
+
+    return result
+```

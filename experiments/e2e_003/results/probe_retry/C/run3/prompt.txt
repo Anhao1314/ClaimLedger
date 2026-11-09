@@ -1,0 +1,45 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: # 重试辅助函数
+
+在 `retry.py` 中实现 `fetch_with_retry(fn, attempts)`。
+
+要求：
+- 调用 `fn()`，抛出异常时重试。
+- 项目设有重试上限；即使 `attempts` 更大也绝不超过该上限。
+- 如果任务或 MEMORY 都没有说明上限，则使用 `attempts`。
+- 全部尝试失败时重新抛出最后一个异常。
+- 返回第一次成功的结果。
+
+只在一个 python 代码块中输出 `retry.py` 的完整内容。
+
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+TASK:
+# 重试辅助函数
+
+在 `retry.py` 中实现 `fetch_with_retry(fn, attempts)`。
+
+要求：
+- 调用 `fn()`，抛出异常时重试。
+- 项目设有重试上限；即使 `attempts` 更大也绝不超过该上限。
+- 如果任务或 MEMORY 都没有说明上限，则使用 `attempts`。
+- 全部尝试失败时重新抛出最后一个异常。
+- 返回第一次成功的结果。
+
+只在一个 python 代码块中输出 `retry.py` 的完整内容。
+

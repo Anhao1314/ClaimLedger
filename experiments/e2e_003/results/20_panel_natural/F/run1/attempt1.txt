@@ -1,0 +1,1 @@
+I cannot safely proceed because the task directly contradicts two unresolved records: "The console must not add any new panels" and "Do not add console features until one external user has used the system for two weeks." A human must resolve these conflicts (and confirm whether presentation-only changes are permitted) before any code is written.

@@ -1,0 +1,13 @@
+```python
+"""Descriptions for the project's margin threshold."""
+
+from gettext import gettext as _
+
+
+def describe_margin() -> str:
+    """Return a README-ready sentence describing the delta=0.2 margin threshold."""
+    return _(
+        "The delta=0.2 margin threshold is a safety margin, not a tuned optimum; "
+        "the ablation cannot distinguish 0.0 from 0.2."
+    )
+```

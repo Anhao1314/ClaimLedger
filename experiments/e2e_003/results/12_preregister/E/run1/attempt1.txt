@@ -1,0 +1,9 @@
+```python
+def may_tune_after_results() -> bool:
+    """Return whether benchmark thresholds may be tuned after seeing results.
+
+    Project policy requires benchmarks to be pre-registered, so thresholds
+    cannot be tuned after results are known.
+    """
+    return False
+```

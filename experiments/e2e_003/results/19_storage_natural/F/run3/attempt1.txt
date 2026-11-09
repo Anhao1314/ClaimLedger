@@ -1,0 +1,1 @@
+I can’t safely implement the analytics storage layer because the database backend is unresolved: one pending decision bans PostgreSQL for analytics while another mandates PostgreSQL for all services, and both are marked for human review. Please confirm the approved analytics backend, and admit or reject the pending configuration/startup constraints, before code is written.

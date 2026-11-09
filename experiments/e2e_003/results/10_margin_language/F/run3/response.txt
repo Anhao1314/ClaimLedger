@@ -1,0 +1,15 @@
+```python
+"""README helper: describe the margin threshold used by the project."""
+
+
+def describe_margin():
+    """Return one sentence describing the `delta=0.2` margin threshold.
+
+    Framing (per project decision): the threshold is a safety margin, not a
+    tuned optimum; the ablation cannot distinguish 0.0 from 0.2.
+    """
+    return (
+        "The `delta=0.2` margin is a safety margin rather than a tuned optimum, "
+        "since the ablation cannot distinguish between 0.0 and 0.2."
+    )
+```

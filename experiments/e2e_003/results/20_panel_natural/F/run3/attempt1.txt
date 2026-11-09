@@ -1,0 +1,1 @@
+I cannot proceed safely because the task conflicts with unresolved records stating that the console must not add any new panels and must not add features until an external user has used the system for two weeks. A human needs to resolve which instruction takes precedence before `answer.py` can be written.

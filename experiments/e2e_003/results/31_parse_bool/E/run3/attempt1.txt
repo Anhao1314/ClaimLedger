@@ -1,0 +1,42 @@
+```python
+"""Boolean parsing utilities."""
+
+from __future__ import annotations
+
+import gettext
+
+_ = gettext.gettext
+
+ERROR_CODE = "INVALID_BOOL"
+ERROR_MESSAGE = _("Invalid boolean value; expected 'true' or 'false'.")
+
+
+class BoolParseError(ValueError):
+    """Raised when a value is not a recognized boolean string."""
+
+    code = ERROR_CODE
+
+    def __init__(self) -> None:
+        super().__init__(ERROR_MESSAGE)
+
+
+def parse_bool(value: str) -> bool:
+    """Parse ``true``/``false`` case-insensitively.
+
+    Raises:
+        BoolParseError: If *value* is anything other than a string equal to
+            ``true`` or ``false`` ignoring case. This is a ``ValueError``
+            subclass carrying the stable machine-readable ``code`` attribute.
+    """
+    if isinstance(value, str):
+        lowered = value.lower()
+        if lowered == "true":
+            return True
+        if lowered == "false":
+            return False
+
+    raise BoolParseError()
+
+
+__all__ = ["BoolParseError", "ERROR_CODE", "parse_bool"]
+```

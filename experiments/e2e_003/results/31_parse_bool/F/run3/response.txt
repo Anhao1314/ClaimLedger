@@ -1,0 +1,10 @@
+```python
+def parse_bool(value):
+    if isinstance(value, str):
+        normalized = value.lower()
+        if normalized == "true":
+            return True
+        if normalized == "false":
+            return False
+    raise ValueError(f"Invalid boolean value: {value!r}")
+```

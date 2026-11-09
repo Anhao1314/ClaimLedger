@@ -1,0 +1,5 @@
+```python
+def is_even(n: int) -> bool:
+    """Return True when n is even, otherwise False."""
+    return n % 2 == 0
+```

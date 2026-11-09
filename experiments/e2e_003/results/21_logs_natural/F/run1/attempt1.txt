@@ -1,0 +1,1 @@
+I can’t safely proceed because MEMORY contains an unresolved conflict: one record requires all new services to emit structured logs, while another explicitly forbids new services from emitting structured logs. A human must decide which policy applies before `logging_setup.py` or `answer.py` is written.

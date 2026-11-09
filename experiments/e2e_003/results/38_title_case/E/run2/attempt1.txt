@@ -1,0 +1,15 @@
+```python
+import re
+
+
+def _capitalize_word(word: str) -> str:
+    lowered = word.lower()
+    for index, char in enumerate(lowered):
+        if char.isalpha():
+            return lowered[:index] + char.upper() + lowered[index + 1:]
+    return lowered
+
+
+def titlecase(text: str) -> str:
+    return re.sub(r"\S+", lambda match: _capitalize_word(match.group(0)), text)
+```

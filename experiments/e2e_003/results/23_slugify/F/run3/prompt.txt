@@ -1,0 +1,35 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: # Slugify
+
+Implement the function in `slug.py`.
+
+Lowercase the text, replace runs of non-alphanumeric characters with a single hyphen, and strip leading and trailing hyphens.
+
+Output only the full contents of `slug.py` in a python code block.
+
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+TASK:
+# Slugify
+
+Implement the function in `slug.py`.
+
+Lowercase the text, replace runs of non-alphanumeric characters with a single hyphen, and strip leading and trailing hyphens.
+
+Output only the full contents of `slug.py` in a python code block.
+

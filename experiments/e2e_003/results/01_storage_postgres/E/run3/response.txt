@@ -1,0 +1,15 @@
+```python
+"""Storage layer connectivity."""
+
+BACKEND = "postgresql"
+
+_POSTGRES_SCHEMES = ("postgresql://", "postgres://")
+
+
+def connect(dsn):
+    """Return the PostgreSQL DSN unchanged, or raise ValueError."""
+    if isinstance(dsn, str) and dsn.startswith(_POSTGRES_SCHEMES):
+        return dsn
+
+    raise ValueError(f"Unsupported DSN for backend {BACKEND!r}: {dsn!r}")
+```

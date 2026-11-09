@@ -1,0 +1,50 @@
+```python
+"""Filesystem location of API key files.
+
+API keys are stored outside the repository, under ``~/.config/claimledger``,
+one ``*.env`` file per key. Keys must never be committed to the repository.
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+CONFIG_DIR_NAME = "claimledger"
+KEY_FILE_SUFFIX = ".env"
+
+
+def config_dir() -> Path:
+    """Return the directory that holds ClaimLedger configuration files.
+
+    Honours ``XDG_CONFIG_HOME`` when set, otherwise falls back to
+    ``~/.config``.
+    """
+    xdg = os.environ.get("XDG_CONFIG_HOME")
+    base = Path(xdg) if xdg else Path.home() / ".config"
+    return base / CONFIG_DIR_NAME
+
+
+def key_path(name: str = "default") -> Path:
+    """Return the filesystem path of the API key file called ``name``.
+
+    The returned path always points inside ``~/.config/claimledger`` and
+    always has the ``.env`` suffix. The file itself is not required to
+    exist yet; callers are responsible for creating it with restrictive
+    permissions.
+    """
+    if not name or not name.strip():
+        raise ValueError("key name must be a non-empty string")
+
+    name = name.strip()
+    if name.endswith(KEY_FILE_SUFFIX):
+        name = name[: -len(KEY_FILE_SUFFIX)]
+    if not name:
+        raise ValueError("key name must be a non-empty string")
+    if os.sep in name or (os.altsep and os.altsep in name):
+        raise ValueError("key name must not contain path separators")
+    if name in {".", ".."}:
+        raise ValueError("key name must not be a directory reference")
+
+    return config_dir() / f"{name}{KEY_FILE_SUFFIX}"
+```

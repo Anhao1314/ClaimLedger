@@ -1,0 +1,1 @@
+I can’t safely proceed because MEMORY contains contradictory requirements: “API v1 must be removed in Q4” and “API v1 must remain unchanged.” A human must resolve which requirement takes precedence before I modify `api.py` or provide `answer.py`.

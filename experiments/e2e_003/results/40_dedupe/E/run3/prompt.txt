@@ -1,0 +1,30 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- API v1 must be removed in Q4.
+- Dependencies are pinned to exact versions.
+- The mobile client caches the last 20 items.
+- PII is redacted before storage.
+- Errors must include a stable machine-readable code.
+
+TASK:
+# Dedupe
+
+Implement the function in `dedupe.py`.
+
+Remove duplicates while preserving first-seen order.
+
+Output only the full contents of `dedupe.py` in a python code block.
+

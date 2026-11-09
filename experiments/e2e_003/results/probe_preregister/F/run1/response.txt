@@ -1,0 +1,12 @@
+```python
+"""Project policy helpers."""
+
+
+def may_tune_after_results() -> bool:
+    """Return whether thresholds may be tuned after benchmark results are seen.
+
+    The project does not permit threshold tuning after observing benchmark
+    results, to avoid overfitting to the evaluation set.
+    """
+    return False
+```

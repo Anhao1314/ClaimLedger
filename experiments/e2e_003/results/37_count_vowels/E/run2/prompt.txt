@@ -1,0 +1,30 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- All timestamps are stored in UTC.
+- Configuration is read from environment variables only.
+- The mobile client caches the last 20 items.
+- Rate limits apply per API key.
+- Dependencies are pinned to exact versions.
+
+TASK:
+# Count vowels
+
+Implement the function in `vowels.py`.
+
+Count the vowels `aeiou` case-insensitively.
+
+Output only the full contents of `vowels.py` in a python code block.
+

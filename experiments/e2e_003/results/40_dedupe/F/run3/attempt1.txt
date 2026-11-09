@@ -1,0 +1,9 @@
+```python
+def dedupe(items):
+    """Return items with duplicates removed, preserving first-seen order."""
+    result = []
+    for item in items:
+        if item not in result:
+            result.append(item)
+    return result
+```

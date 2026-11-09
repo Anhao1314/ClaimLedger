@@ -1,0 +1,1 @@
+I cannot proceed safely because MEMORY contains contradictory requirements: “API v1 must be removed in Q4” conflicts with “API v1 must remain unchanged,” and no human decision resolves which takes precedence.

@@ -1,0 +1,18 @@
+```python
+def dedupe(items):
+    """Remove duplicates from an iterable while preserving first-seen order."""
+    seen = set()
+    result = []
+
+    for item in items:
+        try:
+            if item in seen:
+                continue
+            seen.add(item)
+        except TypeError:
+            if item in result:
+                continue
+        result.append(item)
+
+    return result
+```

@@ -1,0 +1,5 @@
+```python
+def claim_strength(n):
+    """Return claim strength based on sample size."""
+    return "weak" if n < 100 else "strong"
+```

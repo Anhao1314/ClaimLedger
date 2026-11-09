@@ -1,0 +1,45 @@
+```python
+"""Retry helper for calling functions that may fail transiently."""
+
+# No numeric retry upper limit is specified by the task or MEMORY.
+# MEMORY says flaky tests are quarantined, not retried indefinitely, but it
+# does not define a numeric cap for this helper. Use `attempts` as the limit.
+MAX_ATTEMPTS = None
+
+
+class InvalidAttemptsError(ValueError):
+    """Raised when the requested attempt count is invalid."""
+
+    code = "invalid_attempts"
+
+    def __init__(self, attempts):
+        self.attempts = attempts
+        self.code = "invalid_attempts"
+        super().__init__(
+            f"attempts must be a positive integer, got {attempts!r}"
+        )
+
+
+def fetch_with_retry(fn, attempts):
+    """Call fn and retry on exceptions up to the effective attempt limit.
+
+    Returns the first successful result. If every attempt fails, the last
+    exception is re-raised.
+    """
+    if not isinstance(attempts, int) or isinstance(attempts, bool) or attempts < 1:
+        raise InvalidAttemptsError(attempts)
+
+    effective_attempts = attempts
+    if MAX_ATTEMPTS is not None:
+        effective_attempts = min(effective_attempts, MAX_ATTEMPTS)
+
+    last_exc = None
+    for _ in range(effective_attempts):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exc = exc
+
+    # effective_attempts is always at least 1, so last_exc is set here.
+    raise last_exc
+```

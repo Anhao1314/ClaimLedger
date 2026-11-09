@@ -1,0 +1,47 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: # API v1 compatibility
+
+Add `v2_handler(payload)` to `handlers.py`, returning
+`{"ok": True, "version": 2, "echo": payload}`.
+
+You may refactor shared logic, but `v1_handler` must keep its exact current
+output for every payload.
+
+Output only the full contents of `handlers.py` in a python code block.
+
+
+ACTIVE CONSTRAINTS: none admitted for this task.
+
+NEEDS HUMAN REVIEW (not admitted — do not rely yet):
+- API v1 must remain unchanged. [conflicts with another record]
+- API v1 must be removed in Q4. [conflicts with another record]
+- Errors must include a stable machine-readable code. [thin margin]
+
+UNRESOLVED CONFLICTS (resolve with a human before acting):
+- API v1 must be removed in Q4.  ⟂  API v1 must remain unchanged.
+
+TASK:
+# API v1 compatibility
+
+Add `v2_handler(payload)` to `handlers.py`, returning
+`{"ok": True, "version": 2, "echo": payload}`.
+
+You may refactor shared logic, but `v1_handler` must keep its exact current
+output for every payload.
+
+Output only the full contents of `handlers.py` in a python code block.
+

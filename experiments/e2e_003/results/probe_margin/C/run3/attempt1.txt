@@ -1,0 +1,8 @@
+```python
+"""Helpers for describing project configuration values."""
+
+
+def describe_margin():
+    """Return a sentence describing the README's margin threshold."""
+    return "The margin threshold is delta=0.2."
+```

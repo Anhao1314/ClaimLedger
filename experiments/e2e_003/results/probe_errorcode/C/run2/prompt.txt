@@ -1,0 +1,32 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+TASK: # 错误响应
+
+在 `errors.py` 中实现 `error_response(message)`。返回一个包含 `message` 和项目错误码的字典。
+
+只在一个 python 代码块中输出 `errors.py` 的完整内容。
+
+
+ACTIVE CONSTRAINTS (must follow):
+- Errors must include a stable machine-readable code.
+
+TASK:
+# 错误响应
+
+在 `errors.py` 中实现 `error_response(message)`。返回一个包含 `message` 和项目错误码的字典。
+
+只在一个 python 代码块中输出 `errors.py` 的完整内容。
+

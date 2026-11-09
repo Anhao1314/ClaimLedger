@@ -1,0 +1,20 @@
+```python
+from itertools import islice
+
+
+def chunk(sequence, size):
+    """Split a sequence into consecutive lists of at most `size` items."""
+    if size <= 0:
+        raise ValueError("size must be greater than zero")
+
+    iterator = iter(sequence)
+    chunks = []
+
+    while True:
+        batch = list(islice(iterator, size))
+        if not batch:
+            break
+        chunks.append(batch)
+
+    return chunks
+```

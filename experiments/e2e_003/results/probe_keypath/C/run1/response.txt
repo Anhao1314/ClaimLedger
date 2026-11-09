@@ -1,0 +1,8 @@
+```python
+from pathlib import Path
+
+
+def key_path() -> Path:
+    """Return the filesystem path for the project's API-key env file."""
+    return Path.home() / ".config" / "claimledger" / "api_keys.env"
+```

@@ -1,0 +1,14 @@
+```python
+"""Helpers for locating API-key files outside the repository."""
+
+from pathlib import Path
+
+
+def key_path() -> Path:
+    """Return the path to the project's API-key file.
+
+    API keys are kept outside the repository, under
+    ``~/.config/claimledger``, and must use an ``.env`` file.
+    """
+    return Path.home() / ".config" / "claimledger" / "api_keys.env"
+```

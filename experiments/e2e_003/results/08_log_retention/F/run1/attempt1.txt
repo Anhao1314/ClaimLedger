@@ -1,0 +1,5 @@
+```python
+"""Logging configuration."""
+
+RETENTION_DAYS = 30
+```

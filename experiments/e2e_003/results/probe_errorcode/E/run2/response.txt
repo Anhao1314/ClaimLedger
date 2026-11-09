@@ -1,0 +1,14 @@
+```python
+"""Error response helpers."""
+
+PROJECT_ERROR_CODE = "PROJECT_ERROR"
+ERROR_CODE = PROJECT_ERROR_CODE
+
+
+def error_response(message):
+    """Return a consistent error payload with a stable code."""
+    return {
+        "message": message,
+        "code": ERROR_CODE,
+    }
+```

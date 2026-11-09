@@ -1,0 +1,8 @@
+```python
+def reverse_string(text):
+    """Return the text reversed."""
+    return text[::-1]
+
+
+reverse = reverse_string
+```

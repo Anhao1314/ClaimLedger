@@ -1,0 +1,1 @@
+I cannot proceed safely because the memory contains an unresolved conflict: one record requires all new services to emit structured logs, while another explicitly forbids new services from emitting structured logs. A human must resolve which policy applies before I can modify `logging_setup.py` or produce `answer.py`.

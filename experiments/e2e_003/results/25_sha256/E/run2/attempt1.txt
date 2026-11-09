@@ -1,0 +1,25 @@
+```python
+"""SHA-256 hashing helpers."""
+
+from __future__ import annotations
+
+import hashlib
+
+__all__ = ["HashingError", "sha256_hex"]
+
+
+class HashingError(ValueError):
+    """Raised when hashing input is invalid."""
+
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
+        self.message = message
+        super().__init__(f"{code}: {message}")
+
+
+def sha256_hex(text: str) -> str:
+    """Return the lowercase hex SHA-256 digest of the UTF-8 encoded text."""
+    if not isinstance(text, str):
+        raise HashingError("INVALID_TEXT_TYPE", "text must be a string")
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+```

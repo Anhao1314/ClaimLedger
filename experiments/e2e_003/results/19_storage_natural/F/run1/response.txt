@@ -1,0 +1,203 @@
+```python
+"""Storage layer for analytics events.
+
+The unresolved database-backend decisions are intentionally not relied on here.
+This module provides a backend-neutral, in-memory storage implementation that
+can be replaced by an approved persistent backend later.
+
+PII is redacted before an event is accepted into storage.
+"""
+
+from __future__ import annotations
+
+import copy
+import re
+import threading
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Mapping, Optional
+
+REDACTED = "[REDACTED]"
+
+_PII_KEY_PATTERNS = tuple(
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"e[_-]?mail",
+        r"phone|mobile|telephone",
+        r"first[_-]?name|last[_-]?name|full[_-]?name|surname|given[_-]?name|family[_-]?name",
+        r"address|street|city|town|zip|postal|postcode",
+        r"ssn|social[_-]?security",
+        r"credit[_-]?card|card[_-]?number|cvv|cvc|security[_-]?code",
+        r"ip[_-]?address|remote[_-]?addr",
+        r"passport|driver[_-]?license|license[_-]?number",
+        r"date[_-]?of[_-]?birth|birthdate|\bdob\b",
+        r"username|user[_-]?name",
+    )
+)
+
+_EMAIL_RE = re.compile(
+    r"(?<![\w.+-])[A-Z0-9._%+-]+@(?:[A-Z0-9-]+\.)+[A-Z]{2,}(?![\w.-])",
+    re.IGNORECASE,
+)
+_SSN_RE = re.compile(r"(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)")
+
+
+def _is_pii_key(key: Any) -> bool:
+    text = str(key)
+    return any(pattern.search(text) for pattern in _PII_KEY_PATTERNS)
+
+
+def _redact_string(value: str) -> str:
+    redacted = _EMAIL_RE.sub(REDACTED, value)
+    redacted = _SSN_RE.sub(REDACTED, redacted)
+    return redacted
+
+
+def redact_pii(value: Any) -> Any:
+    """Return a redacted copy of ``value`` without mutating the input.
+
+    Known PII fields are replaced entirely. String values elsewhere are also
+    scrubbed for common PII patterns such as email addresses and SSNs.
+    """
+    if isinstance(value, Mapping):
+        result: Dict[Any, Any] = {}
+        for key, item in value.items():
+            if _is_pii_key(key):
+                result[key] = REDACTED
+            else:
+                result[key] = redact_pii(item)
+        return result
+
+    if isinstance(value, list):
+        return [redact_pii(item) for item in value]
+
+    if isinstance(value, tuple):
+        return tuple(redact_pii(item) for item in value)
+
+    if isinstance(value, set):
+        return {redact_pii(item) for item in value}
+
+    if isinstance(value, frozenset):
+        return frozenset(redact_pii(item) for item in value)
+
+    if isinstance(value, str):
+        return _redact_string(value)
+
+    return value
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _matches(event: Mapping[str, Any], filters: Mapping[str, Any]) -> bool:
+    for key, expected in filters.items():
+        if key not in event or event[key] != expected:
+            return False
+    return True
+
+
+class AnalyticsStorage:
+    """In-memory analytics event storage with mandatory PII redaction."""
+
+    def __init__(self, max_events: Optional[int] = None) -> None:
+        if max_events is not None and max_events < 0:
+            raise ValueError("max_events must be non-negative")
+        self._events: List[Dict[str, Any]] = []
+        self._lock = threading.RLock()
+        self._max_events = max_events
+
+    def store(self, event: Mapping[str, Any]) -> Dict[str, Any]:
+        """Redact and store an analytics event, returning the stored record."""
+        if not isinstance(event, Mapping):
+            raise TypeError("event must be a mapping")
+
+        redacted = redact_pii(dict(event))
+        if not isinstance(redacted, dict):
+            raise TypeError("event must redact to a mapping")
+
+        record = copy.deepcopy(redacted)
+        record.setdefault("id", uuid.uuid4().hex)
+        record.setdefault("timestamp", _utc_now_iso())
+
+        with self._lock:
+            self._events.append(record)
+            if self._max_events is not None and len(self._events) > self._max_events:
+                del self._events[: len(self._events) - self._max_events]
+            return copy.deepcopy(record)
+
+    save = store
+    store_event = store
+    append = store
+    add = store
+
+    def get_events(
+        self,
+        limit: Optional[int] = None,
+        offset: int = 0,
+        **filters: Any,
+    ) -> List[Dict[str, Any]]:
+        """Return stored events, optionally filtered and paginated."""
+        if limit is not None and limit < 0:
+            raise ValueError("limit must be non-negative")
+        if offset < 0:
+            raise ValueError("offset must be non-negative")
+
+        with self._lock:
+            events = [copy.deepcopy(event) for event in self._events]
+
+        if filters:
+            events = [event for event in events if _matches(event, filters)]
+
+        if offset:
+            events = events[offset:]
+
+        if limit is not None:
+            events = events[:limit]
+
+        return events
+
+    query = get_events
+    query_events = get_events
+    get = get_events
+    all = get_events
+
+    def get_event(self, event_id: str) -> Optional[Dict[str, Any]]:
+        """Return one event by id, or ``None`` if it is not present."""
+        with self._lock:
+            for event in self._events:
+                if event.get("id") == event_id:
+                    return copy.deepcopy(event)
+        return None
+
+    def count(self, **filters: Any) -> int:
+        """Return the number of stored events, optionally matching filters."""
+        if filters:
+            return len(self.get_events(**filters))
+        with self._lock:
+            return len(self._events)
+
+    def clear(self) -> None:
+        """Remove all stored events."""
+        with self._lock:
+            self._events.clear()
+
+    delete_all = clear
+
+    def __len__(self) -> int:
+        with self._lock:
+            return len(self._events)
+
+    def __iter__(self):
+        return iter(self.get_events())
+
+
+Storage = AnalyticsStorage
+
+__all__ = [
+    "AnalyticsStorage",
+    "Storage",
+    "REDACTED",
+    "redact_pii",
+]
+```

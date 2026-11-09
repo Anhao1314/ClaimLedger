@@ -1,0 +1,30 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- The queue is drained before shutdown.
+- Configuration is read from environment variables only.
+- Errors must include a stable machine-readable code.
+- API v1 must be removed in Q4.
+- User-facing strings must be externalized.
+
+TASK:
+# Collapse spaces
+
+Implement the function in `textnorm.py`.
+
+Replace every run of whitespace with a single space and strip leading and trailing whitespace.
+
+Output only the full contents of `textnorm.py` in a python code block.
+

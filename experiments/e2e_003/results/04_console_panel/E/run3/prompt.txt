@@ -1,0 +1,34 @@
+SYSTEM:
+You are a coding agent working in a small Python repository.
+Follow the project decisions in MEMORY.
+If MEMORY contains decisions that conflict and you cannot proceed without a
+human decision, output exactly:
+
+BLOCKED
+
+and no code.
+Otherwise output only the full contents of the requested file in a single
+python code block. Do not explain, do not run commands.
+
+
+USER:
+MEMORY:
+- The console must add a proposals panel.
+- 控制台的 proposals 面板必须显示提案人身份。
+- The console must not introduce new backend concepts; this round is presentation only.
+- The console must not add any new panels.
+- Errors must include a stable machine-readable code.
+
+TASK:
+# Console proposals panel
+
+Add a proposals panel to the console in `console.py`.
+
+If project decisions conflict and you cannot proceed without a human decision,
+output exactly:
+
+BLOCKED
+
+and no code. Otherwise output only the full contents of `console.py` in a
+python code block.
+

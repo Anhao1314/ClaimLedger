@@ -1,0 +1,18 @@
+```python
+def fetch_with_retry(fn, attempts):
+    """Call fn(), retrying on exceptions up to attempts total calls.
+
+    Returns the first successful result. If every attempt fails, the last
+    exception is re-raised. No retry limit is specified by the task/MEMORY, so
+    attempts is used as the effective limit.
+    """
+    if attempts < 1:
+        raise ValueError("attempts must be at least 1")
+
+    for attempt in range(attempts):
+        try:
+            return fn()
+        except Exception:
+            if attempt == attempts - 1:
+                raise
+```

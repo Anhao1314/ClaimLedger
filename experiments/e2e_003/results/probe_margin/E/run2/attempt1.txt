@@ -1,0 +1,18 @@
+```python
+"""Human-readable descriptions for margin thresholds."""
+
+from __future__ import annotations
+
+from gettext import gettext as _
+
+MARGIN_THRESHOLD = 0.2
+
+_MARGIN_THRESHOLD_DESCRIPTION = _(
+    "The margin threshold is delta={delta:g}."
+)
+
+
+def describe_margin() -> str:
+    """Return the project's one-sentence description of the margin threshold."""
+    return _MARGIN_THRESHOLD_DESCRIPTION.format(delta=MARGIN_THRESHOLD)
+```

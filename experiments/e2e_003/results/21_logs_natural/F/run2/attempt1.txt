@@ -1,0 +1,1 @@
+I cannot proceed safely: MEMORY contains an unresolved direct conflict between "All new services must emit structured logs" and "New services must not emit structured logs," so adding (or omitting) structured logging in `logging_setup.py` would violate one of the two records. Please have a human resolve which constraint applies before any code is written.

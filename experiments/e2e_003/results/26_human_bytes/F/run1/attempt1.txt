@@ -1,0 +1,26 @@
+```python
+def human_bytes(byte_count: int) -> str:
+    units = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+
+    if byte_count < 0:
+        return "-" + human_bytes(-byte_count)
+
+    value = float(byte_count)
+    unit_index = 0
+
+    while value >= 1000 and unit_index < len(units) - 1:
+        value /= 1000
+        unit_index += 1
+
+    if unit_index == 0:
+        return f"{int(value)} B"
+
+    return f"{value:.1f} {units[unit_index]}"
+
+
+bytesize = human_bytes
+human_size = human_bytes
+human_readable = human_bytes
+format_bytes = human_bytes
+bytes_to_human = human_bytes
+```

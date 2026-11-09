@@ -1,0 +1,15 @@
+```python
+"""Error response helpers."""
+
+# Stable, machine-readable code for errors produced by this project.
+ERROR_CODE = "PROJECT_ERROR"
+PROJECT_ERROR_CODE = ERROR_CODE
+
+
+def error_response(message):
+    """Return a standardized error response with a stable code."""
+    return {
+        "message": message,
+        "code": PROJECT_ERROR_CODE,
+    }
+```

@@ -1,0 +1,6 @@
+```python
+def paginate(items, limit):
+    if limit <= 0:
+        raise ValueError("limit must be positive")
+    return [items[i:i + limit] for i in range(0, len(items), limit)]
+```

@@ -1,0 +1,20 @@
+```python
+BACKEND = "sqlite"
+
+_SCHEMES = {
+    "sqlite": {"sqlite"},
+    "postgresql": {"postgresql", "postgres"},
+}
+
+def connect(dsn):
+    if not isinstance(dsn, str):
+        raise ValueError("DSN must be a string")
+
+    scheme, separator, _ = dsn.partition("://")
+    allowed_schemes = _SCHEMES.get(BACKEND, {BACKEND})
+
+    if separator and scheme.lower() in allowed_schemes:
+        return dsn
+
+    raise ValueError(f"Unsupported DSN scheme for backend {BACKEND!r}: {dsn!r}")
+```

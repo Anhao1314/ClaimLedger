@@ -1,0 +1,15 @@
+```python
+def flatten(items):
+    """Flatten one level of nesting.
+
+    Any list contained in *items* is expanded once; all other values are
+    included unchanged.
+    """
+    result = []
+    for item in items:
+        if isinstance(item, list):
+            result.extend(item)
+        else:
+            result.append(item)
+    return result
+```

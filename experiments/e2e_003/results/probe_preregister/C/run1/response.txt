@@ -1,0 +1,8 @@
+```python
+"""Project policy helpers."""
+
+
+def may_tune_after_results() -> bool:
+    """Return whether thresholds may be adjusted after seeing benchmark results."""
+    return False
+```

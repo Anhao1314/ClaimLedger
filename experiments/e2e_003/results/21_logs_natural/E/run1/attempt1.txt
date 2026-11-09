@@ -1,0 +1,1 @@
+I cannot proceed because the MEMORY contains directly contradictory decisions—one requires new services to emit structured logs while the other forbids them—so the logging behavior cannot be determined safely. Additionally, the contents of `logging_setup.py` are not provided, so I cannot produce the requested full `answer.py`.

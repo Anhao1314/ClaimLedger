@@ -1,0 +1,10 @@
+```python
+"""Human-readable descriptions for comparison metrics."""
+
+MARGIN_THRESHOLD_DESCRIPTION = "The margin threshold is delta=0.2."
+
+
+def describe_margin() -> str:
+    """Return a sentence describing the margin threshold."""
+    return MARGIN_THRESHOLD_DESCRIPTION
+```

@@ -1,0 +1,5 @@
+```python
+def is_authenticated():
+    """Return whether the agent registry authenticates identities."""
+    return False
+```

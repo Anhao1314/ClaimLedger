@@ -1,0 +1,5 @@
+```python
+def may_tune_after_results() -> bool:
+    """Return whether the project allows tuning a benchmark threshold after results."""
+    return False
+```

@@ -1,0 +1,1 @@
+I cannot proceed safely because MEMORY contains contradictory requirements (“API v1 must be removed in Q4” and “API v1 must remain unchanged”), and the current quarter plus the contents of `api.py` are unavailable. A human decision is needed to resolve which requirement applies before changing the API.

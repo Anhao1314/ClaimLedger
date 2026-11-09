@@ -1,0 +1,168 @@
+```python
+"""Console presentation layer.
+
+The proposals panel is presentation-only. Proposal data is expected to be
+provided by the existing application layer; this module does not fetch,
+mutate, or define any new backend behavior.
+"""
+
+from __future__ import annotations
+
+import os
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any
+
+PROPOSALS_PANEL_ENV = "CONSOLE_PROPOSALS_PANEL"
+_PROPOSALS_PANEL_ENV_NAMES = (
+    PROPOSALS_PANEL_ENV,
+    "CONSOLE_FEATURE_PROPOSALS_PANEL",
+    "CONSOLE_PROPOSALS_ENABLED",
+)
+_TRUTHY = frozenset({"1", "true", "t", "yes", "y", "on"})
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    """Read a boolean feature flag from the environment."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in _TRUTHY
+
+
+def proposals_panel_enabled() -> bool:
+    """Return whether the proposals panel is enabled.
+
+    Feature flags default to off and are read from environment variables only.
+    """
+    return any(_env_flag(name, False) for name in _PROPOSALS_PANEL_ENV_NAMES)
+
+
+def _read(record: Any, *keys: str) -> Any:
+    if isinstance(record, Mapping):
+        for key in keys:
+            if key in record:
+                return record[key]
+        return None
+
+    for key in keys:
+        if hasattr(record, key):
+            return getattr(record, key)
+    return None
+
+
+def _as_text(value: Any) -> str:
+    if value is None:
+        return ""
+
+    if isinstance(value, Mapping):
+        for key in ("name", "display_name", "displayName", "username", "id"):
+            if key in value:
+                text = _as_text(value[key])
+                if text:
+                    return text
+        return ""
+
+    return str(value).strip()
+
+
+def _proposer_identity(proposal: Any) -> str:
+    for key in (
+        "proposer",
+        "proposer_name",
+        "proposerName",
+        "proposed_by",
+        "proposedBy",
+        "author",
+        "submitted_by",
+        "submittedBy",
+        "owner",
+    ):
+        identity = _as_text(_read(proposal, key))
+        if identity:
+            return identity
+    return "Unknown"
+
+
+def _proposal_title(proposal: Any) -> str:
+    for key in ("title", "name", "summary", "description", "id"):
+        title = _as_text(_read(proposal, key))
+        if title:
+            return title
+    return "(untitled proposal)"
+
+
+def render_proposals_panel(
+    proposals: Iterable[Mapping[str, Any]] | Mapping[str, Any] | None = None,
+) -> str:
+    """Render the proposals panel, including each proposal's proposer."""
+    if proposals is None:
+        items: list[Any] = []
+    elif isinstance(proposals, Mapping):
+        items = [proposals]
+    else:
+        items = list(proposals)
+
+    lines = ["Proposals", "========="]
+
+    if not items:
+        lines.append("No proposals.")
+        return "\n".join(lines)
+
+    for proposal in items:
+        lines.append(f"- {_proposal_title(proposal)}")
+        lines.append(f"  Proposer: {_proposer_identity(proposal)}")
+
+    return "\n".join(lines)
+
+
+def render_console(
+    proposals: Iterable[Mapping[str, Any]] | Mapping[str, Any] | None = None,
+    *,
+    sections: Sequence[str] | None = None,
+    title: str = "Console",
+) -> str:
+    """Render the console, conditionally including the proposals panel."""
+    blocks = [title]
+
+    if sections:
+        blocks.extend(section for section in sections if section)
+
+    if proposals_panel_enabled():
+        blocks.append(render_proposals_panel(proposals))
+
+    return "\n\n".join(blocks)
+
+
+class Console:
+    """Small presentation helper for rendering the console."""
+
+    def __init__(
+        self,
+        proposals: Iterable[Mapping[str, Any]] | Mapping[str, Any] | None = None,
+    ) -> None:
+        if proposals is None:
+            self._proposals: list[Any] = []
+        elif isinstance(proposals, Mapping):
+            self._proposals = [proposals]
+        else:
+            self._proposals = list(proposals)
+
+    def render_proposals_panel(self) -> str:
+        return render_proposals_panel(self._proposals)
+
+    def render(
+        self,
+        *,
+        sections: Sequence[str] | None = None,
+        title: str = "Console",
+    ) -> str:
+        return render_console(self._proposals, sections=sections, title=title)
+
+
+def main() -> None:
+    print(render_console())
+
+
+if __name__ == "__main__":
+    main()
+```

@@ -1,0 +1,12 @@
+```python
+def median(numbers):
+    """Return the median of a non-empty list of numbers."""
+    ordered = sorted(numbers)
+    count = len(ordered)
+    middle = count // 2
+
+    if count % 2 == 1:
+        return ordered[middle]
+
+    return (ordered[middle - 1] + ordered[middle]) / 2
+```

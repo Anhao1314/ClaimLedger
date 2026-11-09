@@ -1,0 +1,5 @@
+```python
+def collapse_spaces(text: str) -> str:
+    """Replace each run of whitespace with a single space and strip the ends."""
+    return " ".join(text.split())
+```

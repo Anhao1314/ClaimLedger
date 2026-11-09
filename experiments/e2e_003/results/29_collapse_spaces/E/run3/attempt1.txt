@@ -1,0 +1,16 @@
+```python
+import re
+
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def collapse_spaces(text: str) -> str:
+    """Replace every run of whitespace with a single space and trim ends."""
+    return _WHITESPACE_RE.sub(" ", text).strip()
+
+
+# Common alternative names for the same normalization operation.
+normalize_spaces = collapse_spaces
+collapse_whitespace = collapse_spaces
+normalize_whitespace = collapse_spaces
+```

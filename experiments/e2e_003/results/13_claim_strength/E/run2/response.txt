@@ -1,0 +1,10 @@
+```python
+WEAK_CLAIM_THRESHOLD = 100
+
+
+def claim_strength(n):
+    """Return claim strength based on the sample size."""
+    if n < WEAK_CLAIM_THRESHOLD:
+        return "weak"
+    return "strong"
+```
