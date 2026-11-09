@@ -1,0 +1,11 @@
+{
+  "files": {
+    "protocol.md": {
+      "sha256": "ba30500372087373c8e613b290743e5aeb32b6d25a22eba1e545e13798ee9c35"
+    },
+    "run.py": {
+      "sha256": "e89039d288280f0d8f43b225d26bff29987efaa4ebd4ba5630f9d4d1a780002b"
+    }
+  },
+  "frozen_at": "2026-11-07 (pre-first-call)"
+}
