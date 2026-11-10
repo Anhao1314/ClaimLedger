@@ -131,10 +131,17 @@ Three roles, one cycle:
  Agent writes code — but avoids the conflicted territory
        │
        ▼
- Human opens console → clicks upheld / overturned
+ Judge also proposes graph edges (supports / contradicts /
+ supersedes) — they wait in the same human gate as records
+       │
+       ▼
+ Human opens console → confirms proposals (records AND edges)
+                      → clicks upheld / overturned on judgments
        │
        ▼
  Calibration data grows → thresholds become evidence-backed
+ Confirmed edges compound: later briefs mark superseded
+ constraints and surface cross-task KNOWN CONFLICTS
 ```
 
 ### What happens when you swap models
@@ -144,8 +151,8 @@ Three roles, one cycle:
  After (DeepSeek):  records → judge(new model) → action
                              ↑
                    records unchanged (no status field)
-                   question set unchanged (contract v1, sha256 frozen)
-                   policy unchanged (v2.2)
+                   question set unchanged (contract v3, sha256 frozen)
+                   policy unchanged (v2.3)
                    the only thing that changed: the generation model
 ```
 
@@ -178,8 +185,11 @@ earns its keep.** CLAUDE.md constraints silently contradict and silently expire.
 catches both. But this advantage is currently theoretical — no real project at this scale
 has been measured.
 
-**Multi-agent teams:** structurally necessary (agents writing conflicting memories need a
-shared authority), but the merge semantics are not built yet.
+**Multi-agent teams:** verified in practice. A second-vendor agent (Doubao Work, driving
+the same store over its own stdio JSON-RPC transport) read a zcode-authored constraint as
+`governing` in its brief, and its own write was held as a pending proposal until a human
+confirmed it. Conflicting memories across agents become proposed graph edges, resolved by
+the same human gate — the "merge semantics" are the gate itself.
 
 ## Positioning
 
@@ -257,7 +267,13 @@ v1 scores `admit` entries only, and says so where the user clicks:
 
 Agent writes do not land on the canvas directly: they arrive in the topbar's
 **Proposals** panel with the proposer's identity, and become records only after
-you press Confirm. Reject leaves the record store untouched.
+you press Confirm. Reject leaves the record store untouched. Proposed **graph
+edges** wait in the same panel (the console decide surface proposes them, like
+the MCP surface). Direct human writes via "+ Record" carry a `by=` attestation
+(`direct_writes.jsonl`) so they are distinguishable from agent proposals in the
+audit trail. Each brief card has an **Agent view** fold showing the exact text
+the agent reads, and the topbar toggles 中文 / English (UI chrome only —
+judgment text is never translated).
 
 ```bash
 python -m jev_first console --store records.jsonl
@@ -269,7 +285,9 @@ python -m pip install .
 python -m jev_first record --store records.jsonl --text "All storage must use PostgreSQL." --source agent
 python -m jev_first decide --store records.jsonl --task "Write a storage adapter for analytics"
 python -m jev_first brief  --store records.jsonl --task "Write a storage adapter for analytics"
-python -m jev_first verify --store records.jsonl
+python -m jev_first edges       --edges edges.jsonl
+python -m jev_first edge-confirm --edges edges.jsonl --edge-id edg_… --by human
+python -m jev_first verify      --store records.jsonl
 ```
 
 Zero third-party dependencies, Python 3.9+. Records carry no status field: validity is a
